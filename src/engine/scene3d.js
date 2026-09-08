@@ -76,10 +76,10 @@ export class V12Scene3D {
   }
 
   _init() {
-    // 1. Scene
+    // 1. Scene - Apple Pro Studio Black
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x0f1115); // Deep stealth industrial slate
-    this.scene.fog = new THREE.FogExp2(0x0f1115, 0.04);
+    this.scene.background = new THREE.Color(0x000000);
+    this.scene.fog = new THREE.FogExp2(0x000000, 0.035);
 
     // 2. Camera
     this.camera = new THREE.PerspectiveCamera(42, this.width / this.height, 0.1, 100);
@@ -306,17 +306,17 @@ export class V12Scene3D {
   }
 
   _buildStudioFloor() {
-    // Elegant dark grid floor
-    const grid = new THREE.GridHelper(30, 60, 0x00e5ff, 0x1f2937);
+    // Apple Pro studio floor
+    const grid = new THREE.GridHelper(30, 60, 0x2c2c2e, 0x121214);
     grid.position.y = -1.8;
     this.scene.add(grid);
 
     // Subtle dark circular ground pad
     const padGeo = new THREE.CylinderGeometry(8, 8.5, 0.1, 48);
     const padMat = new THREE.MeshStandardMaterial({
-      color: 0x0b0d11,
-      roughness: 0.8,
-      metalness: 0.2
+      color: 0x070709,
+      roughness: 0.85,
+      metalness: 0.15
     });
     const pad = new THREE.Mesh(padGeo, padMat);
     pad.position.y = -1.85;
@@ -867,8 +867,8 @@ export class V12Scene3D {
     ];
 
     calloutData.forEach(item => {
-      const dotGeo = new THREE.SphereGeometry(0.05, 12, 12);
-      const dotMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff });
+      const dotGeo = new THREE.SphereGeometry(0.04, 12, 12);
+      const dotMat = new THREE.MeshBasicMaterial({ color: 0x2997ff });
       const dot = new THREE.Mesh(dotGeo, dotMat);
       dot.position.copy(item.pos);
       this.calloutsGroup.add(dot);
@@ -876,9 +876,9 @@ export class V12Scene3D {
       // Line leader
       const lineGeo = new THREE.BufferGeometry().setFromPoints([
         new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(0.4, 0.4, 0)
+        new THREE.Vector3(0.35, 0.35, 0)
       ]);
-      const lineMat = new THREE.LineBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.6 });
+      const lineMat = new THREE.LineBasicMaterial({ color: 0x2997ff, transparent: true, opacity: 0.5 });
       const line = new THREE.Line(lineGeo, lineMat);
       line.position.copy(item.pos);
       this.calloutsGroup.add(line);
