@@ -256,6 +256,52 @@ body, html {
 .dot-orange { background: var(--apple-red); }
 .dot-amber { background: var(--apple-orange); }
 
+.rr-coin-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--apple-track-bg);
+  padding: 4px 11px;
+  border-radius: var(--apple-radius-pill);
+  border: 1px solid var(--apple-border-subtle);
+  color: var(--apple-text-primary);
+  font-size: 11px;
+  cursor: default;
+}
+
+.coin-badge-label {
+  font-weight: 600;
+  color: var(--apple-text-secondary);
+}
+
+.coin-badge-status {
+  font-weight: 600;
+  color: var(--apple-green);
+  letter-spacing: -0.01em;
+}
+
+.rr-boost-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--apple-track-bg);
+  padding: 4px 10px;
+  border-radius: var(--apple-radius-pill);
+  border: 1px solid var(--apple-border-subtle);
+  font-size: 11px;
+}
+
+.boost-badge-label {
+  font-weight: 500;
+  color: var(--apple-text-secondary);
+}
+
+.boost-badge-val {
+  font-family: var(--apple-mono);
+  font-weight: 600;
+  color: var(--apple-blue-light);
+}
+
 .apple-audio-widget {
   display: flex;
   align-items: center;
@@ -316,6 +362,69 @@ body, html {
   gap: 12px;
 }
 
+/* Rolls-Royce Power Reserve Capsule */
+.power-reserve-capsule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--apple-track-bg);
+  border: 1px solid var(--apple-border-subtle);
+  padding: 4px 12px 4px 8px;
+  border-radius: var(--apple-radius-pill);
+}
+
+.pr-gauge-mini {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pr-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.pr-track {
+  stroke: var(--apple-slider-track);
+  opacity: 0.5;
+}
+
+.pr-fill {
+  stroke: var(--apple-blue-light);
+  transition: stroke-dashoffset 0.12s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.pr-center-label {
+  position: absolute;
+  font-family: var(--apple-mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  color: var(--apple-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.pr-text-stack {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.pr-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--apple-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.pr-subtitle {
+  font-size: 9.5px;
+  color: var(--apple-text-secondary);
+  font-family: var(--apple-mono);
+}
+
 .rpm-capsule {
   display: flex;
   align-items: center;
@@ -363,6 +472,11 @@ body, html {
 
 .rpm-ticks .redline-tick {
   color: var(--apple-red);
+}
+
+.rpm-ticks .highlight-tick {
+  color: var(--apple-blue-light);
+  font-weight: 600;
 }
 
 /* Theme Segmented Toggle */

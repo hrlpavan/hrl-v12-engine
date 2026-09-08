@@ -46,21 +46,21 @@ export class V12AudioEngine {
     this.highPass.type = "highpass";
     this.highPass.frequency.setValueAtTime(45, this.ctx.currentTime);
 
-    // Distortion / WaveShaper for internal combustion shockwave edge
+    // Distortion / WaveShaper for refined internal combustion pulse
     this.distortionNode = this.ctx.createWaveShaper();
-    this.distortionNode.curve = this._makeDistortionCurve(24);
+    this.distortionNode.curve = this._makeDistortionCurve(10); // Soft, velvety saturation (not harsh)
     this.distortionNode.oversample = "4x";
 
-    // Resonant Header Collector Filter (Equal length 6-into-1 collector resonance)
+    // Resonant Header Collector Filter (Goodwood Tuned Baritone Exhaust)
     this.exhaustResonator = this.ctx.createBiquadFilter();
     this.exhaustResonator.type = "peaking";
-    this.exhaustResonator.Q.setValueAtTime(3.8, this.ctx.currentTime);
-    this.exhaustResonator.gain.setValueAtTime(14, this.ctx.currentTime);
+    this.exhaustResonator.Q.setValueAtTime(2.2, this.ctx.currentTime);
+    this.exhaustResonator.gain.setValueAtTime(8, this.ctx.currentTime);
 
-    // Engine bay acoustic lowpass
+    // Rolls-Royce Acoustic Shielding (Double-bulkhead lowpass filter)
     this.lowPass = this.ctx.createBiquadFilter();
     this.lowPass.type = "lowpass";
-    this.lowPass.frequency.setValueAtTime(7500, this.ctx.currentTime);
+    this.lowPass.frequency.setValueAtTime(4200, this.ctx.currentTime);
 
     // Connect node chain: Sources -> HighPass -> Distortion -> Resonator -> LowPass -> MasterGain -> Destination
     this.highPass.connect(this.distortionNode);
@@ -69,21 +69,21 @@ export class V12AudioEngine {
     this.lowPass.connect(this.masterGain);
     this.masterGain.connect(this.ctx.destination);
 
-    // Setup multi-harmonic oscillators
+    // Setup multi-harmonic oscillators & turbo spool
     this._setupHarmonics();
     this._setupValvetrainNoise();
+    this._setupTurbochargerSpool();
   }
 
-  _makeDistortionCurve(amount = 20) {
-    const k = typeof amount === 'number' ? amount : 20;
+  _makeDistortionCurve(amount = 10) {
+    const k = typeof amount === 'number' ? amount : 10;
     const nSamples = 4096;
     const curve = new Float32Array(nSamples);
     const deg = Math.PI / 180;
 
     for (let i = 0; i < nSamples; ++i) {
       const x = (i * 2) / nSamples - 1;
-      // Hyperbolic tangent soft saturation curve
-      curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+      curve[i] = ((3 + k) * x * 15 * deg) / (Math.PI + k * Math.abs(x));
     }
     return curve;
   }
@@ -91,17 +91,15 @@ export class V12AudioEngine {
   _setupHarmonics() {
     if (!this.ctx) return;
 
-    // Harmonic configuration:
-    // [harmonicMultiplierOfCrankRev, type, initialGain]
-    // V12 fires 6 times per crank rev -> order 6 is fundamental firing pulse!
+    // Rolls-Royce Harmonically Balanced Configuration:
+    // Emphasizes smooth, warm, low-frequency baritone notes (600 RPM idle = 60 Hz)
     const harmonicConfigs = [
-      { order: 1, type: "sawtooth", gain: 0.25 }, // Crank mechanical rumble
-      { order: 2, type: "triangle", gain: 0.20 }, // Second order crank harmonic
-      { order: 3, type: "sawtooth", gain: 0.35 }, // Bank-to-bank 3-pulse alternation
-      { order: 6, type: "sawtooth", gain: 0.70 }, // Fundamental firing order (V12 signature scream)
-      { order: 12, type: "sine",    gain: 0.45 }, // 2nd firing harmonic
-      { order: 18, type: "sine",    gain: 0.28 }, // 3rd firing harmonic (metallic shimmer)
-      { order: 24, type: "triangle", gain: 0.15 } // 4th firing harmonic (high-RPM howl)
+      { order: 1, type: "sine",     gain: 0.35 }, // Crank fundamental rotation
+      { order: 2, type: "triangle", gain: 0.28 }, // Second harmonic warmth
+      { order: 3, type: "sine",     gain: 0.30 }, // 3-pulse alternation
+      { order: 6, type: "triangle", gain: 0.55 }, // Fundamental firing order (Velvety V12 hum)
+      { order: 12, type: "sine",    gain: 0.22 }, // 2nd firing harmonic
+      { order: 18, type: "sine",    gain: 0.12 }  // High harmonic overtone
     ];
 
     this.oscillators = harmonicConfigs.map(cfg => {
@@ -118,6 +116,29 @@ export class V12AudioEngine {
 
       return { osc, gain, order: cfg.order, baseGain: cfg.gain };
     });
+  }
+
+  _setupTurbochargerSpool() {
+    if (!this.ctx) return;
+
+    // Twin Turbocharger Spool Whistle (Twin Honeywell/Garrett units)
+    this.turboOsc = this.ctx.createOscillator();
+    this.turboOsc.type = "sine";
+    this.turboOsc.frequency.setValueAtTime(800, this.ctx.currentTime);
+
+    this.turboGain = this.ctx.createGain();
+    this.turboGain.gain.setValueAtTime(0.0, this.ctx.currentTime);
+
+    this.turboFilter = this.ctx.createBiquadFilter();
+    this.turboFilter.type = "bandpass";
+    this.turboFilter.frequency.setValueAtTime(1600, this.ctx.currentTime);
+    this.turboFilter.Q.setValueAtTime(3.0, this.ctx.currentTime);
+
+    this.turboOsc.connect(this.turboFilter);
+    this.turboFilter.connect(this.turboGain);
+    this.turboGain.connect(this.masterGain);
+
+    this.turboOsc.start();
   }
 
   _setupValvetrainNoise() {
@@ -185,15 +206,30 @@ export class V12AudioEngine {
     });
 
     // Modulate exhaust collector resonance frequency with RPM
-    // Resonant peak climbs from ~750 Hz at idle to ~2800 Hz at 9500 RPM
+    // Resonant baritone peak climbs from ~180 Hz at idle to ~950 Hz at 6000 RPM
     if (this.exhaustResonator) {
-      const resonantFreq = 750 + (this.currentRpm / 9500) * 2100;
+      const resonantFreq = 180 + (this.currentRpm / 6000) * 780;
       this.exhaustResonator.frequency.setTargetAtTime(resonantFreq, now, 0.05);
     }
 
-    // Valvetrain & induction noise gain
+    // Twin Turbocharger Spool Sound
+    // Whistle rises smoothly above 1200 RPM up to 2400 Hz
+    if (this.turboGain && this.turboOsc && this.turboFilter) {
+      if (this.currentRpm > 1100 && !isStationary) {
+        const turboFactor = (this.currentRpm - 1100) / 4900;
+        const turboFreq = 950 + turboFactor * 1450; // 950 Hz to 2400 Hz
+        const turboVol = Math.min(0.18, turboFactor * 0.18);
+        this.turboOsc.frequency.setTargetAtTime(turboFreq, now, 0.06);
+        this.turboFilter.frequency.setTargetAtTime(turboFreq, now, 0.06);
+        this.turboGain.gain.setTargetAtTime(turboVol, now, 0.06);
+      } else {
+        this.turboGain.gain.setTargetAtTime(0.0, now, 0.05);
+      }
+    }
+
+    // Valvetrain & induction noise gain (muffled Rolls-Royce acoustic isolation)
     if (this.noiseGain) {
-      const noiseLevel = isStationary ? 0 : 0.04 + (this.currentRpm / 9500) * 0.12;
+      const noiseLevel = isStationary ? 0 : 0.02 + (this.currentRpm / 6000) * 0.05;
       this.noiseGain.gain.setTargetAtTime(noiseLevel, now, 0.05);
     }
   }

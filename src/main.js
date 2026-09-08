@@ -12,7 +12,7 @@ class V12Application {
   constructor() {
     this.isPlaying = true;
     this.masterCrankAngleDeg = 0.0;
-    this.engineRpm = 7200;
+    this.engineRpm = 1600;
     this.playbackRate = 0.05;
     this.selectedCylinderId = 1;
     this.isIsolated = false;
@@ -180,11 +180,11 @@ class V12Application {
     });
 
     btnThrottleBlip.addEventListener('click', () => {
-      audioEngine.blipThrottle(2200);
-      rpmDisplay.textContent = Math.min(9500, this.engineRpm + 2200);
+      audioEngine.blipThrottle(1600);
+      rpmDisplay.textContent = Math.min(6000, this.engineRpm + 1600);
       setTimeout(() => {
         rpmDisplay.textContent = this.engineRpm;
-      }, 400);
+      }, 450);
     });
 
     // 6. Camera Presets
@@ -300,6 +300,34 @@ class V12Application {
 
     document.getElementById('chamber-pressure-val').textContent = selectedCyl.thermo.pressureBar.toFixed(1);
     document.getElementById('chamber-temp-val').textContent = `${selectedCyl.thermo.temperatureK} K`;
+
+    // Rolls-Royce Power Reserve Gauge update
+    const prVal = engineState.powerReservePercent;
+    const prDisplay = document.getElementById('power-reserve-val');
+    if (prDisplay) prDisplay.textContent = `${Math.round(prVal)}%`;
+
+    const prStatus = document.getElementById('power-reserve-status');
+    if (prStatus) {
+      prStatus.textContent = prVal >= 95 ? '100% Available' : (prVal >= 50 ? `${Math.round(prVal)}% Reserve` : 'Maximum Output');
+    }
+
+    const prFill = document.getElementById('pr-gauge-fill');
+    if (prFill) {
+      const offset = 62.0 * (1.0 - Math.max(0, Math.min(100, prVal)) / 100.0);
+      prFill.style.strokeDashoffset = offset;
+    }
+
+    // Rolls-Royce 1906 Coin Balance Test status
+    const coinBadge = document.getElementById('coin-status-badge');
+    if (coinBadge && engineState.coinStability) {
+      coinBadge.textContent = engineState.coinStability.status;
+    }
+
+    // Twin Turbocharger Boost Pressure
+    const turboVal = document.getElementById('turbo-boost-val');
+    if (turboVal && engineState.turboBoost) {
+      turboVal.textContent = `${engineState.turboBoost.absoluteBar.toFixed(2)} bar`;
+    }
 
     const pills = document.querySelectorAll('.fo-pill');
     pills.forEach(p => {

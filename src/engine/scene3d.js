@@ -47,6 +47,11 @@ export class V12Scene3D {
     this.timingDriveGroup = new THREE.Group();
     this.particlesGroup = new THREE.Group();
     this.calloutsGroup = new THREE.Group();
+    this.turboGroup = new THREE.Group();
+    this.intercoolerGroup = new THREE.Group();
+    this.coinGroup = new THREE.Group();
+    this.turboImpellers = [];
+    this.standingCoin = null;
 
     // Cylinders dynamic parts cache: { id, pistonGroup, rodGroup, inValves, exValves, inSprings, exSprings, sparkGlow, fireMesh, pointLight }
     this.cylinderMeshes = [];
@@ -61,12 +66,14 @@ export class V12Scene3D {
     this.intakeParticles = [];
     this.exhaustParticles = [];
 
-    // Camera preset targets
+    // Camera preset targets (including Rolls-Royce Turbo & Coin Test focus)
     this.cameraPresets = {
       hero:    { pos: new THREE.Vector3(4.8, 3.8, 5.2),  target: new THREE.Vector3(0, 0.6, 0) },
       front:   { pos: new THREE.Vector3(0, 1.2, 6.2),    target: new THREE.Vector3(0, 0.5, 0) },
       side:    { pos: new THREE.Vector3(6.5, 1.2, 0.0),  target: new THREE.Vector3(0, 0.4, 0) },
       valley:  { pos: new THREE.Vector3(0, 5.8, 0.2),    target: new THREE.Vector3(0, 0.8, 0) },
+      coin:    { pos: new THREE.Vector3(0.5, 2.3, 1.4),  target: new THREE.Vector3(0, 1.82, 0.4) },
+      turbo:   { pos: new THREE.Vector3(3.8, 0.8, 0.2),  target: new THREE.Vector3(2.1, 0.2, 0) },
       cyl1:    { pos: new THREE.Vector3(1.8, 2.2, 3.2),  target: new THREE.Vector3(0.8, 1.4, 2.8) },
       crank:   { pos: new THREE.Vector3(3.2, -0.6, 2.2), target: new THREE.Vector3(0, -0.2, 0) },
       dohc:    { pos: new THREE.Vector3(2.5, 4.2, 2.0),  target: new THREE.Vector3(0.8, 2.2, 1.0) }
@@ -120,6 +127,9 @@ export class V12Scene3D {
     this.rootGroup.add(this.blockGroup);
     this.rootGroup.add(this.valvetrainGroup);
     this.rootGroup.add(this.timingDriveGroup);
+    this.rootGroup.add(this.turboGroup);
+    this.rootGroup.add(this.intercoolerGroup);
+    this.rootGroup.add(this.coinGroup);
     this.rootGroup.add(this.particlesGroup);
     this.rootGroup.add(this.calloutsGroup);
 
@@ -128,6 +138,9 @@ export class V12Scene3D {
     this._buildEngineBlock();
     this._buildQuadCamValvetrain();
     this._buildTimingDrive();
+    this._buildTwinTurbochargers();
+    this._buildIntercoolersAndPlenums();
+    this._buildStandingCoin();
     this._buildGasParticles();
     this._buildCallouts();
     this._buildStudioFloor();
@@ -303,6 +316,48 @@ export class V12Scene3D {
       opacity: 0.0,
       blending: THREE.AdditiveBlending,
       side: THREE.DoubleSide
+    });
+
+    // Rolls-Royce Starlight Mirror-Polished Chrome
+    this.materials.starlightChrome = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      metalness: 0.98,
+      roughness: 0.05,
+      envMapIntensity: 2.0
+    });
+
+    // Rolls-Royce Goodwood Piano Black
+    this.materials.pianoBlack = new THREE.MeshStandardMaterial({
+      color: 0x0c0c0e,
+      metalness: 0.25,
+      roughness: 0.06
+    });
+
+    // Twin Turbochargers (Turbine & Compressor)
+    this.materials.turboTurbine = new THREE.MeshStandardMaterial({
+      color: 0x3e4046,
+      metalness: 0.85,
+      roughness: 0.45
+    });
+
+    this.materials.turboCompressor = new THREE.MeshStandardMaterial({
+      color: 0xeef2f7,
+      metalness: 0.92,
+      roughness: 0.16
+    });
+
+    // Historic 1906 Rolls-Royce Silver Coin (Standing Coin Test)
+    this.materials.silverCoin = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      metalness: 0.98,
+      roughness: 0.06
+    });
+
+    // Water-to-Air Charge Coolers (Intercoolers)
+    this.materials.intercooler = new THREE.MeshStandardMaterial({
+      color: 0xd8dde6,
+      metalness: 0.86,
+      roughness: 0.22
     });
   }
 
@@ -825,6 +880,216 @@ export class V12Scene3D {
     this.timingDriveGroup.add(chainMesh);
   }
 
+  _buildTwinTurbochargers() {
+    this.turboGroup.clear();
+    this.turboImpellers = [];
+
+    const crankLength = 6 * CYL_SPACING;
+    const turboZ = 0.0;
+
+    // Symmetrical Twin Turbochargers: Right Bank (+X) and Left Bank (-X)
+    const turboConfigs = [
+      { side: 'R', sign: 1,  x:  2.35, y: 0.35 },
+      { side: 'L', sign: -1, x: -2.35, y: 0.35 }
+    ];
+
+    turboConfigs.forEach(cfg => {
+      const tbGroup = new THREE.Group();
+      tbGroup.position.set(cfg.x, cfg.y, turboZ);
+
+      // 1. Turbine Housing (Cast Iron Dark Snail Shell)
+      const turbineGeo = new THREE.TorusGeometry(0.36, 0.15, 16, 32, Math.PI * 1.8);
+      const turbineMesh = new THREE.Mesh(turbineGeo, this.materials.turboTurbine);
+      turbineMesh.rotation.y = cfg.sign * (Math.PI / 2);
+      turbineMesh.position.set(0, 0, -0.22);
+      tbGroup.add(turbineMesh);
+
+      // Turbine exhaust discharge flanged elbow (pointing rearward)
+      const downpipeGeo = new THREE.CylinderGeometry(0.18, 0.20, 0.8, 20);
+      downpipeGeo.rotateX(Math.PI / 2);
+      const downpipeMesh = new THREE.Mesh(downpipeGeo, this.materials.turboTurbine);
+      downpipeMesh.position.set(0, -0.05, -0.65);
+      tbGroup.add(downpipeMesh);
+
+      // 2. CHRA Center Bearing Cartridge (Water/Oil Cooled)
+      const chraGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.25, 18);
+      chraGeo.rotateX(Math.PI / 2);
+      const chraMesh = new THREE.Mesh(chraGeo, this.materials.gear);
+      chraMesh.position.set(0, 0, 0.02);
+      tbGroup.add(chraMesh);
+
+      // Polished oil and coolant feed lines
+      const lineGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.45, 12);
+      const feedLine = new THREE.Mesh(lineGeo, this.materials.starlightChrome);
+      feedLine.position.set(0, 0.22, 0.02);
+      tbGroup.add(feedLine);
+
+      // 3. Compressor Housing (Mirror Billet Aluminum Snail Shell)
+      const compGeo = new THREE.TorusGeometry(0.40, 0.17, 16, 32, Math.PI * 1.8);
+      const compMesh = new THREE.Mesh(compGeo, this.materials.turboCompressor);
+      compMesh.rotation.y = cfg.sign * (Math.PI / 2);
+      compMesh.position.set(0, 0, 0.25);
+      tbGroup.add(compMesh);
+
+      // Compressor inlet bellmouth (facing forward)
+      const inletGeo = new THREE.CylinderGeometry(0.24, 0.19, 0.32, 24);
+      inletGeo.rotateX(Math.PI / 2);
+      const inletMesh = new THREE.Mesh(inletGeo, this.materials.turboCompressor);
+      inletMesh.position.set(0, 0, 0.45);
+      tbGroup.add(inletMesh);
+
+      // Compressor Impeller Wheel (Precision Milled Spinner with 8 Blades)
+      const impellerGroup = new THREE.Group();
+      impellerGroup.position.set(0, 0, 0.35);
+
+      const noseConeGeo = new THREE.ConeGeometry(0.07, 0.15, 16);
+      noseConeGeo.rotateX(Math.PI / 2);
+      const noseCone = new THREE.Mesh(noseConeGeo, this.materials.starlightChrome);
+      impellerGroup.add(noseCone);
+
+      for (let b = 0; b < 8; b++) {
+        const bladeGeo = new THREE.BoxGeometry(0.16, 0.015, 0.10);
+        const blade = new THREE.Mesh(bladeGeo, this.materials.turboCompressor);
+        const angle = (b / 8) * Math.PI * 2;
+        blade.position.set(Math.cos(angle) * 0.10, Math.sin(angle) * 0.10, 0);
+        blade.rotation.z = angle + 0.35;
+        blade.rotation.x = 0.3;
+        impellerGroup.add(blade);
+      }
+      tbGroup.add(impellerGroup);
+      this.turboImpellers.push(impellerGroup);
+
+      // Compressor Charge Boost Pipe (leads upward into intercooler plenum)
+      const pipeGeo = new THREE.CylinderGeometry(0.14, 0.14, 1.6, 20);
+      const pipeMesh = new THREE.Mesh(pipeGeo, this.materials.starlightChrome);
+      pipeMesh.position.set(-cfg.sign * 0.3, 0.95, 0.1);
+      pipeMesh.rotation.z = -cfg.sign * 0.35;
+      tbGroup.add(pipeMesh);
+
+      // 4. Wastegate Actuator Canister & Calibrated Linkage
+      const wastegateGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.28, 16);
+      const wastegate = new THREE.Mesh(wastegateGeo, this.materials.starlightChrome);
+      wastegate.position.set(cfg.sign * 0.38, 0.25, -0.15);
+      wastegate.rotation.x = Math.PI / 4;
+      tbGroup.add(wastegate);
+
+      const rodGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.32, 10);
+      const rod = new THREE.Mesh(rodGeo, this.materials.starlightChrome);
+      rod.position.set(cfg.sign * 0.38, 0.05, -0.28);
+      rod.rotation.x = Math.PI / 3;
+      tbGroup.add(rod);
+
+      this.turboGroup.add(tbGroup);
+    });
+  }
+
+  _buildIntercoolersAndPlenums() {
+    this.intercoolerGroup.clear();
+
+    const crankLength = 6 * CYL_SPACING;
+    const intercoolerLength = crankLength + 0.2;
+
+    // Dual Water-to-Air Charge Air Coolers sitting above cylinder banks
+    const icConfigs = [
+      { side: 'R', sign: 1,  x:  1.25, y: 2.35 },
+      { side: 'L', sign: -1, x: -1.25, y: 2.35 }
+    ];
+
+    icConfigs.forEach(cfg => {
+      const icGroup = new THREE.Group();
+      icGroup.position.set(cfg.x, cfg.y, 0);
+      icGroup.rotation.z = cfg.sign * (BANK_ANGLE * 0.4);
+
+      // 1. Main Charge Cooler Billet Aluminum Enclosure
+      const housingGeo = new THREE.BoxGeometry(0.92, 0.42, intercoolerLength);
+      const housing = new THREE.Mesh(housingGeo, this.materials.intercooler);
+      icGroup.add(housing);
+
+      // 2. Goodwood Piano Black Acoustic Shroud Top Cover
+      const shroudGeo = new THREE.BoxGeometry(0.86, 0.06, intercoolerLength - 0.2);
+      const shroud = new THREE.Mesh(shroudGeo, this.materials.pianoBlack);
+      shroud.position.y = 0.22;
+      icGroup.add(shroud);
+
+      // 3. Rolls-Royce Starlight Mirror-Polished Center Plaque
+      const plaqueGeo = new THREE.BoxGeometry(0.48, 0.02, 2.4);
+      const plaque = new THREE.Mesh(plaqueGeo, this.materials.starlightChrome);
+      plaque.position.set(0, 0.255, 0);
+      icGroup.add(plaque);
+
+      // Subtle longitudinal accent fin lines
+      for (let l = -2; l <= 2; l++) {
+        const stripeGeo = new THREE.BoxGeometry(0.04, 0.015, intercoolerLength - 0.4);
+        const stripe = new THREE.Mesh(stripeGeo, this.materials.starlightChrome);
+        stripe.position.set(l * 0.18, 0.252, 0);
+        icGroup.add(stripe);
+      }
+
+      // 4. Polished Intake Runner Horns (6 runners feeding into cylinder intake ports)
+      const zStart = (crankLength / 2) - (CYL_SPACING / 2);
+      for (let c = 0; c < 6; c++) {
+        const runnerZ = zStart - c * CYL_SPACING;
+        const runnerGeo = new THREE.CylinderGeometry(0.11, 0.12, 0.55, 16);
+        const runner = new THREE.Mesh(runnerGeo, this.materials.starlightChrome);
+        runner.position.set(-cfg.sign * 0.28, -0.35, runnerZ);
+        runner.rotation.z = -cfg.sign * (BANK_ANGLE * 0.6);
+        icGroup.add(runner);
+      }
+
+      this.intercoolerGroup.add(icGroup);
+    });
+
+    // 5. Water Cooling Crossover Manifolds (Valley front & rear)
+    [-intercoolerLength / 2 + 0.4, intercoolerLength / 2 - 0.4].forEach(zPos => {
+      const crossTubeGeo = new THREE.CylinderGeometry(0.06, 0.06, 2.4, 16);
+      crossTubeGeo.rotateZ(Math.PI / 2);
+      const crossTube = new THREE.Mesh(crossTubeGeo, this.materials.starlightChrome);
+      crossTube.position.set(0, 2.35, zPos);
+      this.intercoolerGroup.add(crossTube);
+    });
+  }
+
+  _buildStandingCoin() {
+    this.coinGroup.clear();
+
+    // The Historic 1906 Sir Henry Royce Coin Balance Test
+    // Demonstrating absolute primary and secondary balance on edge in the intake valley
+    const coinHolderGroup = new THREE.Group();
+    coinHolderGroup.position.set(0, 1.88, 0.45);
+
+    // 1. Polished Chrome Valley Pedestal / Engine Plaque
+    const pedestalGeo = new THREE.BoxGeometry(0.65, 0.05, 0.65);
+    const pedestal = new THREE.Mesh(pedestalGeo, this.materials.starlightChrome);
+    coinHolderGroup.add(pedestal);
+
+    // Inset Piano Black Medallion Pad
+    const padGeo = new THREE.CylinderGeometry(0.26, 0.26, 0.02, 32);
+    const pad = new THREE.Mesh(padGeo, this.materials.pianoBlack);
+    pad.position.y = 0.03;
+    coinHolderGroup.add(pad);
+
+    // 2. Standing Silver Coin (1906 British Sovereign / Silver Crown)
+    // Standing precisely on edge! Cylinder axis is X, so circular faces point left/right or angled
+    const coinGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.022, 48);
+    // Rotate so coin sits on its rim standing upright
+    coinGeo.rotateZ(Math.PI / 2);
+    const coinMesh = new THREE.Mesh(coinGeo, this.materials.silverCoin);
+    coinMesh.position.y = 0.18 + 0.04;
+    coinMesh.rotation.y = 0.45; // Sits at an elegant 3/4 display angle
+    coinHolderGroup.add(coinMesh);
+
+    // Coin Milled Reeded Outer Edge Ring
+    const rimGeo = new THREE.TorusGeometry(0.182, 0.012, 12, 48);
+    rimGeo.rotateY(Math.PI / 2);
+    const rimMesh = new THREE.Mesh(rimGeo, this.materials.silverCoin);
+    rimMesh.position.y = 0.18 + 0.04;
+    rimMesh.rotation.y = 0.45;
+    coinHolderGroup.add(rimMesh);
+
+    this.standingCoin = coinMesh;
+    this.coinGroup.add(coinHolderGroup);
+  }
+
   _buildGasParticles() {
     this.particlesGroup.clear();
     this.intakeParticles = [];
@@ -865,13 +1130,14 @@ export class V12Scene3D {
   _buildCallouts() {
     this.calloutsGroup.clear();
 
-    // 3D Visual HUD Callout tags
+    // 3D Visual HUD Callout tags for Rolls-Royce Bespoke V12
     const calloutData = [
-      { text: "Crankshaft · 120° Billet", pos: new THREE.Vector3(0, -0.4, 2.2) },
-      { text: "Quad-Cam DOHC · 48V",      pos: new THREE.Vector3(1.2, 2.8, 1.2) },
-      { text: "Pistons · 88mm Forged",    pos: new THREE.Vector3(1.8, 1.2, 0.4) },
-      { text: "Flywheel · Pulse Storage", pos: new THREE.Vector3(0, 0.2, -3.4) },
-      { text: "1:2 Helical Timing Drive", pos: new THREE.Vector3(0, 1.8, 3.2) }
+      { text: "Sir Henry Royce Coin Test · Zero Vibration (1906)", pos: new THREE.Vector3(0, 2.3, 0.5) },
+      { text: "Bespoke 6¾ Litre V12 · 60° Architecture",         pos: new THREE.Vector3(0, -0.4, 2.2) },
+      { text: "Twin Bi-Turbochargers · 900 Nm @ 1,600 RPM",        pos: new THREE.Vector3(2.5, 0.6, 0.2) },
+      { text: "Water-to-Air Charge Air Coolers",                  pos: new THREE.Vector3(1.3, 2.7, -0.4) },
+      { text: "Quad-Cam 48-Valve DOHC Valvetrain",                pos: new THREE.Vector3(-1.3, 2.8, 1.2) },
+      { text: "Whisper-Quiet Billet Steel Crankshaft",            pos: new THREE.Vector3(0, 0.2, -3.4) }
     ];
 
     calloutData.forEach(item => {
@@ -1140,7 +1406,21 @@ export class V12Scene3D {
       this.exhaustParticles.forEach(p => p.mesh.visible = false);
     }
 
-    // 7. Update OrbitControls & Render
+    // 7. Dynamic Turbo Spool & Coin Micro-Stability Update
+    if (this.turboImpellers && this.turboImpellers.length > 0) {
+      const spoolStep = (engineState.rpm / 60.0) * 0.12;
+      this.turboImpellers.forEach(imp => {
+        imp.rotation.z += spoolStep;
+      });
+    }
+
+    if (this.standingCoin && engineState.coinStability) {
+      const microAmp = (engineState.coinStability.vibrationAmplitudeMm || 0.001) * 0.02;
+      const t = performance.now() * 0.006;
+      this.standingCoin.position.x = Math.sin(t * 16.0) * microAmp;
+    }
+
+    // 8. Update OrbitControls & Render
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
   }

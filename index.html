@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HRL V12 Engine | 60° Quad-Cam 48V Interactive Simulation</title>
+  <title>Rolls-Royce Bespoke 6¾ Litre Twin-Turbo V12 | Engineering Architecture</title>
   <link rel="stylesheet" href="./style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,31 +22,44 @@
         <div class="nav-left">
           <div class="apple-brand">
             <svg class="apple-logo-mark" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 3v18M3 12h18" stroke-opacity="0.4" />
-              <circle cx="12" cy="12" r="3.5" fill="currentColor" fill-opacity="0.2" />
+              <rect x="2" y="2" width="20" height="20" rx="3" stroke-width="1.5" />
+              <path d="M6 6h4a2.5 2.5 0 0 1 2.5 2.5v0a2.5 2.5 0 0 1-2.5 2.5H6v7M10.5 11l3 7M13 6h4a2.5 2.5 0 0 1 2.5 2.5v0a2.5 2.5 0 0 1-2.5 2.5h-4v7M17 11l3 7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
             <div class="brand-titles">
-              <span class="brand-title">HRL V12</span>
-              <span class="brand-subtitle">Apex Four-Stroke</span>
+              <span class="brand-title">ROLLS-ROYCE</span>
+              <span class="brand-subtitle">Bespoke 6¾ Litre Twin-Turbo V12</span>
             </div>
           </div>
           <div class="nav-divider"></div>
           <div class="engine-badge-row">
-            <span class="spec-pill">60° V-Angle</span>
-            <span class="spec-pill">Quad-Cam 48V</span>
-            <span class="spec-pill">6.5 L</span>
+            <span class="spec-pill">60° Goodwood Architecture</span>
+            <span class="spec-pill">6¾ Litre (6,749 cc)</span>
+            <span class="spec-pill">Twin-Turbo 900 Nm</span>
             <span class="spec-pill muted-pill">1-12-5-8-3-10-6-7-2-11-4-9</span>
           </div>
         </div>
 
-        <!-- Center: Cycle Indicators & Audio Control -->
+        <!-- Center: Cycle Indicators, Coin Balance & Audio -->
         <div class="nav-center">
           <div class="apple-cycle-pills">
             <span class="cycle-pill"><span class="pill-dot dot-blue"></span>Air & Fuel</span>
             <span class="cycle-pill"><span class="pill-dot dot-purple"></span>Compressed</span>
             <span class="cycle-pill"><span class="pill-dot dot-orange"></span>Combustion</span>
             <span class="cycle-pill"><span class="pill-dot dot-amber"></span>Exhaust</span>
+          </div>
+
+          <div class="rr-coin-badge" title="Sir Henry Royce 1906 Coin Balance Test: Analytical primary and secondary vibration cancellation">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v10M9 9.5a2.5 2.5 0 0 1 5 0c0 2-3 2.5-3 4.5" />
+            </svg>
+            <span class="coin-badge-label">1906 Coin Test:</span>
+            <span id="coin-status-badge" class="coin-badge-status">Balanced Upright</span>
+          </div>
+
+          <div class="rr-boost-badge" title="Twin Turbocharger Boost Pressure">
+            <span class="boost-badge-label">Boost:</span>
+            <span id="turbo-boost-val" class="boost-badge-val">1.00 bar</span>
           </div>
 
           <div class="apple-audio-widget">
@@ -64,8 +77,40 @@
           </div>
         </div>
 
-        <!-- Right: Real-time RPM & Day/Dark Mode Toggle -->
+        <!-- Right: Rolls-Royce Power Reserve Gauge, RPM & Theme Toggle -->
         <div class="nav-right">
+          <div class="power-reserve-capsule" title="Rolls-Royce Power Reserve: 100% available at idle, 0% at peak output">
+            <div class="pr-gauge-mini">
+              <svg viewBox="0 0 36 36" class="pr-svg">
+                <path class="pr-track" d="M 6,26 A 13,13 0 1,1 30,26" fill="none" stroke-width="3" stroke-linecap="round" />
+                <path id="pr-gauge-fill" class="pr-fill" d="M 6,26 A 13,13 0 1,1 30,26" fill="none" stroke-width="3" stroke-linecap="round" stroke-dasharray="62" stroke-dashoffset="0" />
+              </svg>
+              <div class="pr-center-label">
+                <span id="power-reserve-val">100%</span>
+              </div>
+            </div>
+            <div class="pr-text-stack">
+              <span class="pr-title">Power Reserve</span>
+              <span id="power-reserve-status" class="pr-subtitle">100% Available</span>
+            </div>
+          </div>
+
+          <div class="rpm-capsule">
+            <div class="rpm-text-group">
+              <span id="rpm-display" class="rpm-val">1600</span>
+              <span class="rpm-unit">RPM</span>
+            </div>
+            <div class="rpm-slider-track">
+              <input type="range" id="rpm-slider" min="600" max="6000" step="50" value="1600" class="apple-slider" />
+              <div class="rpm-ticks">
+                <span>600 Idle</span>
+                <span class="highlight-tick">1600 Torque</span>
+                <span>5000</span>
+                <span class="redline-tick">6000</span>
+              </div>
+            </div>
+          </div>
+
           <div class="segmented-control theme-segment">
             <button id="btn-theme-light" class="seg-btn active" title="Day Mode (Light Studio)">
               <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -88,22 +133,6 @@
               <span>Dark</span>
             </button>
           </div>
-
-          <div class="rpm-capsule">
-            <div class="rpm-text-group">
-              <span id="rpm-display" class="rpm-val">7200</span>
-              <span class="rpm-unit">RPM</span>
-            </div>
-            <div class="rpm-slider-track">
-              <input type="range" id="rpm-slider" min="0" max="9500" step="50" value="7200" class="apple-slider" />
-              <div class="rpm-ticks">
-                <span>0</span>
-                <span>800</span>
-                <span>4500</span>
-                <span class="redline-tick">9500</span>
-              </div>
-            </div>
-          </div>
         </div>
       </header>
 
@@ -124,9 +153,10 @@
           <div class="card-footer-formula">
             <div class="math-expr">s = r·cosθ + √(L² - r²·sin²θ)</div>
             <div class="param-row">
-              <span>r 44.5 mm</span>
-              <span>L 160 mm</span>
-              <span class="param-accent">Stroke 89 mm</span>
+              <span>r 45.2 mm</span>
+              <span>L 162 mm</span>
+              <span class="param-accent">Stroke 90.4 mm</span>
+              <span>Bore 89 mm</span>
             </div>
           </div>
         </div>
@@ -257,6 +287,8 @@
           <!-- Camera Presets -->
           <div class="segmented-control camera-segment">
             <button class="seg-btn active" data-camera="hero">Hero</button>
+            <button class="seg-btn" data-camera="coin">Coin Test</button>
+            <button class="seg-btn" data-camera="turbo">Bi-Turbo</button>
             <button class="seg-btn" data-camera="front">Front</button>
             <button class="seg-btn" data-camera="side">Side</button>
             <button class="seg-btn" data-camera="valley">Valley</button>

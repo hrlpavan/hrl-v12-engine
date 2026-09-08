@@ -1,24 +1,28 @@
 // ============================================================================
-// HRL V12 Engine Project - Precision Kinematics & Thermodynamics Model
-// 60° V-Angle, Quad-Cam 48-Valve, 6.5L High-Revving V12
+// Rolls-Royce Bespoke 6¾ Litre Twin-Turbo V12 Engine Project
+// Goodwood Engineering Guidelines · 60° V12 DOHC 48-Valve Bi-Turbo
 // Firing Order: 1 - 12 - 5 - 8 - 3 - 10 - 6 - 7 - 2 - 11 - 4 - 9
 // ============================================================================
 
 export const ENGINE_SPECS = {
-  name: "HRL Apex V12 Racing Engine",
-  type: "60° V12 Four-Stroke DOHC 48-Valve",
-  displacementL: 6.5,
-  boreMm: 88.0,
-  strokeMm: 89.0,
-  crankRadiusMm: 44.5,
-  rodLengthMm: 160.0,
-  compressionRatio: 12.5,
-  valvesPerCyl: 4, // 2 Intake, 2 Exhaust
-  intakeMaxLiftMm: 11.5,
-  exhaustMaxLiftMm: 11.0,
-  redlineRpm: 9500,
-  idleRpm: 800,
-  bankAngleDeg: 30.0, // ±30° from vertical, total 60° included angle
+  name: "Rolls-Royce Bespoke 6¾ Litre Twin-Turbo V12",
+  heritage: "Handcrafted at Goodwood, West Sussex, England",
+  type: "60° V12 Twin-Turbocharged Direct Injection 48-Valve",
+  displacementL: 6.75, // 6,749 cc
+  boreMm: 89.0,
+  strokeMm: 90.4, // Undersquare long-stroke for tidal torque
+  crankRadiusMm: 45.2, // 90.4 / 2
+  rodLengthMm: 162.0,
+  compressionRatio: 10.0, // Optimized for twin turbochargers
+  valvesPerCyl: 4, // 2 Intake, 2 Exhaust (48 total)
+  intakeMaxLiftMm: 10.5,
+  exhaustMaxLiftMm: 10.0,
+  governedMaxRpm: 6000,
+  peakPowerRpm: 5000,
+  idleRpm: 600, // Rolls-Royce whisper-quiet idle
+  peakPowerBhp: 563, // 563 bhp @ 5,000 RPM (Black Badge: 600 bhp)
+  peakTorqueNm: 900, // 900 Nm from 1,600 RPM
+  bankAngleDeg: 30.0, // ±30° from vertical, 60° included angle
   firingIntervalDeg: 60.0, // 720° / 12 = 60°
 };
 
@@ -273,6 +277,11 @@ export function computeEngineState(crankAngleDeg, rpm = 6500) {
 
   const camAngleDeg = normalizeAngle(crankAngleDeg * 0.5, 360);
 
+  // Rolls-Royce Power Reserve & Coin Balance
+  const powerReserve = calculatePowerReserve(rpm);
+  const coinStability = calculateCoinStability(rpm);
+  const turboBoost = calculateTurboBoost(rpm);
+
   return {
     crankAngleDeg: normCrank,
     cycleCrankDeg: cycleCrank,
@@ -280,6 +289,57 @@ export function computeEngineState(crankAngleDeg, rpm = 6500) {
     rpm,
     omega,
     activeFiringCylinder: activeFiringCylinder || 1,
-    cylinders: cylinderStates
+    cylinders: cylinderStates,
+    powerReservePercent: powerReserve,
+    coinStability,
+    turboBoost
+  };
+}
+
+/**
+ * Rolls-Royce Power Reserve Calculation
+ * 100% at 600 RPM idle, tapering gracefully to 0% at peak power (5000 RPM).
+ */
+export function calculatePowerReserve(rpm) {
+  const idle = ENGINE_SPECS.idleRpm;
+  const peak = ENGINE_SPECS.peakPowerRpm;
+  if (rpm <= idle) return 100.0;
+  const frac = Math.max(0, Math.min(1, (rpm - idle) / (peak - idle)));
+  const reserve = 100.0 - Math.pow(frac, 1.25) * 100.0;
+  return Math.max(0, Math.min(100, Math.round(reserve * 10) / 10));
+}
+
+/**
+ * Rolls-Royce Coin Balance Test (Zero Vibration Stability)
+ * Analytical primary & secondary force cancellation in 60° V12.
+ */
+export function calculateCoinStability(rpm) {
+  const microVibrationMm = 0.0012 + (rpm / 6000) * 0.0008;
+  return {
+    stabilityPercent: 100.0,
+    status: "Coin Balanced Upright",
+    vibrationAmplitudeMm: microVibrationMm,
+    primaryForceUnbalanceN: 0.0,
+    secondaryForceUnbalanceN: 0.0
+  };
+}
+
+/**
+ * Twin Turbocharger Boost Pressure
+ * Direct Injection Bi-Turbo with water-to-air charge cooling
+ */
+export function calculateTurboBoost(rpm) {
+  const boostStart = 1000;
+  const fullBoost = 1600;
+
+  let boostBar = 1.0;
+  if (rpm > boostStart) {
+    const p = Math.min(1, (rpm - boostStart) / (fullBoost - boostStart));
+    boostBar = 1.0 + 0.62 * p;
+  }
+  const boostPsi = Math.max(0, (boostBar - 1.0) * 14.5038);
+  return {
+    absoluteBar: Math.round(boostBar * 100) / 100,
+    relativePsi: Math.round(boostPsi * 10) / 10
   };
 }
