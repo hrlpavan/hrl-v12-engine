@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HRL V12 Engine Project | 60° Quad-Cam 48V Interactive Simulation</title>
+  <link rel="stylesheet" href="./style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <!-- Fullscreen 3D Viewport -->
+    <div id="canvas-container"></div>
+
+    <!-- HUD Overlay Layer -->
+    <div id="hud-overlay">
+      <!-- TOP HEADER -->
+      <header class="hud-header">
+        <!-- Top Left: Engine Spec & RPM Meter -->
+        <div class="header-left">
+          <div class="brand-title">
+            <span class="brand-badge">HRL LABS</span>
+            <span class="title-main">V12 <span class="dot">·</span> Four-Stroke</span>
+          </div>
+          <div class="engine-subtitle">
+            60° V-ANGLE <span class="sep">·</span> QUAD-CAM 48V <span class="sep">·</span> 6.5 L <span class="sep">·</span> FIRING ORDER 1-12-5-8-3-10-6-7-2-11-4-9
+          </div>
+
+          <div class="tacho-block">
+            <div class="tacho-digital">
+              <span id="rpm-display" class="rpm-number">7200</span>
+              <div class="tacho-unit">
+                <span class="unit-text">REV / MIN</span>
+                <span id="redline-badge" class="redline-tag">PEAK POWER</span>
+              </div>
+            </div>
+
+            <!-- RPM Scrub Slider -->
+            <div class="slider-wrapper">
+              <div class="slider-scale">
+                <span>0</span>
+                <span>IDLE 800</span>
+                <span>4500</span>
+                <span class="redline-mark">9500</span>
+              </div>
+              <input type="range" id="rpm-slider" min="0" max="9500" step="50" value="7200" />
+              <div class="slider-label">Crankshaft Speed Target</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Center: Cycle Color Codes & Audio Control -->
+        <div class="header-center">
+          <div class="cycle-legend">
+            <span class="legend-item"><span class="legend-color legend-blue"></span> AIR & FUEL</span>
+            <span class="legend-item"><span class="legend-color legend-purple"></span> COMPRESSED</span>
+            <span class="legend-item"><span class="legend-color legend-orange"></span> COMBUSTION</span>
+            <span class="legend-item"><span class="legend-color legend-amber"></span> EXHAUST</span>
+          </div>
+
+          <div class="audio-control-bar">
+            <button id="btn-audio-toggle" class="hud-btn btn-audio">
+              <span class="audio-icon">🔊</span>
+              <span id="audio-status-text">V12 AUDIO: MUTED</span>
+            </button>
+            <input type="range" id="audio-volume" min="0" max="1" step="0.05" value="0.6" title="Engine Volume" />
+            <button id="btn-throttle-blip" class="hud-btn btn-blip" title="Blip Throttle (Supercar Rev)">REV 🏎️</button>
+          </div>
+        </div>
+
+        <!-- Top Right: Cylinder Focus & Pressure Readout -->
+        <div class="header-right">
+          <div class="cyl-status-header">
+            <span id="header-cyl-id" class="cyl-badge">CYLINDER 1</span>
+            <span id="header-crank-deg" class="crank-deg">0° CRANK</span>
+          </div>
+
+          <div id="header-stroke-name" class="stroke-name-large stroke-power">
+            Combustion
+          </div>
+
+          <div class="stroke-list">
+            <span id="badge-stroke-intake" class="stroke-tag">INTAKE</span>
+            <span id="badge-stroke-compression" class="stroke-tag">COMPRESSION</span>
+            <span id="badge-stroke-power" class="stroke-tag active">POWER</span>
+            <span id="badge-stroke-exhaust" class="stroke-tag">EXHAUST</span>
+          </div>
+
+          <div class="pressure-gauge-block">
+            <span id="chamber-pressure-val" class="pressure-val">85.4</span>
+            <div class="pressure-meta">
+              <span class="pressure-unit">BAR</span>
+              <span class="pressure-sub">CHAMBER PRESSURE</span>
+              <span id="chamber-temp-val" class="temp-sub">2450 K</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- LEFT TELEMETRY DECK -->
+      <aside class="telemetry-deck deck-left">
+        <!-- Panel 1: Kinematic Slider-Crank -->
+        <div class="hud-panel">
+          <div class="panel-header">
+            <span class="panel-title">SLIDER-CRANK</span>
+            <span id="kinematic-after-tdc" class="panel-meta">0° AFTER TDC</span>
+          </div>
+          <canvas id="canvas-slider-crank" class="telemetry-canvas" width="260" height="110"></canvas>
+          <div class="formula-block">
+            <code>s = r·cosθ + √(L² - r²·sin²θ)</code>
+            <div class="formula-dims">
+              <span>r = 4.45 cm</span>
+              <span>L = 16.0 cm</span>
+              <span class="stroke-tag-sm">STROKE 89 MM</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 2: 60° Crankshaft Polar End-View -->
+        <div class="hud-panel">
+          <div class="panel-header">
+            <span class="panel-title">60° V12 CRANK FRONT VIEW</span>
+            <span class="panel-meta">120° THROWS</span>
+          </div>
+          <canvas id="canvas-crank-end" class="telemetry-canvas" width="260" height="120"></canvas>
+          <div class="diagram-note">
+            <span>Throws 120° apart · Banks at ±30°</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- RIGHT TELEMETRY DECK -->
+      <aside class="telemetry-deck deck-right">
+        <!-- Panel 3: Valve Timing & Cam Lift Scrub -->
+        <div class="hud-panel">
+          <div class="panel-header">
+            <span class="panel-title">VALVE TIMING</span>
+            <span class="panel-meta-action">DRAG TO SCRUB</span>
+          </div>
+          <canvas id="canvas-valve-timing" class="telemetry-canvas interactive-canvas" width="260" height="115"></canvas>
+          <div class="timing-legend">
+            <span><span class="dot-in"></span> IN LIFT</span>
+            <span><span class="dot-ex"></span> EX LIFT</span>
+            <span><span class="dot-piston"></span> PISTON %</span>
+          </div>
+        </div>
+
+        <!-- Panel 4: P-V Indicator Diagram -->
+        <div class="hud-panel">
+          <div class="panel-header">
+            <span class="panel-title">INDICATOR DIAGRAM</span>
+            <span id="pv-cyl-tag" class="panel-meta">CYL 1</span>
+          </div>
+          <canvas id="canvas-pv-indicator" class="telemetry-canvas" width="260" height="115"></canvas>
+          <div class="diagram-note">
+            <span>Thermodynamic Otto Cycle (P vs V)</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- BOTTOM CONTROL BAR -->
+      <footer class="hud-footer">
+        <!-- Bottom Left: Playback & Speed Controls -->
+        <div class="footer-left">
+          <div class="btn-group">
+            <button id="btn-play-pause" class="hud-btn btn-primary">
+              <span id="play-pause-icon">■</span> <span id="play-pause-text">PAUSE</span>
+            </button>
+            <button id="btn-step-back-15" class="hud-btn" title="Step -15°">-15°</button>
+            <button id="btn-step-fwd-15" class="hud-btn" title="Step +15°">+15°</button>
+            <button id="btn-step-fwd-1" class="hud-btn btn-sm" title="Step +1°">+1°</button>
+          </div>
+
+          <div class="speed-control-row">
+            <div class="speed-info">
+              <span class="speed-label">ENGINE SPEED:</span>
+              <span id="hud-speed-label" class="speed-val">7200 RPM</span>
+            </div>
+            <div class="playback-rate-slider">
+              <span class="rate-label">PLAYBACK:</span>
+              <input type="range" id="playback-speed" min="0.01" max="1" step="0.01" value="0.05" />
+              <span id="playback-rate-text" class="rate-val">1/20 SPEED</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Center: 12-Cylinder Firing Order Matrix -->
+        <div class="footer-center">
+          <div class="firing-order-header">
+            <span class="fo-title">FIRING ORDER</span>
+            <span class="fo-sub">CLICK TO TRACK / ISOLATE CYLINDER</span>
+          </div>
+
+          <div class="firing-order-strip" id="firing-order-strip">
+            <!-- 12 Firing Order Badges: 1, 12, 5, 8, 3, 10, 6, 7, 2, 11, 4, 9 -->
+          </div>
+
+          <div class="firing-order-footer">
+            <span>ONE POWER STROKE EVERY 60° OF CRANK ROTATION</span>
+            <span class="nav-hint">DRAG TO ORBIT <span class="dot">·</span> SCROLL TO ZOOM <span class="dot">·</span> H HIDES HUD</span>
+          </div>
+        </div>
+
+        <!-- Bottom Right: Camera Presets & Cutaway Modes -->
+        <div class="footer-right">
+          <!-- Camera Presets -->
+          <div class="control-row">
+            <span class="control-label">CAMERA</span>
+            <div class="segmented-group">
+              <button class="seg-btn active" data-camera="hero">HERO</button>
+              <button class="seg-btn" data-camera="front">FRONT</button>
+              <button class="seg-btn" data-camera="side">SIDE</button>
+              <button class="seg-btn" data-camera="valley">VALLEY</button>
+              <button class="seg-btn" data-camera="cyl1">CYL 1</button>
+              <button class="seg-btn" data-camera="crank">CRANK</button>
+              <button class="seg-btn" data-camera="dohc">DOHC</button>
+            </div>
+          </div>
+
+          <!-- Cutaway Selector -->
+          <div class="control-row">
+            <span class="control-label">CUTAWAY</span>
+            <div class="segmented-group">
+              <button class="seg-btn active" data-cutaway="glass">GLASS</button>
+              <button class="seg-btn" data-cutaway="section">SECTION</button>
+              <button class="seg-btn" data-cutaway="solid">SOLID</button>
+              <button class="seg-btn" data-cutaway="xray">X-RAY</button>
+            </div>
+          </div>
+
+          <!-- Overlays Toggles -->
+          <div class="control-row">
+            <span class="control-label">OVERLAYS</span>
+            <div class="toggle-group">
+              <button class="toggle-btn active" data-overlay="callouts">CALLOUTS</button>
+              <button class="toggle-btn active" data-overlay="combustionFx">COMBUSTION</button>
+              <button class="toggle-btn active" data-overlay="gasFlow">GAS FLOW</button>
+              <button class="toggle-btn" id="btn-isolate-toggle">ISOLATE</button>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
