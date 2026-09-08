@@ -16,6 +16,7 @@ class V12Application {
     this.playbackRate = 0.05;
     this.selectedCylinderId = 1;
     this.isIsolated = false;
+    this.currentTheme = 'light'; // Default to Day Mode
 
     this.scene3d = null;
     this.telemetry = null;
@@ -25,8 +26,12 @@ class V12Application {
   }
 
   init() {
+    // Set root theme attribute
+    document.documentElement.setAttribute('data-theme', 'light');
+
     const container = document.getElementById('canvas-container');
     this.scene3d = new V12Scene3D(container);
+    this.scene3d.setTheme('light');
 
     const canvases = {
       sliderCrank: document.getElementById('canvas-slider-crank'),
@@ -221,7 +226,23 @@ class V12Application {
       this.scene3d.isolateCylinder(this.isIsolated ? this.selectedCylinderId : null);
     });
 
-    // 10. Keyboard Shortcuts
+    // 10. Theme Mode Toggle (Day / Dark)
+    const btnThemeLight = document.getElementById('btn-theme-light');
+    const btnThemeDark = document.getElementById('btn-theme-dark');
+
+    const setTheme = (theme) => {
+      this.currentTheme = theme;
+      document.documentElement.setAttribute('data-theme', theme);
+      if (btnThemeLight) btnThemeLight.classList.toggle('active', theme === 'light');
+      if (btnThemeDark) btnThemeDark.classList.toggle('active', theme === 'dark');
+      this.scene3d.setTheme(theme);
+      this.telemetry.setTheme(theme);
+    };
+
+    if (btnThemeLight) btnThemeLight.addEventListener('click', () => setTheme('light'));
+    if (btnThemeDark) btnThemeDark.addEventListener('click', () => setTheme('dark'));
+
+    // 11. Keyboard Shortcuts
     window.addEventListener('keydown', (e) => {
       if (e.code === 'Space') {
         e.preventDefault();
@@ -234,6 +255,8 @@ class V12Application {
         document.getElementById('btn-step-back-15').click();
       } else if (e.key === 'm' || e.key === 'M') {
         btnAudio.click();
+      } else if (e.key === 't' || e.key === 'T') {
+        setTheme(this.currentTheme === 'light' ? 'dark' : 'light');
       }
     });
   }

@@ -76,10 +76,11 @@ export class V12Scene3D {
   }
 
   _init() {
-    // 1. Scene - Apple Pro Studio Black
+    // 1. Scene - Apple Studio Day Mode Default (Bright & Crisp)
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x000000);
-    this.scene.fog = new THREE.FogExp2(0x000000, 0.035);
+    this.currentTheme = 'light';
+    this.scene.background = new THREE.Color(0xf5f5f7);
+    this.scene.fog = new THREE.FogExp2(0xf5f5f7, 0.015);
 
     // 2. Camera
     this.camera = new THREE.PerspectiveCamera(42, this.width / this.height, 0.1, 100);
@@ -136,38 +137,38 @@ export class V12Scene3D {
   }
 
   _setupLighting() {
-    // Ambient light
-    const ambient = new THREE.AmbientLight(0xffffff, 0.75);
-    this.scene.add(ambient);
+    // Ambient light - Bright & even in Day Mode
+    this.ambientLight = new THREE.AmbientLight(0xffffff, 1.6);
+    this.scene.add(this.ambientLight);
 
-    // Key Light (Crisp cool white rim from top-right)
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.8);
-    keyLight.position.set(6, 10, 8);
-    keyLight.castShadow = true;
-    keyLight.shadow.mapSize.width = 2048;
-    keyLight.shadow.mapSize.height = 2048;
-    keyLight.shadow.camera.near = 0.5;
-    keyLight.shadow.camera.far = 25;
-    keyLight.shadow.camera.left = -5;
-    keyLight.shadow.camera.right = 5;
-    keyLight.shadow.camera.top = 5;
-    keyLight.shadow.camera.bottom = -5;
-    keyLight.shadow.bias = -0.0005;
-    this.scene.add(keyLight);
+    // Key Light (Crisp studio light from top-right)
+    this.keyLight = new THREE.DirectionalLight(0xffffff, 2.4);
+    this.keyLight.position.set(6, 10, 8);
+    this.keyLight.castShadow = true;
+    this.keyLight.shadow.mapSize.width = 2048;
+    this.keyLight.shadow.mapSize.height = 2048;
+    this.keyLight.shadow.camera.near = 0.5;
+    this.keyLight.shadow.camera.far = 25;
+    this.keyLight.shadow.camera.left = -5;
+    this.keyLight.shadow.camera.right = 5;
+    this.keyLight.shadow.camera.top = 5;
+    this.keyLight.shadow.camera.bottom = -5;
+    this.keyLight.shadow.bias = -0.0005;
+    this.scene.add(this.keyLight);
 
-    // Fill Light (Soft cyan/blue for metallic reflections)
-    const fillLight = new THREE.DirectionalLight(0x8bc34a, 0.4);
-    fillLight.position.set(-6, 5, -6);
-    this.scene.add(fillLight);
+    // Fill Light (Soft light for reflection and cavity fill)
+    this.fillLight = new THREE.DirectionalLight(0xf0f4f8, 1.2);
+    this.fillLight.position.set(-6, 6, -6);
+    this.scene.add(this.fillLight);
 
-    const blueRim = new THREE.DirectionalLight(0x4fc3f7, 0.9);
-    blueRim.position.set(-8, 3, 5);
-    this.scene.add(blueRim);
+    this.blueRim = new THREE.DirectionalLight(0x4fc3f7, 1.0);
+    this.blueRim.position.set(-8, 3, 5);
+    this.scene.add(this.blueRim);
 
-    // Under-Light (Subtle warm reflection from ground onto crankcase)
-    const groundLight = new THREE.DirectionalLight(0xff9800, 0.35);
-    groundLight.position.set(0, -6, 0);
-    this.scene.add(groundLight);
+    // Under-Light (Bounces light up from ground into crankcase)
+    this.groundLight = new THREE.DirectionalLight(0xffffff, 0.85);
+    this.groundLight.position.set(0, -6, 0);
+    this.scene.add(this.groundLight);
   }
 
   _initMaterials() {
@@ -306,22 +307,29 @@ export class V12Scene3D {
   }
 
   _buildStudioFloor() {
-    // Apple Pro studio floor
-    const grid = new THREE.GridHelper(30, 60, 0x2c2c2e, 0x121214);
-    grid.position.y = -1.8;
-    this.scene.add(grid);
+    if (this.gridHelper) this.scene.remove(this.gridHelper);
+    if (this.groundPad) this.scene.remove(this.groundPad);
 
-    // Subtle dark circular ground pad
+    const isLight = this.currentTheme === 'light';
+
+    // Studio grid
+    const grid1 = isLight ? 0xd2d2d7 : 0x2c2c2e;
+    const grid2 = isLight ? 0xe5e5ea : 0x121214;
+    this.gridHelper = new THREE.GridHelper(30, 60, grid1, grid2);
+    this.gridHelper.position.y = -1.8;
+    this.scene.add(this.gridHelper);
+
+    // Circular ground pad with soft shadow reception
     const padGeo = new THREE.CylinderGeometry(8, 8.5, 0.1, 48);
     const padMat = new THREE.MeshStandardMaterial({
-      color: 0x070709,
+      color: isLight ? 0xededf0 : 0x070709,
       roughness: 0.85,
       metalness: 0.15
     });
-    const pad = new THREE.Mesh(padGeo, padMat);
-    pad.position.y = -1.85;
-    pad.receiveShadow = true;
-    this.scene.add(pad);
+    this.groundPad = new THREE.Mesh(padGeo, padMat);
+    this.groundPad.position.y = -1.85;
+    this.groundPad.receiveShadow = true;
+    this.scene.add(this.groundPad);
   }
 
   _buildCrankshaft() {
@@ -897,6 +905,62 @@ export class V12Scene3D {
 
   setCutawayMode(mode) {
     this.cutawayMode = mode;
+    this._buildEngineBlock();
+  }
+
+  setTheme(theme = 'light') {
+    this.currentTheme = theme;
+    const isLight = theme === 'light';
+
+    // 1. Scene background and fog
+    const bgColor = isLight ? 0xf5f5f7 : 0x000000;
+    this.scene.background.setHex(bgColor);
+    this.scene.fog.color.setHex(bgColor);
+    this.scene.fog.density = isLight ? 0.015 : 0.035;
+
+    // 2. Studio Lighting - Day mode is bright, crisp, and high-visibility
+    if (this.ambientLight) {
+      this.ambientLight.intensity = isLight ? 1.6 : 0.75;
+    }
+    if (this.keyLight) {
+      this.keyLight.intensity = isLight ? 2.4 : 1.8;
+    }
+    if (this.fillLight) {
+      this.fillLight.intensity = isLight ? 1.2 : 0.4;
+      this.fillLight.color.setHex(isLight ? 0xf0f4f8 : 0x8bc34a);
+    }
+    if (this.blueRim) {
+      this.blueRim.intensity = isLight ? 1.0 : 0.9;
+    }
+    if (this.groundLight) {
+      this.groundLight.intensity = isLight ? 0.85 : 0.35;
+      this.groundLight.color.setHex(isLight ? 0xffffff : 0xff9800);
+    }
+
+    // 3. Studio floor
+    this._buildStudioFloor();
+
+    // 4. Materials Adaptation
+    if (this.materials.blockGlass) {
+      this.materials.blockGlass.color.setHex(isLight ? 0x8fa3b7 : 0x243242);
+      this.materials.blockGlass.opacity = isLight ? 0.45 : 0.65;
+      this.materials.blockGlass.transmission = isLight ? 0.95 : 0.88;
+      this.materials.blockGlass.roughness = isLight ? 0.06 : 0.12;
+    }
+
+    if (this.materials.blockSolid) {
+      this.materials.blockSolid.color.setHex(isLight ? 0xc4c9d2 : 0x1f242c);
+    }
+
+    if (this.materials.blockSection) {
+      this.materials.blockSection.color.setHex(isLight ? 0xb8bfc9 : 0x2a313d);
+    }
+
+    if (this.materials.blockXray) {
+      this.materials.blockXray.color.setHex(isLight ? 0x0071e3 : 0x00f0ff);
+    }
+
+    // Rebuild engine block with active material
     this._buildEngineBlock();
   }
 

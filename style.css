@@ -1,20 +1,61 @@
 /* ============================================================================
-   HRL V12 Engine Project - Apple Design System (Dark Studio / Pro Aesthetic)
+   HRL V12 Engine Project - Apple Design System (Day Mode & Dark Mode)
    Inspired by apple.com, macOS Sequoia & visionOS Glassmorphism
-   Zero Emojis · Pure SVG Vector Assets · Refined Micro-Typography
+   Light Studio Default · Zero Emojis · Pure SVG Vector Assets
    ============================================================================ */
 
 :root {
-  /* Apple Color Palette */
-  --apple-black: #000000;
-  --apple-dark-bg: #09090b;
+  /* Day Mode Default (Light Studio) */
+  --apple-bg: #f5f5f7;
+  --apple-card-bg: rgba(255, 255, 255, 0.82);
+  --apple-dock-bg: rgba(255, 255, 255, 0.88);
+  --apple-border: rgba(0, 0, 0, 0.08);
+  --apple-border-subtle: rgba(0, 0, 0, 0.05);
+  --apple-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  --apple-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.12);
+
+  --apple-blue: #0071e3;
+  --apple-blue-hover: #0077ed;
+  --apple-blue-light: #0071e3;
+  --apple-orange: #ff9500;
+  --apple-red: #ff3b30;
+  --apple-purple: #af52de;
+  --apple-green: #34c759;
+
+  --apple-text-primary: #1d1d1f;
+  --apple-text-secondary: #515154;
+  --apple-text-tertiary: #86868b;
+
+  --apple-canvas-bg: rgba(0, 0, 0, 0.03);
+  --apple-track-bg: rgba(0, 0, 0, 0.06);
+  --apple-pill-bg: rgba(0, 0, 0, 0.04);
+  --apple-pill-border: rgba(0, 0, 0, 0.08);
+  --apple-slider-track: rgba(0, 0, 0, 0.15);
+  --apple-slider-thumb: #ffffff;
+  --apple-slider-thumb-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+
+  --apple-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --apple-mono: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --apple-blur: blur(28px) saturate(190%);
+  --apple-radius-sm: 8px;
+  --apple-radius-md: 14px;
+  --apple-radius-lg: 18px;
+  --apple-radius-pill: 980px;
+
+  --apple-transition: all 0.24s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Dark Mode Theme Override */
+[data-theme="dark"] {
+  --apple-bg: #000000;
   --apple-card-bg: rgba(22, 22, 24, 0.72);
   --apple-dock-bg: rgba(28, 28, 30, 0.78);
   --apple-border: rgba(255, 255, 255, 0.12);
   --apple-border-subtle: rgba(255, 255, 255, 0.07);
+  --apple-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  --apple-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.6);
 
-  --apple-blue: #0071e3;
-  --apple-blue-hover: #0077ed;
   --apple-blue-light: #2997ff;
   --apple-orange: #ff9f0a;
   --apple-red: #ff453a;
@@ -25,19 +66,13 @@
   --apple-text-secondary: #86868b;
   --apple-text-tertiary: #6e6e73;
 
-  /* Typography */
-  --apple-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --apple-mono: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-
-  /* Glass Blur */
-  --apple-blur: blur(28px) saturate(190%);
-  --apple-radius-sm: 8px;
-  --apple-radius-md: 14px;
-  --apple-radius-lg: 18px;
-  --apple-radius-pill: 980px;
-
-  /* Motion */
-  --apple-transition: all 0.24s cubic-bezier(0.25, 1, 0.5, 1);
+  --apple-canvas-bg: rgba(0, 0, 0, 0.35);
+  --apple-track-bg: rgba(118, 118, 128, 0.24);
+  --apple-pill-bg: rgba(255, 255, 255, 0.04);
+  --apple-pill-border: rgba(255, 255, 255, 0.08);
+  --apple-slider-track: rgba(255, 255, 255, 0.2);
+  --apple-slider-thumb: #ffffff;
+  --apple-slider-thumb-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
 * {
@@ -52,9 +87,10 @@ body, html {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: var(--apple-black);
+  background-color: var(--apple-bg);
   font-family: var(--apple-font);
   color: var(--apple-text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 #app {
@@ -108,13 +144,14 @@ body, html {
   align-items: center;
   background: var(--apple-card-bg);
   border: 1px solid var(--apple-border);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--apple-shadow);
   border-radius: var(--apple-radius-lg);
   backdrop-filter: var(--apple-blur);
   -webkit-backdrop-filter: var(--apple-blur);
-  padding: 10px 18px;
+  padding: 8px 18px;
   width: 100%;
   gap: 16px;
+  transition: var(--apple-transition);
 }
 
 /* Nav Left: Brand & Specs */
@@ -131,7 +168,7 @@ body, html {
 }
 
 .apple-logo-mark {
-  color: var(--apple-blue-light);
+  color: var(--apple-blue);
 }
 
 .brand-titles {
@@ -143,7 +180,7 @@ body, html {
   font-size: 15px;
   font-weight: 600;
   letter-spacing: -0.02em;
-  color: #ffffff;
+  color: var(--apple-text-primary);
   line-height: 1.15;
 }
 
@@ -169,7 +206,7 @@ body, html {
   font-size: 11px;
   font-weight: 500;
   color: var(--apple-text-primary);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--apple-pill-bg);
   padding: 3px 9px;
   border-radius: var(--apple-radius-pill);
   border: 1px solid var(--apple-border-subtle);
@@ -192,7 +229,7 @@ body, html {
 .apple-cycle-pills {
   display: flex;
   gap: 6px;
-  background: rgba(0, 0, 0, 0.28);
+  background: var(--apple-track-bg);
   padding: 4px 10px;
   border-radius: var(--apple-radius-pill);
   border: 1px solid var(--apple-border-subtle);
@@ -214,7 +251,7 @@ body, html {
   border-radius: 50%;
 }
 
-.dot-blue { background: var(--apple-blue-light); }
+.dot-blue { background: var(--apple-blue); }
 .dot-purple { background: var(--apple-purple); }
 .dot-orange { background: var(--apple-red); }
 .dot-amber { background: var(--apple-orange); }
@@ -223,7 +260,7 @@ body, html {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(0, 0, 0, 0.28);
+  background: var(--apple-track-bg);
   padding: 4px 10px;
   border-radius: var(--apple-radius-pill);
   border: 1px solid var(--apple-border-subtle);
@@ -246,15 +283,15 @@ body, html {
 }
 
 .apple-icon-btn:hover {
-  color: var(--apple-blue-light);
+  color: var(--apple-blue);
 }
 
 .apple-icon-btn.active {
-  color: var(--apple-blue-light);
+  color: var(--apple-blue);
 }
 
 .apple-pill-btn {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--apple-pill-bg);
   border: 1px solid var(--apple-border);
   color: var(--apple-text-primary);
   font-family: var(--apple-font);
@@ -267,21 +304,23 @@ body, html {
 }
 
 .apple-pill-btn:hover {
-  background: rgba(255, 255, 255, 0.22);
-  color: #ffffff;
+  background: rgba(0, 113, 227, 0.1);
+  color: var(--apple-blue);
+  border-color: var(--apple-blue);
 }
 
-/* Nav Right: RPM Capsule */
+/* Nav Right: RPM Capsule & Theme Toggle */
 .nav-right {
   display: flex;
   align-items: center;
+  gap: 12px;
 }
 
 .rpm-capsule {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(0, 0, 0, 0.32);
+  background: var(--apple-track-bg);
   border: 1px solid var(--apple-border-subtle);
   padding: 5px 14px;
   border-radius: var(--apple-radius-pill);
@@ -326,12 +365,27 @@ body, html {
   color: var(--apple-red);
 }
 
+/* Theme Segmented Toggle */
+.theme-segment {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.theme-segment .seg-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  font-size: 10.5px;
+}
+
 /* Apple Slider Styling */
 .apple-slider, .apple-mini-slider {
   -webkit-appearance: none;
   width: 100%;
   height: 4px;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--apple-slider-track);
   border-radius: 2px;
   outline: none;
   transition: var(--apple-transition);
@@ -345,18 +399,19 @@ body, html {
 .apple-slider::-webkit-slider-thumb,
 .apple-mini-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 13px;
-  height: 13px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--apple-slider-thumb);
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: var(--apple-slider-thumb-shadow);
   transition: transform 0.15s ease;
 }
 
 .apple-slider::-webkit-slider-thumb:hover,
 .apple-mini-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
+  transform: scale(1.15);
 }
 
 /* ============================================================================
@@ -364,7 +419,7 @@ body, html {
    ============================================================================ */
 .apple-dock-side {
   position: absolute;
-  top: 90px;
+  top: 86px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -382,7 +437,7 @@ body, html {
 .apple-card {
   background: var(--apple-card-bg);
   border: 1px solid var(--apple-border);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--apple-shadow);
   border-radius: var(--apple-radius-md);
   padding: 12px 14px;
   width: 275px;
@@ -391,11 +446,12 @@ body, html {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  transition: border-color 0.2s ease;
+  transition: var(--apple-transition);
 }
 
 .apple-card:hover {
-  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: var(--apple-shadow-lg);
+  border-color: rgba(0, 113, 227, 0.25);
 }
 
 .card-header {
@@ -413,7 +469,7 @@ body, html {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: #ffffff;
+  color: var(--apple-text-primary);
 }
 
 .card-subtitle {
@@ -425,16 +481,17 @@ body, html {
   font-family: var(--apple-mono);
   font-size: 9px;
   color: var(--apple-text-secondary);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--apple-pill-bg);
   padding: 2px 7px;
   border-radius: var(--apple-radius-pill);
+  border: 1px solid var(--apple-border-subtle);
 }
 
 .card-action-tag {
   font-size: 9px;
   font-weight: 500;
-  color: var(--apple-blue-light);
-  background: rgba(41, 151, 255, 0.12);
+  color: var(--apple-blue);
+  background: rgba(0, 113, 227, 0.1);
   padding: 2px 7px;
   border-radius: var(--apple-radius-pill);
 }
@@ -442,7 +499,8 @@ body, html {
 .canvas-wrap {
   border-radius: var(--apple-radius-sm);
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--apple-canvas-bg);
+  border: 1px solid var(--apple-border-subtle);
 }
 
 .telemetry-canvas {
@@ -465,8 +523,8 @@ body, html {
 }
 
 .math-expr {
-  color: var(--apple-blue-light);
-  background: rgba(41, 151, 255, 0.08);
+  color: var(--apple-blue);
+  background: rgba(0, 113, 227, 0.08);
   padding: 3px 6px;
   border-radius: 4px;
 }
@@ -503,10 +561,10 @@ body, html {
   text-transform: capitalize;
 }
 
-.status-power { background: rgba(255, 69, 58, 0.18); color: var(--apple-red); }
-.status-exhaust { background: rgba(255, 159, 10, 0.18); color: var(--apple-orange); }
-.status-intake { background: rgba(41, 151, 255, 0.18); color: var(--apple-blue-light); }
-.status-compression { background: rgba(191, 90, 242, 0.18); color: var(--apple-purple); }
+.status-power { background: rgba(255, 59, 48, 0.15); color: var(--apple-red); }
+.status-exhaust { background: rgba(255, 149, 0, 0.15); color: var(--apple-orange); }
+.status-intake { background: rgba(0, 113, 227, 0.15); color: var(--apple-blue); }
+.status-compression { background: rgba(175, 82, 222, 0.15); color: var(--apple-purple); }
 
 .pressure-hero {
   display: flex;
@@ -556,7 +614,7 @@ body, html {
 .apple-stroke-segment {
   display: flex;
   gap: 3px;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--apple-track-bg);
   padding: 3px;
   border-radius: var(--apple-radius-sm);
   border: 1px solid var(--apple-border-subtle);
@@ -574,9 +632,15 @@ body, html {
 }
 
 .seg-item.active {
+  background: #ffffff;
+  color: var(--apple-text-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .seg-item.active {
   background: rgba(255, 255, 255, 0.16);
   color: #ffffff;
-  font-weight: 600;
 }
 
 .timing-key {
@@ -594,7 +658,7 @@ body, html {
 }
 
 .key-dot { width: 5px; height: 5px; border-radius: 50%; }
-.dot-gray { background: #6e6e73; }
+.dot-gray { background: #86868b; }
 
 /* ============================================================================
    BOTTOM CONTROL DOCK (Apple Floating Dock)
@@ -605,13 +669,14 @@ body, html {
   justify-content: space-between;
   background: var(--apple-dock-bg);
   border: 1px solid var(--apple-border);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--apple-shadow-lg);
   border-radius: 22px;
   backdrop-filter: var(--apple-blur);
   -webkit-backdrop-filter: var(--apple-blur);
   padding: 8px 18px;
   width: 100%;
   gap: 16px;
+  transition: var(--apple-transition);
 }
 
 .dock-divider {
@@ -638,9 +703,9 @@ body, html {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--apple-pill-bg);
   border: 1px solid var(--apple-border);
-  color: #ffffff;
+  color: var(--apple-text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -649,18 +714,20 @@ body, html {
 }
 
 .apple-circle-btn:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(0, 113, 227, 0.15);
+  color: var(--apple-blue);
   transform: scale(1.06);
 }
 
 .primary-circle {
-  background: #ffffff;
-  color: #000000;
-  border-color: #ffffff;
+  background: var(--apple-blue);
+  color: #ffffff;
+  border-color: var(--apple-blue);
 }
 
 .primary-circle:hover {
-  background: #f0f0f2;
+  background: var(--apple-blue-hover);
+  color: #ffffff;
 }
 
 .btn-sm {
@@ -706,7 +773,7 @@ body, html {
 .fo-heading {
   font-size: 11px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--apple-text-primary);
   letter-spacing: -0.01em;
 }
 
@@ -718,7 +785,7 @@ body, html {
 .apple-pill-strip {
   display: flex;
   gap: 5px;
-  background: rgba(0, 0, 0, 0.28);
+  background: var(--apple-track-bg);
   padding: 4px 10px;
   border-radius: var(--apple-radius-pill);
   border: 1px solid var(--apple-border-subtle);
@@ -735,28 +802,29 @@ body, html {
   font-size: 10px;
   font-weight: 600;
   color: var(--apple-text-secondary);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--apple-border-subtle);
+  background: var(--apple-pill-bg);
   cursor: pointer;
   transition: var(--apple-transition);
 }
 
 .fo-pill:hover {
-  border-color: rgba(255, 255, 255, 0.3);
-  color: #ffffff;
+  border-color: var(--apple-blue);
+  color: var(--apple-blue);
 }
 
 .fo-pill.selected {
-  border-color: #ffffff;
-  background: rgba(255, 255, 255, 0.16);
-  color: #ffffff;
+  border-color: var(--apple-blue);
+  background: rgba(0, 113, 227, 0.15);
+  color: var(--apple-blue);
+  font-weight: 700;
 }
 
 .fo-pill.firing {
   background: var(--apple-red);
   color: #ffffff;
   border-color: var(--apple-red);
-  box-shadow: 0 0 12px rgba(255, 69, 58, 0.8);
+  box-shadow: 0 0 12px rgba(255, 59, 48, 0.6);
   transform: scale(1.15);
 }
 
@@ -772,9 +840,10 @@ body, html {
 .segmented-control {
   display: flex;
   gap: 2px;
-  background: rgba(118, 118, 128, 0.24);
+  background: var(--apple-track-bg);
   padding: 3px;
   border-radius: var(--apple-radius-pill);
+  border: 1px solid var(--apple-border-subtle);
 }
 
 .seg-btn {
@@ -791,14 +860,19 @@ body, html {
 }
 
 .seg-btn:hover {
-  color: #ffffff;
+  color: var(--apple-text-primary);
 }
 
 .seg-btn.active {
+  background: #ffffff;
+  color: #1d1d1f;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] .seg-btn.active {
   background: rgba(255, 255, 255, 0.95);
   color: #000000;
-  font-weight: 600;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 .dock-options-row {
@@ -814,7 +888,7 @@ body, html {
 }
 
 .toggle-pill {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--apple-pill-bg);
   border: 1px solid var(--apple-border-subtle);
   font-family: var(--apple-font);
   font-size: 9.5px;
@@ -827,14 +901,14 @@ body, html {
 }
 
 .toggle-pill:hover {
-  color: #ffffff;
+  color: var(--apple-text-primary);
   border-color: var(--apple-border);
 }
 
 .toggle-pill.active {
-  background: rgba(0, 113, 227, 0.24);
+  background: rgba(0, 113, 227, 0.12);
   border-color: var(--apple-blue);
-  color: var(--apple-blue-light);
+  color: var(--apple-blue);
   font-weight: 600;
 }
 
