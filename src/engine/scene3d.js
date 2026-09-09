@@ -404,6 +404,20 @@ export class V12Scene3D {
       metalness: 0.86,
       roughness: 0.22
     });
+
+    // Official Rolls-Royce Vitreous Enamel Crest Badge
+    if (!this.rrBadgeTexture) {
+      const texLoader = new THREE.TextureLoader();
+      this.rrBadgeTexture = texLoader.load('/rolls-royce-logo.png');
+      this.rrBadgeTexture.colorSpace = THREE.SRGBColorSpace;
+    }
+    this.materials.rrBadge = new THREE.MeshStandardMaterial({
+      map: this.rrBadgeTexture,
+      transparent: true,
+      roughness: 0.15,
+      metalness: 0.3,
+      side: THREE.DoubleSide
+    });
   }
 
   _buildStudioFloor() {
@@ -1515,6 +1529,14 @@ export class V12Scene3D {
         heritageNote: "Hand-engraved signature of the master engine builder at Goodwood, West Sussex"
       };
       this.interactiveMeshes.push(plaque);
+
+      // Official Rolls-Royce Vitreous Enamel Crest on Plaque
+      const icBadgeGeo = new THREE.PlaneGeometry(0.24, 0.39);
+      icBadgeGeo.rotateX(-Math.PI / 2);
+      const icBadge = new THREE.Mesh(icBadgeGeo, this.materials.rrBadge);
+      icBadge.position.set(0, 0.012, 0.2);
+      plaque.add(icBadge);
+
       icGroup.add(plaque);
 
       // Subtle longitudinal accent fin lines
@@ -1617,6 +1639,29 @@ export class V12Scene3D {
     coinHolderGroup.add(rimMesh);
 
     this.standingCoin = coinMesh;
+
+    // 3. Official Rolls-Royce Goodwood Enamel Crest Badge Plaque
+    const badgeHolderGeo = new THREE.BoxGeometry(0.38, 0.02, 0.62);
+    const badgeHolder = new THREE.Mesh(badgeHolderGeo, this.materials.starlightChrome);
+    badgeHolder.position.set(0, 0.015, 0.68);
+    badgeHolder.rotation.x = 0.22;
+    badgeHolder.userData.partInfo = {
+      name: "Rolls-Royce Motor Cars Official Goodwood Crest",
+      metallurgy: "Vitreous Cobalt Enamel on Solid Sterling Silver",
+      tempK: "305 K",
+      massGrams: "185 g",
+      toleranceMm: "±0.0002 mm",
+      heritageNote: "The official Rolls-Royce insignia featuring the interlocking RR monogram in authentic Goodwood Cobalt Blue"
+    };
+    this.interactiveMeshes.push(badgeHolder);
+    coinHolderGroup.add(badgeHolder);
+
+    const badgePlaneGeo = new THREE.PlaneGeometry(0.34, 0.55);
+    badgePlaneGeo.rotateX(-Math.PI / 2);
+    const badgePlane = new THREE.Mesh(badgePlaneGeo, this.materials.rrBadge);
+    badgePlane.position.y = 0.012;
+    badgeHolder.add(badgePlane);
+
     this.coinGroup.add(coinHolderGroup);
   }
 

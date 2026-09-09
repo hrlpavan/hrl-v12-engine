@@ -169,12 +169,24 @@ body, html {
 .apple-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  cursor: default;
 }
 
-.apple-logo-mark {
-  color: var(--apple-text-primary);
+.brand-logo-img {
+  height: 36px;
+  width: auto;
+  aspect-ratio: 500 / 816;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 5px rgba(0, 56, 130, 0.45));
+  border-radius: 4px;
+  transition: transform var(--apple-transition-fast), filter var(--apple-transition-fast);
   flex-shrink: 0;
+}
+
+.brand-logo-img:hover {
+  transform: scale(1.08);
+  filter: drop-shadow(0 0 12px rgba(0, 113, 227, 0.75)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
 }
 
 .brand-titles {
