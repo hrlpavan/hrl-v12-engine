@@ -51,12 +51,20 @@ export class TelemetryManager {
   _setupCanvasResolution() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     [this.sliderCrankCanvas, this.crankEndViewCanvas, this.valveTimingCanvas, this.pvIndicatorCanvas].forEach(canvas => {
+      if (!canvas) return;
       const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
+      const w = rect.width > 0 ? rect.width : (canvas.clientWidth || 280);
+      const h = rect.height > 0 ? rect.height : (canvas.clientHeight || 120);
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
       const ctx = canvas.getContext('2d');
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(dpr, dpr);
     });
+  }
+
+  resizeCanvases() {
+    this._setupCanvasResolution();
   }
 
   _setupInteractions() {

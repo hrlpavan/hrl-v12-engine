@@ -18,67 +18,23 @@
     <div id="hud-overlay">
       <!-- TOP NAVIGATION BAR (Apple Floating Glass Header) -->
       <header class="apple-nav">
-        <!-- Left: Brand & Engine Specs -->
+        <!-- Left: Brand & Architecture -->
         <div class="nav-left">
           <div class="apple-brand">
-            <svg class="apple-logo-mark" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <svg class="apple-logo-mark" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="2" y="2" width="20" height="20" rx="3" stroke-width="1.5" />
               <path d="M6 6h4a2.5 2.5 0 0 1 2.5 2.5v0a2.5 2.5 0 0 1-2.5 2.5H6v7M10.5 11l3 7M13 6h4a2.5 2.5 0 0 1 2.5 2.5v0a2.5 2.5 0 0 1-2.5 2.5h-4v7M17 11l3 7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
             <div class="brand-titles">
               <span class="brand-title">ROLLS-ROYCE</span>
-              <span class="brand-subtitle">Bespoke 6¾ Litre Twin-Turbo V12</span>
+              <span class="brand-subtitle">Bespoke 6¾L Twin-Turbo V12</span>
             </div>
           </div>
-          <div class="nav-divider"></div>
-          <div class="engine-badge-row">
-            <span class="spec-pill">60° Goodwood Architecture</span>
-            <span class="spec-pill">6¾ Litre (6,749 cc)</span>
-            <span class="spec-pill">Twin-Turbo 900 Nm</span>
-            <span class="spec-pill muted-pill">1-12-5-8-3-10-6-7-2-11-4-9</span>
-          </div>
+          <span class="spec-pill">60° Architecture</span>
         </div>
 
-        <!-- Center: Cycle Indicators, Coin Balance & Audio -->
+        <!-- Center: Key Rolls-Royce Heritage Indicators -->
         <div class="nav-center">
-          <div class="apple-cycle-pills">
-            <span class="cycle-pill"><span class="pill-dot dot-blue"></span>Air & Fuel</span>
-            <span class="cycle-pill"><span class="pill-dot dot-purple"></span>Compressed</span>
-            <span class="cycle-pill"><span class="pill-dot dot-orange"></span>Combustion</span>
-            <span class="cycle-pill"><span class="pill-dot dot-amber"></span>Exhaust</span>
-          </div>
-
-          <div class="rr-coin-badge" title="Sir Henry Royce 1906 Coin Balance Test: Analytical primary and secondary vibration cancellation">
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 7v10M9 9.5a2.5 2.5 0 0 1 5 0c0 2-3 2.5-3 4.5" />
-            </svg>
-            <span class="coin-badge-label">1906 Coin Test:</span>
-            <span id="coin-status-badge" class="coin-badge-status">Balanced Upright</span>
-          </div>
-
-          <div class="rr-boost-badge" title="Twin Turbocharger Boost Pressure">
-            <span class="boost-badge-label">Boost:</span>
-            <span id="turbo-boost-val" class="boost-badge-val">1.00 bar</span>
-          </div>
-
-          <div class="apple-audio-widget">
-            <button id="btn-audio-toggle" class="apple-icon-btn" title="Toggle V12 Audio (M)">
-              <svg id="audio-icon-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                <line id="audio-mute-line" x1="23" y1="9" x2="17" y2="15"></line>
-                <line id="audio-mute-line-2" x1="17" y1="9" x2="23" y2="15"></line>
-                <path id="audio-waves" d="M15.54 8.46a5 5 0 0 1 0 7.07" style="display: none;"></path>
-              </svg>
-              <span id="audio-status-text">Audio Off</span>
-            </button>
-            <input type="range" id="audio-volume" min="0" max="1" step="0.05" value="0.6" title="Engine Volume" class="apple-mini-slider" />
-            <button id="btn-throttle-blip" class="apple-pill-btn" title="Blip Throttle (Simulate Rev)">Rev</button>
-          </div>
-        </div>
-
-        <!-- Right: Rolls-Royce Power Reserve Gauge, RPM & Theme Toggle -->
-        <div class="nav-right">
           <div class="power-reserve-capsule" title="Rolls-Royce Power Reserve: 100% available at idle, 0% at peak output">
             <div class="pr-gauge-mini">
               <svg viewBox="0 0 36 36" class="pr-svg">
@@ -95,25 +51,48 @@
             </div>
           </div>
 
+          <div class="rr-coin-badge" title="Sir Henry Royce 1906 Coin Balance Test: Analytical primary & secondary balance">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v10M9 9.5a2.5 2.5 0 0 1 5 0c0 2-3 2.5-3 4.5" />
+            </svg>
+            <span class="coin-badge-label">1906 Coin:</span>
+            <span id="coin-status-badge" class="coin-badge-status">Balanced Upright</span>
+          </div>
+
+          <div class="rr-boost-badge" title="Twin Turbocharger Boost Pressure">
+            <span class="boost-badge-label">Boost:</span>
+            <span id="turbo-boost-val" class="boost-badge-val">1.00 bar</span>
+          </div>
+        </div>
+
+        <!-- Right: RPM, Audio, Theme, and Inspector Toggles -->
+        <div class="nav-right">
           <div class="rpm-capsule">
             <div class="rpm-text-group">
               <span id="rpm-display" class="rpm-val">1600</span>
               <span class="rpm-unit">RPM</span>
             </div>
-            <div class="rpm-slider-track">
-              <input type="range" id="rpm-slider" min="600" max="6000" step="50" value="1600" class="apple-slider" />
-              <div class="rpm-ticks">
-                <span>600 Idle</span>
-                <span class="highlight-tick">1600 Torque</span>
-                <span>5000</span>
-                <span class="redline-tick">6000</span>
-              </div>
-            </div>
+            <input type="range" id="rpm-slider" min="600" max="6000" step="50" value="1600" class="apple-slider" title="Engine Speed" />
+          </div>
+
+          <div class="apple-audio-widget">
+            <button id="btn-audio-toggle" class="apple-icon-btn" title="Toggle V12 Audio (M)">
+              <svg id="audio-icon-svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <line id="audio-mute-line" x1="23" y1="9" x2="17" y2="15"></line>
+                <line id="audio-mute-line-2" x1="17" y1="9" x2="23" y2="15"></line>
+                <path id="audio-waves" d="M15.54 8.46a5 5 0 0 1 0 7.07" style="display: none;"></path>
+              </svg>
+              <span id="audio-status-text" class="sr-only">Audio</span>
+            </button>
+            <input type="range" id="audio-volume" min="0" max="1" step="0.05" value="0.6" title="Engine Volume" class="apple-mini-slider" />
+            <button id="btn-throttle-blip" class="apple-pill-btn" title="Simulate Rev">Rev</button>
           </div>
 
           <div class="segmented-control theme-segment">
             <button id="btn-theme-light" class="seg-btn active" title="Day Mode (Light Studio)">
-              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="5"></circle>
                 <line x1="12" y1="1" x2="12" y2="3"></line>
                 <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -124,145 +103,217 @@
                 <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
                 <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
               </svg>
-              <span>Day</span>
             </button>
             <button id="btn-theme-dark" class="seg-btn" title="Dark Mode (Night Studio)">
-              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
               </svg>
-              <span>Dark</span>
             </button>
           </div>
+
+          <button id="btn-telemetry-toggle" class="apple-icon-pill-btn active" title="Toggle Telemetry Inspector">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+              <path d="M9 3v18"></path>
+            </svg>
+            <span>Telemetry</span>
+          </button>
+
+          <button id="btn-zen-mode" class="apple-icon-circle-btn" title="Toggle Zen Mode / Hide HUD (H)">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </button>
         </div>
       </header>
 
-      <!-- LEFT TELEMETRY DECK (Apple Glass Cards) -->
-      <aside class="apple-dock-side dock-left">
-        <!-- Card 1: Slider-Crank Kinematics -->
-        <div class="apple-card">
-          <div class="card-header">
-            <div class="card-title-group">
-              <span class="card-title">Slider-Crank</span>
-              <span class="card-subtitle">Kinematic Geometry</span>
-            </div>
-            <span id="kinematic-after-tdc" class="card-tag">0° After TDC</span>
+      <!-- RIGHT CONSOLIDATED TELEMETRY INSPECTOR (Apple Floating Glass Palette) -->
+      <aside id="telemetry-inspector" class="apple-inspector">
+        <!-- Inspector Header -->
+        <div class="inspector-header">
+          <div class="inspector-title-group">
+            <span class="inspector-title">Telemetry & Diagnostics</span>
+            <span id="inspector-cyl-badge" class="inspector-badge">Cylinder 1</span>
           </div>
-          <div class="canvas-wrap">
-            <canvas id="canvas-slider-crank" class="telemetry-canvas" width="260" height="105"></canvas>
-          </div>
-          <div class="card-footer-formula">
-            <div class="math-expr">s = r·cosθ + √(L² - r²·sin²θ)</div>
-            <div class="param-row">
-              <span>r 45.2 mm</span>
-              <span>L 162 mm</span>
-              <span class="param-accent">Stroke 90.4 mm</span>
-              <span>Bore 89 mm</span>
-            </div>
-          </div>
+          <button id="btn-inspector-close" class="inspector-close-btn" title="Collapse Inspector">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
 
-        <!-- Card 2: 60° Crankshaft End-View -->
-        <div class="apple-card">
-          <div class="card-header">
-            <div class="card-title-group">
-              <span class="card-title">Crankshaft Orbit</span>
-              <span class="card-subtitle">60° V-Angle Polar View</span>
+        <!-- Segmented Tab Bar (macOS Style) -->
+        <div class="inspector-tabs segmented-control">
+          <button class="seg-btn active" data-tab="cylinder">Cylinder</button>
+          <button class="seg-btn" data-tab="kinematics">Kinematics</button>
+          <button class="seg-btn" data-tab="thermo">Indicator P-V</button>
+          <button class="seg-btn" data-tab="valves">Valves</button>
+        </div>
+
+        <!-- Tab Content Panes -->
+        <div class="inspector-body">
+          <!-- Pane 1: Cylinder & Combustion -->
+          <div class="inspector-pane active" id="pane-cylinder">
+            <div class="apple-card status-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span id="header-cyl-id" class="card-title">Cylinder 1 (Bank R)</span>
+                  <span id="header-crank-deg" class="card-subtitle">0° Crank Position</span>
+                </div>
+                <span id="header-stroke-name" class="status-pill status-power">Combustion</span>
+              </div>
+
+              <div class="pressure-hero">
+                <div class="pressure-main">
+                  <span id="chamber-pressure-val" class="pressure-num">85.4</span>
+                  <span class="pressure-unit-label">bar</span>
+                </div>
+                <div class="temp-display">
+                  <span class="temp-label">Temperature</span>
+                  <span id="chamber-temp-val" class="temp-val">2450 K</span>
+                </div>
+              </div>
+
+              <div class="apple-stroke-segment">
+                <span id="badge-stroke-intake" class="seg-item">Intake</span>
+                <span id="badge-stroke-compression" class="seg-item">Compression</span>
+                <span id="badge-stroke-power" class="seg-item active">Power</span>
+                <span id="badge-stroke-exhaust" class="seg-item">Exhaust</span>
+              </div>
+
+              <div class="cyl-details-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Displacement</span>
+                  <span class="detail-val">562.4 cc / cyl</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Valves</span>
+                  <span class="detail-val">4 (2 In / 2 Ex)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Ignition Timing</span>
+                  <span class="detail-val">15° BTDC</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Compression Ratio</span>
+                  <span class="detail-val">10.0 : 1</span>
+                </div>
+              </div>
             </div>
-            <span class="card-tag">120° Throws</span>
           </div>
-          <div class="canvas-wrap">
-            <canvas id="canvas-crank-end" class="telemetry-canvas" width="260" height="115"></canvas>
+
+          <!-- Pane 2: Slider-Crank Kinematics & 60° Orbit -->
+          <div class="inspector-pane" id="pane-kinematics">
+            <div class="apple-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Slider-Crank Geometry</span>
+                  <span class="card-subtitle">Kinematic Motion (s, v, a)</span>
+                </div>
+                <span id="kinematic-after-tdc" class="card-tag">0° After TDC</span>
+              </div>
+              <div class="canvas-wrap">
+                <canvas id="canvas-slider-crank" class="telemetry-canvas" width="280" height="105"></canvas>
+              </div>
+              <div class="card-footer-formula">
+                <div class="math-expr">s = r·cosθ + √(L² - r²·sin²θ)</div>
+                <div class="param-row">
+                  <span>r 45.2 mm</span>
+                  <span>L 162 mm</span>
+                  <span class="param-accent">Stroke 90.4 mm</span>
+                  <span>Bore 89 mm</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="apple-card" style="margin-top: 8px;">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">60° Crankshaft Orbit</span>
+                  <span class="card-subtitle">120° Symmetrical Throws</span>
+                </div>
+                <span class="card-tag">Polar Balance</span>
+              </div>
+              <div class="canvas-wrap">
+                <canvas id="canvas-crank-end" class="telemetry-canvas" width="280" height="110"></canvas>
+              </div>
+              <div class="card-footer-info">
+                <span>Primary & Secondary Balancing · Banks ±30°</span>
+              </div>
+            </div>
           </div>
-          <div class="card-footer-info">
-            <span>Primary & Secondary Balancing · Banks ±30°</span>
+
+          <!-- Pane 3: Thermodynamic P-V Indicator -->
+          <div class="inspector-pane" id="pane-thermo">
+            <div class="apple-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Indicator Diagram</span>
+                  <span class="card-subtitle">Otto Thermodynamic Cycle</span>
+                </div>
+                <span id="pv-cyl-tag" class="card-tag">Cyl 1</span>
+              </div>
+              <div class="canvas-wrap">
+                <canvas id="canvas-pv-indicator" class="telemetry-canvas" width="280" height="135"></canvas>
+              </div>
+              <div class="card-footer-info" style="margin-top: 6px;">
+                <span>Continuous Thermodynamic State Point Tracer</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane 4: Valve Timing Scrub Diagram -->
+          <div class="inspector-pane" id="pane-valves">
+            <div class="apple-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Valve Timing</span>
+                  <span class="card-subtitle">Lift & Duration (720°)</span>
+                </div>
+                <span class="card-action-tag">Drag to Scrub</span>
+              </div>
+              <div class="canvas-wrap">
+                <canvas id="canvas-valve-timing" class="telemetry-canvas interactive-canvas" width="280" height="125"></canvas>
+              </div>
+              <div class="timing-key">
+                <span><span class="key-dot dot-blue"></span> Intake</span>
+                <span><span class="key-dot dot-orange"></span> Exhaust</span>
+                <span><span class="key-dot dot-gray"></span> Piston</span>
+              </div>
+            </div>
           </div>
         </div>
       </aside>
 
-      <!-- RIGHT TELEMETRY DECK (Apple Glass Cards) -->
-      <aside class="apple-dock-side dock-right">
-        <!-- Card 3: Cylinder In-Cylinder State -->
-        <div class="apple-card status-card">
-          <div class="card-header">
-            <div class="card-title-group">
-              <span id="header-cyl-id" class="card-title">Cylinder 1</span>
-              <span id="header-crank-deg" class="card-subtitle">0° Crank Position</span>
-            </div>
-            <span id="header-stroke-name" class="status-pill status-power">Combustion</span>
-          </div>
-
-          <div class="pressure-hero">
-            <div class="pressure-main">
-              <span id="chamber-pressure-val" class="pressure-num">85.4</span>
-              <span class="pressure-unit-label">bar</span>
-            </div>
-            <div class="temp-display">
-              <span class="temp-label">Temperature</span>
-              <span id="chamber-temp-val" class="temp-val">2450 K</span>
-            </div>
-          </div>
-
-          <div class="apple-stroke-segment">
-            <span id="badge-stroke-intake" class="seg-item">Intake</span>
-            <span id="badge-stroke-compression" class="seg-item">Compression</span>
-            <span id="badge-stroke-power" class="seg-item active">Power</span>
-            <span id="badge-stroke-exhaust" class="seg-item">Exhaust</span>
-          </div>
-        </div>
-
-        <!-- Card 4: Valve Timing Scrub Diagram -->
-        <div class="apple-card">
-          <div class="card-header">
-            <div class="card-title-group">
-              <span class="card-title">Valve Timing</span>
-              <span class="card-subtitle">Lift & Duration (720°)</span>
-            </div>
-            <span class="card-action-tag">Drag to Scrub</span>
-          </div>
-          <div class="canvas-wrap">
-            <canvas id="canvas-valve-timing" class="telemetry-canvas interactive-canvas" width="260" height="105"></canvas>
-          </div>
-          <div class="timing-key">
-            <span><span class="key-dot dot-blue"></span> Intake</span>
-            <span><span class="key-dot dot-orange"></span> Exhaust</span>
-            <span><span class="key-dot dot-gray"></span> Piston</span>
-          </div>
-        </div>
-
-        <!-- Card 5: Thermodynamic P-V Indicator -->
-        <div class="apple-card">
-          <div class="card-header">
-            <div class="card-title-group">
-              <span class="card-title">Indicator Diagram</span>
-              <span class="card-subtitle">Otto Thermodynamic Cycle</span>
-            </div>
-            <span id="pv-cyl-tag" class="card-tag">Cyl 1</span>
-          </div>
-          <div class="canvas-wrap">
-            <canvas id="canvas-pv-indicator" class="telemetry-canvas" width="260" height="105"></canvas>
-          </div>
-        </div>
-      </aside>
+      <!-- Floating Mini Summon Button (When Inspector is Closed) -->
+      <button id="btn-floating-telemetry" class="floating-telemetry-chip" title="Open Telemetry Inspector">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+          <path d="M9 3v18"></path>
+        </svg>
+        <span>Telemetry</span>
+      </button>
 
       <!-- BOTTOM CONTROL DOCK (Apple Floating Dock) -->
       <footer class="apple-dock">
         <!-- Dock Section 1: Playback Controls -->
         <div class="dock-section dock-controls">
-          <div class="playback-btn-cluster">
-            <button id="btn-play-pause" class="apple-circle-btn primary-circle" title="Play / Pause (Space)">
-              <svg id="play-icon-svg" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                <rect x="6" y="5" width="4" height="14" rx="1"></rect>
-                <rect x="14" y="5" width="4" height="14" rx="1"></rect>
-              </svg>
-            </button>
+          <button id="btn-play-pause" class="apple-circle-btn primary-circle" title="Play / Pause (Space)">
+            <svg id="play-icon-svg" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+              <rect x="6" y="5" width="4" height="14" rx="1"></rect>
+              <rect x="14" y="5" width="4" height="14" rx="1"></rect>
+            </svg>
+          </button>
+          <div class="step-btn-group">
             <button id="btn-step-back-15" class="apple-pill-btn btn-sm" title="Step -15°">−15°</button>
             <button id="btn-step-fwd-15" class="apple-pill-btn btn-sm" title="Step +15°">+15°</button>
             <button id="btn-step-fwd-1" class="apple-pill-btn btn-xs" title="Step +1°">+1°</button>
           </div>
 
           <div class="dock-slider-row">
-            <span class="speed-label">Speed</span>
-            <input type="range" id="playback-speed" min="0.01" max="1" step="0.01" value="0.05" class="apple-mini-slider" />
+            <input type="range" id="playback-speed" min="0.01" max="1" step="0.01" value="0.05" class="apple-mini-slider" title="Playback Speed" />
             <span id="playback-rate-text" class="speed-val">1/20</span>
           </div>
         </div>
@@ -273,7 +324,6 @@
         <div class="dock-section dock-firing-order">
           <div class="fo-meta">
             <span class="fo-heading">Firing Sequence</span>
-            <span class="fo-subtext">Every 60° · Select to inspect</span>
           </div>
           <div class="apple-pill-strip" id="firing-order-strip">
             <!-- 12 Firing Order Pills -->
@@ -287,12 +337,10 @@
           <!-- Camera Presets -->
           <div class="segmented-control camera-segment">
             <button class="seg-btn active" data-camera="hero">Hero</button>
-            <button class="seg-btn" data-camera="coin">Coin Test</button>
-            <button class="seg-btn" data-camera="turbo">Bi-Turbo</button>
+            <button class="seg-btn" data-camera="coin">Coin</button>
+            <button class="seg-btn" data-camera="turbo">Turbo</button>
             <button class="seg-btn" data-camera="front">Front</button>
             <button class="seg-btn" data-camera="side">Side</button>
-            <button class="seg-btn" data-camera="valley">Valley</button>
-            <button class="seg-btn" data-camera="cyl1">Cyl 1</button>
             <button class="seg-btn" data-camera="crank">Crank</button>
             <button class="seg-btn" data-camera="dohc">DOHC</button>
           </div>
@@ -309,13 +357,22 @@
             <div class="apple-toggle-group">
               <button class="toggle-pill active" data-overlay="callouts">Labels</button>
               <button class="toggle-pill active" data-overlay="combustionFx">Combustion</button>
-              <button class="toggle-pill active" data-overlay="gasFlow">Gas Flow</button>
+              <button class="toggle-pill active" data-overlay="gasFlow">Flow</button>
               <button class="toggle-pill" id="btn-isolate-toggle">Isolate</button>
             </div>
           </div>
         </div>
       </footer>
     </div>
+
+    <!-- Zen Mode Exit Floating Button (Visible when HUD is hidden) -->
+    <button id="btn-zen-exit" class="zen-exit-chip" title="Exit Zen Mode (H or Esc)">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+      <span>Exit Zen Mode</span>
+    </button>
   </div>
 
   <script type="module" src="./src/main.js"></script>

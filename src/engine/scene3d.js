@@ -48,6 +48,7 @@ export class V12Scene3D {
     this.particlesGroup = new THREE.Group();
     this.calloutsGroup = new THREE.Group();
     this.turboGroup = new THREE.Group();
+    this.exhaustHeadersGroup = new THREE.Group();
     this.intercoolerGroup = new THREE.Group();
     this.coinGroup = new THREE.Group();
     this.turboImpellers = [];
@@ -73,7 +74,7 @@ export class V12Scene3D {
       side:    { pos: new THREE.Vector3(6.5, 1.2, 0.0),  target: new THREE.Vector3(0, 0.4, 0) },
       valley:  { pos: new THREE.Vector3(0, 5.8, 0.2),    target: new THREE.Vector3(0, 0.8, 0) },
       coin:    { pos: new THREE.Vector3(0.5, 2.3, 1.4),  target: new THREE.Vector3(0, 1.82, 0.4) },
-      turbo:   { pos: new THREE.Vector3(3.8, 0.8, 0.2),  target: new THREE.Vector3(2.1, 0.2, 0) },
+      turbo:   { pos: new THREE.Vector3(4.2, 1.8, 0.8),  target: new THREE.Vector3(2.28, 1.35, -0.25) },
       cyl1:    { pos: new THREE.Vector3(1.8, 2.2, 3.2),  target: new THREE.Vector3(0.8, 1.4, 2.8) },
       crank:   { pos: new THREE.Vector3(3.2, -0.6, 2.2), target: new THREE.Vector3(0, -0.2, 0) },
       dohc:    { pos: new THREE.Vector3(2.5, 4.2, 2.0),  target: new THREE.Vector3(0.8, 2.2, 1.0) }
@@ -128,6 +129,7 @@ export class V12Scene3D {
     this.rootGroup.add(this.valvetrainGroup);
     this.rootGroup.add(this.timingDriveGroup);
     this.rootGroup.add(this.turboGroup);
+    this.rootGroup.add(this.exhaustHeadersGroup);
     this.rootGroup.add(this.intercoolerGroup);
     this.rootGroup.add(this.coinGroup);
     this.rootGroup.add(this.particlesGroup);
@@ -139,6 +141,7 @@ export class V12Scene3D {
     this._buildQuadCamValvetrain();
     this._buildTimingDrive();
     this._buildTwinTurbochargers();
+    this._buildExhaustHeaders();
     this._buildIntercoolersAndPlenums();
     this._buildStandingCoin();
     this._buildGasParticles();
@@ -335,15 +338,22 @@ export class V12Scene3D {
 
     // Twin Turbochargers (Turbine & Compressor)
     this.materials.turboTurbine = new THREE.MeshStandardMaterial({
-      color: 0x3e4046,
-      metalness: 0.85,
-      roughness: 0.45
+      color: 0x2c2e33,
+      metalness: 0.82,
+      roughness: 0.48
     });
 
     this.materials.turboCompressor = new THREE.MeshStandardMaterial({
-      color: 0xeef2f7,
-      metalness: 0.92,
-      roughness: 0.16
+      color: 0xf0f4f8,
+      metalness: 0.95,
+      roughness: 0.12
+    });
+
+    // Tuned Tubular Stainless Steel Exhaust Headers (Exhaust Manifolds)
+    this.materials.exhaustHeader = new THREE.MeshStandardMaterial({
+      color: 0xa89580,
+      metalness: 0.88,
+      roughness: 0.28
     });
 
     // Historic 1906 Rolls-Royce Silver Coin (Standing Coin Test)
@@ -403,16 +413,26 @@ export class V12Scene3D {
     // Pin throw angles: 0°, 240°, 120°, 120°, 240°, 0°
     const throwAngles = [0, 240, 120, 120, 240, 0];
 
+    // Front Main Journal (#1) before Throw 1
+    const frontMainGeo = new THREE.CylinderGeometry(mainJournalRadius, mainJournalRadius, 0.26, 24);
+    frontMainGeo.rotateX(Math.PI / 2);
+    const frontMainMesh = new THREE.Mesh(frontMainGeo, this.materials.crankshaft);
+    frontMainMesh.position.set(0, 0, zStart + 0.38);
+    this.crankshaftGroup.add(frontMainMesh);
+
     for (let i = 0; i < 6; i++) {
       const pinZ = zStart - i * CYL_SPACING;
       const angleRad = degToRad(throwAngles[i]);
 
-      // Main journal before throw
-      const mainGeo = new THREE.CylinderGeometry(mainJournalRadius, mainJournalRadius, 0.22, 24);
-      mainGeo.rotateX(Math.PI / 2);
-      const mainMesh = new THREE.Mesh(mainGeo, this.materials.crankshaft);
-      mainMesh.position.set(0, 0, pinZ + 0.32);
-      this.crankshaftGroup.add(mainMesh);
+      // Intermediate Main Bearing Journals (#2, #3, #4, #5, #6) between adjacent throws
+      if (i < 5) {
+        const interJournalZ = pinZ - CYL_SPACING / 2;
+        const interGeo = new THREE.CylinderGeometry(mainJournalRadius, mainJournalRadius, 0.52, 24);
+        interGeo.rotateX(Math.PI / 2);
+        const interMesh = new THREE.Mesh(interGeo, this.materials.crankshaft);
+        interMesh.position.set(0, 0, interJournalZ);
+        this.crankshaftGroup.add(interMesh);
+      }
 
       // Crankpin group (rotates at throw angle around crank centerline)
       const throwSubGroup = new THREE.Group();
@@ -764,12 +784,16 @@ export class V12Scene3D {
 
         // Position valve in head
         const inOffset = cylMesh.bank === 'R' ? -0.16 : 0.16;
-        valveGroup.position.set(
-          headX + inOffset * Math.cos(bankAngle),
-          headY - inOffset * Math.sin(bankAngle),
-          z + valveZOff
-        );
+        const inPosX = headX + inOffset * Math.cos(bankAngle);
+        const inPosY = headY - inOffset * Math.sin(bankAngle);
+        const inPosZ = z + valveZOff;
+        valveGroup.position.set(inPosX, inPosY, inPosZ);
         valveGroup.rotation.z = -bankAngle;
+        valveGroup.userData = {
+          baseX: inPosX,
+          baseY: inPosY,
+          bankAngle: bankAngle
+        };
 
         this.valvetrainGroup.add(valveGroup);
         cylMesh.inValves.push(valveGroup);
@@ -798,12 +822,16 @@ export class V12Scene3D {
 
         // Position exhaust valve in head (outer side)
         const exOffset = cylMesh.bank === 'R' ? 0.18 : -0.18;
-        valveGroup.position.set(
-          headX + exOffset * Math.cos(bankAngle),
-          headY - exOffset * Math.sin(bankAngle),
-          z + valveZOff
-        );
+        const exPosX = headX + exOffset * Math.cos(bankAngle);
+        const exPosY = headY - exOffset * Math.sin(bankAngle);
+        const exPosZ = z + valveZOff;
+        valveGroup.position.set(exPosX, exPosY, exPosZ);
         valveGroup.rotation.z = -bankAngle;
+        valveGroup.userData = {
+          baseX: exPosX,
+          baseY: exPosY,
+          bankAngle: bankAngle
+        };
 
         this.valvetrainGroup.add(valveGroup);
         cylMesh.exValves.push(valveGroup);
@@ -884,102 +912,215 @@ export class V12Scene3D {
     this.turboGroup.clear();
     this.turboImpellers = [];
 
-    const crankLength = 6 * CYL_SPACING;
-    const turboZ = 0.0;
-
     // Symmetrical Twin Turbochargers: Right Bank (+X) and Left Bank (-X)
+    // Mounted on outside flanks alongside cylinder banks with CAD precision
     const turboConfigs = [
-      { side: 'R', sign: 1,  x:  2.35, y: 0.35 },
-      { side: 'L', sign: -1, x: -2.35, y: 0.35 }
+      { side: 'R', sign: 1,  x:  2.28, y: 1.35, z: -0.25 },
+      { side: 'L', sign: -1, x: -2.28, y: 1.35, z: -0.25 }
     ];
 
     turboConfigs.forEach(cfg => {
       const tbGroup = new THREE.Group();
-      tbGroup.position.set(cfg.x, cfg.y, turboZ);
+      tbGroup.position.set(cfg.x, cfg.y, cfg.z);
 
-      // 1. Turbine Housing (Cast Iron Dark Snail Shell)
-      const turbineGeo = new THREE.TorusGeometry(0.36, 0.15, 16, 32, Math.PI * 1.8);
-      const turbineMesh = new THREE.Mesh(turbineGeo, this.materials.turboTurbine);
-      turbineMesh.rotation.y = cfg.sign * (Math.PI / 2);
-      turbineMesh.position.set(0, 0, -0.22);
-      tbGroup.add(turbineMesh);
+      // All rotating parts share the exact same longitudinal Z axis (parallel to crankshaft)
 
-      // Turbine exhaust discharge flanged elbow (pointing rearward)
-      const downpipeGeo = new THREE.CylinderGeometry(0.18, 0.20, 0.8, 20);
+      // 1. Turbine Exhaust Downpipe (Exhaust discharge running rearward along -Z)
+      const downpipeFlangeGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.04, 24);
+      downpipeFlangeGeo.rotateX(Math.PI / 2);
+      const dpFlange = new THREE.Mesh(downpipeFlangeGeo, this.materials.turboTurbine);
+      dpFlange.position.set(0, 0, -0.38);
+      tbGroup.add(dpFlange);
+
+      // High-flow downpipe tube extending rearward
+      const downpipeGeo = new THREE.CylinderGeometry(0.16, 0.16, 1.0, 24);
       downpipeGeo.rotateX(Math.PI / 2);
       const downpipeMesh = new THREE.Mesh(downpipeGeo, this.materials.turboTurbine);
-      downpipeMesh.position.set(0, -0.05, -0.65);
+      downpipeMesh.position.set(0, -0.04, -0.90);
       tbGroup.add(downpipeMesh);
 
-      // 2. CHRA Center Bearing Cartridge (Water/Oil Cooled)
-      const chraGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.25, 18);
+      // 2. Turbine Volute Housing (Cast Iron Snail Shell, Hot Side)
+      // Torus in XY plane centered at z = -0.27 (spans z = -0.38 to -0.16)
+      const turbineGeo = new THREE.TorusGeometry(0.33, 0.11, 20, 36, Math.PI * 1.85);
+      const turbineMesh = new THREE.Mesh(turbineGeo, this.materials.turboTurbine);
+      turbineMesh.position.set(0, 0, -0.27);
+      tbGroup.add(turbineMesh);
+
+      // Turbine Tangential Inlet Flange (Faces inward to mate cleanly with header collector)
+      const turbInletGeo = new THREE.CylinderGeometry(0.11, 0.11, 0.22, 16);
+      turbInletGeo.rotateZ(Math.PI / 2);
+      const turbInlet = new THREE.Mesh(turbInletGeo, this.materials.turboTurbine);
+      turbInlet.position.set(-cfg.sign * 0.28, 0.08, -0.27);
+      tbGroup.add(turbInlet);
+
+      // 3. CHRA Center Bearing Cartridge (Water & Oil Cooled Center Housing)
+      // Positioned cleanly between housings: z = -0.14 to +0.14 (length 0.28)
+      const chraGeo = new THREE.CylinderGeometry(0.125, 0.125, 0.28, 20);
       chraGeo.rotateX(Math.PI / 2);
       const chraMesh = new THREE.Mesh(chraGeo, this.materials.gear);
-      chraMesh.position.set(0, 0, 0.02);
+      chraMesh.position.set(0, 0, 0);
       tbGroup.add(chraMesh);
 
-      // Polished oil and coolant feed lines
-      const lineGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.45, 12);
-      const feedLine = new THREE.Mesh(lineGeo, this.materials.starlightChrome);
-      feedLine.position.set(0, 0.22, 0.02);
+      // CHRA Cooling Ribs / Flanges
+      for (const ribZ of [-0.08, 0, 0.08]) {
+        const ribGeo = new THREE.CylinderGeometry(0.145, 0.145, 0.02, 20);
+        ribGeo.rotateX(Math.PI / 2);
+        const rib = new THREE.Mesh(ribGeo, this.materials.gear);
+        rib.position.set(0, 0, ribZ);
+        tbGroup.add(rib);
+      }
+
+      // Oil Feed Line (top vertical fitting)
+      const oilLineGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.32, 12);
+      const feedLine = new THREE.Mesh(oilLineGeo, this.materials.starlightChrome);
+      feedLine.position.set(0, 0.22, 0);
       tbGroup.add(feedLine);
 
-      // 3. Compressor Housing (Mirror Billet Aluminum Snail Shell)
-      const compGeo = new THREE.TorusGeometry(0.40, 0.17, 16, 32, Math.PI * 1.8);
+      // Oil Drain Line (bottom vertical fitting)
+      const drainLineGeo = new THREE.CylinderGeometry(0.028, 0.028, 0.32, 12);
+      const drainLine = new THREE.Mesh(drainLineGeo, this.materials.starlightChrome);
+      drainLine.position.set(0, -0.22, 0);
+      tbGroup.add(drainLine);
+
+      // 4. Compressor Housing (Mirror Billet Aluminum Volute, Cold Side)
+      // Torus in XY plane centered at z = +0.27 (spans z = +0.15 to +0.39)
+      const compGeo = new THREE.TorusGeometry(0.36, 0.12, 20, 36, Math.PI * 1.85);
       const compMesh = new THREE.Mesh(compGeo, this.materials.turboCompressor);
-      compMesh.rotation.y = cfg.sign * (Math.PI / 2);
-      compMesh.position.set(0, 0, 0.25);
+      compMesh.position.set(0, 0, 0.27);
       tbGroup.add(compMesh);
 
-      // Compressor inlet bellmouth (facing forward)
-      const inletGeo = new THREE.CylinderGeometry(0.24, 0.19, 0.32, 24);
+      // Compressor Inlet Bellmouth (Velocity Stack facing forward along +Z)
+      // Spans z = +0.39 to +0.71
+      const inletGeo = new THREE.CylinderGeometry(0.20, 0.16, 0.32, 24);
       inletGeo.rotateX(Math.PI / 2);
       const inletMesh = new THREE.Mesh(inletGeo, this.materials.turboCompressor);
-      inletMesh.position.set(0, 0, 0.45);
+      inletMesh.position.set(0, 0, 0.55);
       tbGroup.add(inletMesh);
 
-      // Compressor Impeller Wheel (Precision Milled Spinner with 8 Blades)
+      // Compressor Impeller Wheel (Billet CNC Spinner with 8 aerodynamic blades)
       const impellerGroup = new THREE.Group();
-      impellerGroup.position.set(0, 0, 0.35);
+      impellerGroup.position.set(0, 0, 0.32);
 
-      const noseConeGeo = new THREE.ConeGeometry(0.07, 0.15, 16);
+      const noseConeGeo = new THREE.ConeGeometry(0.06, 0.14, 16);
       noseConeGeo.rotateX(Math.PI / 2);
       const noseCone = new THREE.Mesh(noseConeGeo, this.materials.starlightChrome);
       impellerGroup.add(noseCone);
 
       for (let b = 0; b < 8; b++) {
-        const bladeGeo = new THREE.BoxGeometry(0.16, 0.015, 0.10);
+        const bladeGeo = new THREE.BoxGeometry(0.14, 0.012, 0.08);
         const blade = new THREE.Mesh(bladeGeo, this.materials.turboCompressor);
         const angle = (b / 8) * Math.PI * 2;
-        blade.position.set(Math.cos(angle) * 0.10, Math.sin(angle) * 0.10, 0);
+        blade.position.set(Math.cos(angle) * 0.09, Math.sin(angle) * 0.09, 0);
         blade.rotation.z = angle + 0.35;
-        blade.rotation.x = 0.3;
+        blade.rotation.x = 0.25;
         impellerGroup.add(blade);
       }
       tbGroup.add(impellerGroup);
       this.turboImpellers.push(impellerGroup);
 
-      // Compressor Charge Boost Pipe (leads upward into intercooler plenum)
-      const pipeGeo = new THREE.CylinderGeometry(0.14, 0.14, 1.6, 20);
-      const pipeMesh = new THREE.Mesh(pipeGeo, this.materials.starlightChrome);
-      pipeMesh.position.set(-cfg.sign * 0.3, 0.95, 0.1);
-      pipeMesh.rotation.z = -cfg.sign * 0.35;
-      tbGroup.add(pipeMesh);
+      // Compressor Charge Boost Pipe (leads upward/inward into intercooler plenum)
+      const boostPipeCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-cfg.sign * 0.24, 0.28, 0.27),
+        new THREE.Vector3(-cfg.sign * 0.55, 0.65, 0.24),
+        new THREE.Vector3(-cfg.sign * 0.85, 0.95, 0.22)
+      ]);
+      const boostPipeGeo = new THREE.TubeGeometry(boostPipeCurve, 20, 0.085, 16, false);
+      const boostPipeMesh = new THREE.Mesh(boostPipeGeo, this.materials.starlightChrome);
+      tbGroup.add(boostPipeMesh);
 
-      // 4. Wastegate Actuator Canister & Calibrated Linkage
-      const wastegateGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.28, 16);
+      // 5. Wastegate Actuator Canister & Calibrated Linkage
+      // Mounted on rigid bracket on outer flank (+X for Bank R, -X for Bank L)
+      const wgBracketGeo = new THREE.BoxGeometry(0.18, 0.03, 0.08);
+      const wgBracket = new THREE.Mesh(wgBracketGeo, this.materials.gear);
+      wgBracket.position.set(cfg.sign * 0.32, 0.12, 0.10);
+      tbGroup.add(wgBracket);
+
+      // Actuator canister cylinder aligned along Z
+      const wastegateGeo = new THREE.CylinderGeometry(0.075, 0.075, 0.22, 18);
+      wastegateGeo.rotateX(Math.PI / 2);
       const wastegate = new THREE.Mesh(wastegateGeo, this.materials.starlightChrome);
-      wastegate.position.set(cfg.sign * 0.38, 0.25, -0.15);
-      wastegate.rotation.x = Math.PI / 4;
+      wastegate.position.set(cfg.sign * 0.40, 0.12, 0.02);
       tbGroup.add(wastegate);
 
-      const rodGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.32, 10);
+      // Stainless actuator rod running rearward to turbine wastegate flapper arm
+      const rodGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.26, 12);
+      rodGeo.rotateX(Math.PI / 2);
       const rod = new THREE.Mesh(rodGeo, this.materials.starlightChrome);
-      rod.position.set(cfg.sign * 0.38, 0.05, -0.28);
-      rod.rotation.x = Math.PI / 3;
+      rod.position.set(cfg.sign * 0.40, 0.12, -0.22);
       tbGroup.add(rod);
 
+      // Flapper pivot arm on turbine housing
+      const flapperArmGeo = new THREE.BoxGeometry(0.12, 0.02, 0.04);
+      const flapperArm = new THREE.Mesh(flapperArmGeo, this.materials.turboTurbine);
+      flapperArm.position.set(cfg.sign * 0.34, 0.12, -0.35);
+      tbGroup.add(flapperArm);
+
       this.turboGroup.add(tbGroup);
+    });
+  }
+
+  _buildExhaustHeaders() {
+    this.exhaustHeadersGroup.clear();
+
+    const crankLength = 6 * CYL_SPACING;
+    const zStart = (crankLength / 2) - (CYL_SPACING / 2);
+
+    const banks = [
+      { side: 'R', sign: 1,  bankAngle:  BANK_ANGLE, turboX:  2.28, turboY: 1.35, turboZ: -0.25 },
+      { side: 'L', sign: -1, bankAngle: -BANK_ANGLE, turboX: -2.28, turboY: 1.35, turboZ: -0.25 }
+    ];
+
+    banks.forEach(b => {
+      const bankGroup = new THREE.Group();
+      const headDist = R + L + 0.65;
+      const headX = Math.sin(b.bankAngle) * headDist;
+      const headY = Math.cos(b.bankAngle) * headDist;
+      const exOffset = b.sign * 0.18;
+
+      const portX = headX + exOffset * Math.cos(b.bankAngle);
+      const portY = headY - exOffset * Math.sin(b.bankAngle);
+
+      // Turbine Inlet collector point (where runners merge)
+      const collectorX = b.turboX - b.sign * 0.28;
+      const collectorY = b.turboY + 0.08;
+      const collectorZ = b.turboZ - 0.27;
+
+      // 6 Tuned Stainless Steel Header Runners for cylinders 1-6 / 7-12
+      for (let c = 0; c < 6; c++) {
+        const cylZ = zStart - c * CYL_SPACING;
+
+        // Exhaust port collar flange
+        const flangeGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.03, 16);
+        flangeGeo.rotateZ(Math.PI / 2);
+        const flange = new THREE.Mesh(flangeGeo, this.materials.exhaustHeader);
+        flange.position.set(portX, portY, cylZ);
+        bankGroup.add(flange);
+
+        // Smooth sweeping 3D runner curve
+        const midX = (portX + collectorX) * 0.5 + b.sign * 0.12;
+        const midY = (portY + collectorY) * 0.5 - 0.15;
+        const midZ = (cylZ + collectorZ) * 0.5;
+
+        const runnerCurve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(portX, portY, cylZ),
+          new THREE.Vector3(portX + b.sign * 0.18, portY - 0.25, cylZ * 0.85 + collectorZ * 0.15),
+          new THREE.Vector3(midX, midY, midZ),
+          new THREE.Vector3(collectorX, collectorY, collectorZ)
+        ]);
+
+        const runnerGeo = new THREE.TubeGeometry(runnerCurve, 24, 0.048, 12, false);
+        const runnerMesh = new THREE.Mesh(runnerGeo, this.materials.exhaustHeader);
+        bankGroup.add(runnerMesh);
+      }
+
+      // Collector merge cone
+      const colGeo = new THREE.ConeGeometry(0.16, 0.24, 16);
+      colGeo.rotateZ(b.sign * (Math.PI / 2));
+      const colMesh = new THREE.Mesh(colGeo, this.materials.exhaustHeader);
+      colMesh.position.set(collectorX - b.sign * 0.08, collectorY, collectorZ);
+      bankGroup.add(colMesh);
+
+      this.exhaustHeadersGroup.add(bankGroup);
     });
   }
 
@@ -1315,8 +1456,10 @@ export class V12Scene3D {
 
       // Depress intake valves down into chamber
       cylMesh.inValves.forEach((v, vIdx) => {
-        v.position.y = (R + L + 0.65) * Math.cos(bankAngle) - inLiftUnits * Math.cos(bankAngle);
-        v.position.x = (R + L + 0.65) * Math.sin(bankAngle) - inLiftUnits * Math.sin(bankAngle);
+        if (v.userData && v.userData.baseX !== undefined) {
+          v.position.x = v.userData.baseX - inLiftUnits * Math.sin(bankAngle);
+          v.position.y = v.userData.baseY - inLiftUnits * Math.cos(bankAngle);
+        }
         // Compress helical spring visually
         const spring = cylMesh.inSprings[vIdx];
         if (spring) {
@@ -1327,8 +1470,10 @@ export class V12Scene3D {
 
       // Depress exhaust valves down into chamber
       cylMesh.exValves.forEach((v, vIdx) => {
-        v.position.y = (R + L + 0.65) * Math.cos(bankAngle) - exLiftUnits * Math.cos(bankAngle);
-        v.position.x = (R + L + 0.65) * Math.sin(bankAngle) - exLiftUnits * Math.sin(bankAngle);
+        if (v.userData && v.userData.baseX !== undefined) {
+          v.position.x = v.userData.baseX - exLiftUnits * Math.sin(bankAngle);
+          v.position.y = v.userData.baseY - exLiftUnits * Math.cos(bankAngle);
+        }
         const spring = cylMesh.exSprings[vIdx];
         if (spring) {
           const compFactor = 1.0 - (state.valves.exhaustNorm * 0.35);

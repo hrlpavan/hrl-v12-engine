@@ -242,13 +242,74 @@ class V12Application {
     if (btnThemeLight) btnThemeLight.addEventListener('click', () => setTheme('light'));
     if (btnThemeDark) btnThemeDark.addEventListener('click', () => setTheme('dark'));
 
-    // 11. Keyboard Shortcuts
+    // 11. Consolidated Telemetry Inspector Tabs Switching
+    const inspectorTabs = document.querySelectorAll('.inspector-tabs .seg-btn');
+    const inspectorPanes = document.querySelectorAll('.inspector-pane');
+
+    inspectorTabs.forEach(btn => {
+      btn.addEventListener('click', () => {
+        inspectorTabs.forEach(b => b.classList.remove('active'));
+        inspectorPanes.forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        const targetPane = document.getElementById(`pane-${btn.dataset.tab}`);
+        if (targetPane) targetPane.classList.add('active');
+        this.telemetry.resizeCanvases();
+      });
+    });
+
+    // 12. Inspector Open / Close & Floating Summon Chip
+    const inspector = document.getElementById('telemetry-inspector');
+    const btnTelemetryToggle = document.getElementById('btn-telemetry-toggle');
+    const btnInspectorClose = document.getElementById('btn-inspector-close');
+    const btnFloatingTelemetry = document.getElementById('btn-floating-telemetry');
+
+    const setInspectorOpen = (open) => {
+      inspector.classList.toggle('collapsed', !open);
+      if (btnTelemetryToggle) btnTelemetryToggle.classList.toggle('active', open);
+      if (btnFloatingTelemetry) btnFloatingTelemetry.classList.toggle('active', !open);
+      if (open) {
+        this.telemetry.resizeCanvases();
+      }
+    };
+
+    if (btnTelemetryToggle) {
+      btnTelemetryToggle.addEventListener('click', () => {
+        const isCollapsed = inspector.classList.contains('collapsed');
+        setInspectorOpen(isCollapsed);
+      });
+    }
+
+    if (btnInspectorClose) {
+      btnInspectorClose.addEventListener('click', () => setInspectorOpen(false));
+    }
+
+    if (btnFloatingTelemetry) {
+      btnFloatingTelemetry.addEventListener('click', () => setInspectorOpen(true));
+    }
+
+    // 13. Zen Mode (Full Engine Focus / Hide HUD)
+    const hudOverlay = document.getElementById('hud-overlay');
+    const btnZenMode = document.getElementById('btn-zen-mode');
+    const btnZenExit = document.getElementById('btn-zen-exit');
+
+    const toggleZenMode = (forcedState) => {
+      const isHidden = forcedState !== undefined ? forcedState : !hudOverlay.classList.contains('hud-hidden');
+      hudOverlay.classList.toggle('hud-hidden', isHidden);
+      document.body.classList.toggle('zen-active', isHidden);
+    };
+
+    if (btnZenMode) btnZenMode.addEventListener('click', () => toggleZenMode());
+    if (btnZenExit) btnZenExit.addEventListener('click', () => toggleZenMode(false));
+
+    // 14. Keyboard Shortcuts
     window.addEventListener('keydown', (e) => {
       if (e.code === 'Space') {
         e.preventDefault();
         btnPlayPause.click();
       } else if (e.key === 'h' || e.key === 'H') {
-        document.getElementById('hud-overlay').classList.toggle('hud-hidden');
+        toggleZenMode();
+      } else if (e.key === 'Escape') {
+        toggleZenMode(false);
       } else if (e.code === 'ArrowRight') {
         document.getElementById('btn-step-fwd-15').click();
       } else if (e.code === 'ArrowLeft') {
@@ -282,14 +343,26 @@ class V12Application {
   _updateHudText(engineState) {
     const selectedCyl = engineState.cylinders.find(c => c.id === this.selectedCylinderId) || engineState.cylinders[0];
 
-    document.getElementById('header-cyl-id').textContent = `Cylinder ${selectedCyl.id} (Bank ${selectedCyl.bank})`;
-    document.getElementById('header-crank-deg').textContent = `${Math.round(selectedCyl.cycleDeg)}° Crank Position`;
-    document.getElementById('kinematic-after-tdc').textContent = `${Math.round(selectedCyl.crankAngleFromTdc)}° After TDC`;
-    document.getElementById('pv-cyl-tag').textContent = `Cyl ${selectedCyl.id}`;
+    const headerCyl = document.getElementById('header-cyl-id');
+    if (headerCyl) headerCyl.textContent = `Cylinder ${selectedCyl.id} (Bank ${selectedCyl.bank})`;
+
+    const inspectorBadge = document.getElementById('inspector-cyl-badge');
+    if (inspectorBadge) inspectorBadge.textContent = `Cylinder ${selectedCyl.id}`;
+
+    const headerCrank = document.getElementById('header-crank-deg');
+    if (headerCrank) headerCrank.textContent = `${Math.round(selectedCyl.cycleDeg)}° Crank Position`;
+
+    const kinTdc = document.getElementById('kinematic-after-tdc');
+    if (kinTdc) kinTdc.textContent = `${Math.round(selectedCyl.crankAngleFromTdc)}° After TDC`;
+
+    const pvTag = document.getElementById('pv-cyl-tag');
+    if (pvTag) pvTag.textContent = `Cyl ${selectedCyl.id}`;
 
     const strokeNameEl = document.getElementById('header-stroke-name');
-    strokeNameEl.textContent = selectedCyl.phase.name;
-    strokeNameEl.className = `status-pill status-${selectedCyl.phase.code.toLowerCase()}`;
+    if (strokeNameEl) {
+      strokeNameEl.textContent = selectedCyl.phase.name;
+      strokeNameEl.className = `status-pill status-${selectedCyl.phase.code.toLowerCase()}`;
+    }
 
     ['intake', 'compression', 'power', 'exhaust'].forEach(code => {
       const badge = document.getElementById(`badge-stroke-${code}`);
