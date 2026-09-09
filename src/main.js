@@ -57,8 +57,9 @@ class V12Application {
     const tooltipMass = document.getElementById('tooltip-part-mass');
     const tooltipTolerance = document.getElementById('tooltip-part-tolerance');
     const tooltipNote = document.getElementById('tooltip-part-note');
+    const btnTooltipClose = document.getElementById('btn-tooltip-close');
 
-    this.scene3d.onPartHover = (partInfo, coords) => {
+    this.scene3d.onPartHover = (partInfo) => {
       if (!partInfo || !tooltipEl) {
         if (tooltipEl) tooltipEl.style.display = 'none';
         return;
@@ -70,14 +71,17 @@ class V12Application {
       if (tooltipTolerance) tooltipTolerance.textContent = partInfo.toleranceMm || '±0.005 mm';
       if (tooltipNote) tooltipNote.textContent = partInfo.heritageNote || '';
 
-      if (coords) {
-        const left = Math.min(window.innerWidth - 330, Math.max(10, coords.clientX));
-        const top = Math.min(window.innerHeight - 230, Math.max(75, coords.clientY));
-        tooltipEl.style.left = `${left}px`;
-        tooltipEl.style.top = `${top}px`;
-      }
+      // Cleanly show anchored bottom-left HUD card without cursor obstruction
       tooltipEl.style.display = 'block';
     };
+
+    if (btnTooltipClose) {
+      btnTooltipClose.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (tooltipEl) tooltipEl.style.display = 'none';
+        this.scene3d.clearHighlight();
+      });
+    }
 
     this.scene3d.onPartClick = (partInfo) => {
       audioEngine.blipThrottle(0.3);
@@ -373,7 +377,20 @@ class V12Application {
     if (btnDyno) btnDyno.addEventListener('click', () => this.runDynoPull());
     if (btnDynoRun) btnDynoRun.addEventListener('click', () => this.runDynoPull());
 
-    // 18. Keyboard Shortcuts
+    // 18. 3D Part Inspector Mode Toggle (Opt-in)
+    const btnInspectToggle = document.getElementById('btn-inspect-toggle');
+    if (btnInspectToggle) {
+      btnInspectToggle.addEventListener('click', () => {
+        const isEnabled = !btnInspectToggle.classList.contains('active');
+        btnInspectToggle.classList.toggle('active', isEnabled);
+        this.scene3d.setInspectorEnabled(isEnabled);
+        if (!isEnabled && tooltipEl) {
+          tooltipEl.style.display = 'none';
+        }
+      });
+    }
+
+    // 19. Keyboard Shortcuts
     window.addEventListener('keydown', (e) => {
       if (e.code === 'Space') {
         e.preventDefault();
@@ -392,6 +409,8 @@ class V12Application {
         setTheme(this.currentTheme === 'light' ? 'dark' : 'light');
       } else if (e.key === 'd' || e.key === 'D') {
         this.runDynoPull();
+      } else if (e.key === 'i' || e.key === 'I') {
+        if (btnInspectToggle) btnInspectToggle.click();
       }
     });
   }

@@ -73,11 +73,13 @@ export class V12Scene3D {
     this.tourProgress = 0.0;
 
     // Interactive 3D Raycasting & Part Inspector
+    this.isInspectorEnabled = false; // Default off so hover popups don't distract or annoy user
+    this.isOrbiting = false;
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2(-999, -999);
     this.interactiveMeshes = [];
     this.hoveredMesh = null;
-    this.onPartHover = null; // (partInfo, mouseX, mouseY) => {}
+    this.onPartHover = null; // (partInfo) => {}
     this.onPartClick = null; // (partInfo) => {}
 
     // Cylinders dynamic parts cache: { id, pistonGroup, rodGroup, inValves, exValves, inSprings, exSprings, sparkGlow, fireMesh, pointLight }
@@ -141,6 +143,8 @@ export class V12Scene3D {
     this.controls.maxDistance = 25;
     this.controls.minDistance = 1.2;
     this.controls.maxPolarAngle = Math.PI / 2 + 0.15;
+    this.controls.addEventListener('start', () => { this.isOrbiting = true; });
+    this.controls.addEventListener('end', () => { this.isOrbiting = false; });
 
     // 5. Lighting & Studio Environment
     this._setupLighting();
@@ -2129,7 +2133,37 @@ export class V12Scene3D {
     return this.isAutoTour;
   }
 
+  setInspectorEnabled(enabled) {
+    this.isInspectorEnabled = !!enabled;
+    if (!this.isInspectorEnabled) {
+      if (this.hoveredMesh) {
+        this._unhighlightPart(this.hoveredMesh);
+        this.hoveredMesh = null;
+      }
+      if (this.onPartHover) {
+        this.onPartHover(null);
+      }
+    }
+    return this.isInspectorEnabled;
+  }
+
+  clearHighlight() {
+    if (this.hoveredMesh) {
+      this._unhighlightPart(this.hoveredMesh);
+      this.hoveredMesh = null;
+    }
+  }
+
   _onPointerMove(e) {
+    // If inspector mode is off or user is actively orbiting/dragging, do not perform hover raycasting
+    if (!this.isInspectorEnabled || this.isOrbiting) {
+      if (this.hoveredMesh) {
+        this._unhighlightPart(this.hoveredMesh);
+        this.hoveredMesh = null;
+      }
+      return;
+    }
+
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -2145,7 +2179,7 @@ export class V12Scene3D {
         this._highlightPart(hitMesh);
       }
       if (this.onPartHover && hitMesh.userData && hitMesh.userData.partInfo) {
-        this.onPartHover(hitMesh.userData.partInfo, { clientX: e.clientX, clientY: e.clientY });
+        this.onPartHover(hitMesh.userData.partInfo);
       }
     } else {
       if (this.hoveredMesh) {
@@ -2159,12 +2193,40 @@ export class V12Scene3D {
   }
 
   _onPointerClick(e) {
-    if (this.hoveredMesh && this.hoveredMesh.userData && this.hoveredMesh.userData.partInfo) {
-      const worldPos = new THREE.Vector3();
-      this.hoveredMesh.getWorldPosition(worldPos);
-      this.controls.target.lerp(worldPos, 0.75);
-      if (this.onPartClick) {
-        this.onPartClick(this.hoveredMesh.userData.partInfo, this.hoveredMesh);
+    if (this.isOrbiting) return;
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+    const intersects = this.raycaster.intersectObjects(this.interactiveMeshes, false);
+
+    if (intersects.length > 0) {
+      const hitMesh = intersects[0].object;
+      if (this.hoveredMesh !== hitMesh) {
+        if (this.hoveredMesh) this._unhighlightPart(this.hoveredMesh);
+        this.hoveredMesh = hitMesh;
+        this._highlightPart(hitMesh);
+      }
+      if (hitMesh.userData && hitMesh.userData.partInfo) {
+        const worldPos = new THREE.Vector3();
+        hitMesh.getWorldPosition(worldPos);
+        this.controls.target.lerp(worldPos, 0.75);
+        if (this.onPartClick) {
+          this.onPartClick(hitMesh.userData.partInfo, hitMesh);
+        }
+        if (this.onPartHover) {
+          this.onPartHover(hitMesh.userData.partInfo);
+        }
+      }
+    } else {
+      // Clicked on empty space: unhighlight and dismiss
+      if (this.hoveredMesh) {
+        this._unhighlightPart(this.hoveredMesh);
+        this.hoveredMesh = null;
+      }
+      if (this.onPartHover) {
+        this.onPartHover(null);
       }
     }
   }

@@ -19,8 +19,16 @@
       <!-- 3D Raycasting Part Inspector Tooltip (Apple Pro Glass HUD) -->
       <div id="part-tooltip" class="part-tooltip-hud" style="display: none;">
         <div class="part-tooltip-header">
-          <span class="part-tooltip-badge">V12 BESPOKE COMPONENT</span>
-          <h4 id="tooltip-part-name" class="part-tooltip-title">Piston Crown & Skirt</h4>
+          <div class="tooltip-header-left">
+            <span class="part-tooltip-badge">V12 BESPOKE COMPONENT</span>
+            <h4 id="tooltip-part-name" class="part-tooltip-title">Piston Crown & Skirt</h4>
+          </div>
+          <button id="btn-tooltip-close" class="tooltip-close-btn" title="Close Inspector">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
         <div class="part-tooltip-body">
           <div class="part-spec-row">
@@ -422,6 +430,7 @@
               <button class="toggle-pill active" data-overlay="combustionFx">Combustion</button>
               <button class="toggle-pill active" data-overlay="gasFlow">Flow</button>
               <button class="toggle-pill" id="btn-thermal-toggle" title="FLIR False-Color Thermal Imaging">Thermal</button>
+              <button class="toggle-pill" id="btn-inspect-toggle" title="Toggle 3D Part Inspector Mode">Inspect</button>
               <button class="toggle-pill" id="btn-isolate-toggle">Isolate</button>
             </div>
           </div>
