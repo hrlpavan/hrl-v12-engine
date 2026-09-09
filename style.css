@@ -629,19 +629,26 @@ body, html {
 }
 
 .inspector-tabs {
-  margin: 8px 12px 6px 12px;
+  margin: 8px 10px 6px 10px;
   background: var(--apple-track-bg);
   padding: 2px;
   border-radius: var(--apple-radius-sm);
   display: flex;
   gap: 2px;
   flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.inspector-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .inspector-tabs .seg-btn {
-  flex: 1;
-  font-size: 10px;
-  padding: 5px 0;
+  flex: 0 0 auto;
+  font-size: 9.5px;
+  padding: 5px 8px;
+  white-space: nowrap;
   text-align: center;
   justify-content: center;
 }
@@ -1443,3 +1450,66 @@ body.zen-active .zen-exit-chip {
   0% { transform: scale(1.0); box-shadow: 0 0 4px rgba(255, 149, 0, 0.4); }
   100% { transform: scale(1.04); box-shadow: 0 0 14px rgba(255, 149, 0, 0.8); }
 }
+
+/* ============================================================================
+   VERSION 2.0 GANESAN IC ENGINES STYLES
+   ============================================================================ */
+.v2-badge {
+  font-family: var(--apple-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: #0071e3;
+  background: rgba(0, 113, 227, 0.12);
+  border: 1px solid rgba(0, 113, 227, 0.28);
+  padding: 3px 8px;
+  border-radius: var(--apple-radius-pill);
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+
+[data-theme="dark"] .v2-badge {
+  color: #00e5ff;
+  background: rgba(0, 229, 255, 0.12);
+  border-color: rgba(0, 229, 255, 0.32);
+}
+
+.morse-btn-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.morse-cyl-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.morse-cyl-btn {
+  font-family: var(--apple-mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 5px 0;
+  text-align: center;
+  background: rgba(52, 199, 89, 0.14);
+  border: 1px solid rgba(52, 199, 89, 0.4);
+  color: var(--apple-text-primary);
+  border-radius: var(--apple-radius-sm);
+  cursor: pointer;
+  transition: var(--apple-transition-fast);
+}
+
+.morse-cyl-btn:hover {
+  background: rgba(52, 199, 89, 0.3);
+  transform: translateY(-1px);
+}
+
+.morse-cyl-btn.cut {
+  background: rgba(255, 59, 48, 0.18);
+  border-color: var(--apple-red);
+  color: var(--apple-red);
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+

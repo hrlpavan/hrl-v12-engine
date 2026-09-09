@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rolls-Royce Bespoke 6¾ Litre Twin-Turbo V12 | Engineering Architecture</title>
+  <title>Rolls-Royce Bespoke 6¾ Litre Twin-Turbo V12 | V2.0 Ganesan IC Engines Core</title>
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="shortcut icon" href="/favicon.ico" />
   <link rel="apple-touch-icon" href="/favicon.png" />
@@ -68,6 +68,7 @@
             </div>
           </div>
           <span class="spec-pill">60° Architecture</span>
+          <span class="v2-badge" title="Ganesan IC Engines Physics & Thermodynamics Core (Fourth Edition)">V2.0 · Ganesan Physics</span>
         </div>
 
         <!-- Center: Key Rolls-Royce Heritage Indicators -->
@@ -181,13 +182,16 @@
           </button>
         </div>
 
-        <!-- Segmented Tab Bar (macOS Style) -->
+        <!-- Segmented Tab Bar (Ganesan V2.0 Engineering HUD) -->
         <div class="inspector-tabs segmented-control">
-          <button class="seg-btn active" data-tab="cylinder">Cylinder</button>
-          <button class="seg-btn" data-tab="kinematics">Kinematics</button>
-          <button class="seg-btn" data-tab="thermo">Indicator P-V</button>
+          <button class="seg-btn active" data-tab="cylinder">Cyl</button>
+          <button class="seg-btn" data-tab="kinematics">Motion</button>
+          <button class="seg-btn" data-tab="thermo">P-V</button>
+          <button class="seg-btn" data-tab="sankey">Heat</button>
+          <button class="seg-btn" data-tab="perfmap">Map</button>
           <button class="seg-btn" data-tab="valves">Valves</button>
-          <button class="seg-btn" data-tab="dyno">Dyno Pull</button>
+          <button class="seg-btn" data-tab="dyno">Dyno</button>
+          <button class="seg-btn" data-tab="emissions">Emiss</button>
         </div>
 
         <!-- Tab Content Panes -->
@@ -223,20 +227,36 @@
 
               <div class="cyl-details-grid">
                 <div class="detail-item">
-                  <span class="detail-label">Displacement</span>
+                  <span class="detail-label">Swept Vol (Vs)</span>
                   <span class="detail-val">562.4 cc / cyl</span>
                 </div>
                 <div class="detail-item">
-                  <span class="detail-label">Valves</span>
-                  <span class="detail-val">4 (2 In / 2 Ex)</span>
+                  <span class="detail-label">Clearance (Vc)</span>
+                  <span class="detail-val">62.5 cc / cyl</span>
                 </div>
                 <div class="detail-item">
-                  <span class="detail-label">Ignition Timing</span>
-                  <span class="detail-val">15° BTDC</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Compression Ratio</span>
+                  <span class="detail-label">Comp. Ratio (r)</span>
                   <span class="detail-val">10.0 : 1</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Piston Speed (sp)</span>
+                  <span id="cyl-piston-speed" class="detail-val">12.0 m/s</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">GDI Mode</span>
+                  <span id="cyl-gdi-mode" class="detail-val">Homogeneous</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Equivalence (φ)</span>
+                  <span id="cyl-phi-val" class="detail-val">1.00 (14.7:1)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Air Mass Flow</span>
+                  <span id="cyl-maf-val" class="detail-val">340 kg/h</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Fuel Mass Flow</span>
+                  <span id="cyl-mff-val" class="detail-val">23.2 kg/h</span>
                 </div>
               </div>
             </div>
@@ -289,25 +309,116 @@
               <div class="card-header">
                 <div class="card-title-group">
                   <span class="card-title">Indicator Diagram</span>
-                  <span class="card-subtitle">Otto Thermodynamic Cycle</span>
+                  <span class="card-subtitle">Actual vs Air-Std Otto Cycle</span>
                 </div>
                 <span id="pv-cyl-tag" class="card-tag">Cyl 1</span>
               </div>
               <div class="canvas-wrap">
                 <canvas id="canvas-pv-indicator" class="telemetry-canvas" width="280" height="135"></canvas>
               </div>
-              <div class="card-footer-info" style="margin-top: 6px;">
-                <span>Continuous Thermodynamic State Point Tracer</span>
+              <div class="cyl-details-grid" style="margin-top: 8px;">
+                <div class="detail-item">
+                  <span class="detail-label">IMEP (pim)</span>
+                  <span id="thermo-imep-val" class="detail-val">18.4 bar</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">BMEP (pbm)</span>
+                  <span id="thermo-bmep-val" class="detail-val">16.8 bar</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">FMEP (pfm)</span>
+                  <span id="thermo-fmep-val" class="detail-val">1.6 bar</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Mech. Eff. (ηm)</span>
+                  <span id="thermo-etam-val" class="detail-val">91.3%</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Brake Eff. (ηbth)</span>
+                  <span id="thermo-etabth-val" class="detail-val">34.5%</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Relative Eff. (ηrel)</span>
+                  <span id="thermo-etarel-val" class="detail-val">57.3%</span>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Pane 4: Valve Timing Scrub Diagram -->
+          <!-- Pane 4: First Law Heat Balance & Sankey Diagram -->
+          <div class="inspector-pane" id="pane-sankey">
+            <div class="apple-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Sankey Heat Balance</span>
+                  <span class="card-subtitle">First Law Energy Distribution</span>
+                </div>
+                <span class="card-tag">Ganesan Fig. 16.13</span>
+              </div>
+              <div class="canvas-wrap">
+                <canvas id="canvas-sankey-diagram" class="telemetry-canvas" width="280" height="155"></canvas>
+              </div>
+              <div class="cyl-details-grid" style="margin-top: 8px;">
+                <div class="detail-item">
+                  <span class="detail-label">Fuel Input (Qf)</span>
+                  <span id="sankey-qfuel" class="detail-val">520.0 kW</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Brake Work (bp)</span>
+                  <span id="sankey-bp" class="detail-val">170.0 kW (32.7%)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Coolant Jacket</span>
+                  <span id="sankey-qcool" class="detail-val">145.0 kW (27.9%)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Exhaust Enthalpy</span>
+                  <span id="sankey-qex" class="detail-val">172.0 kW (33.1%)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane 5: Engine Performance Map & Stribeck Curve -->
+          <div class="inspector-pane" id="pane-perfmap">
+            <div class="apple-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Performance Map</span>
+                  <span class="card-subtitle">BMEP vs Mean Piston Speed</span>
+                </div>
+                <span class="card-tag">BSFC Contours</span>
+              </div>
+              <div class="canvas-wrap">
+                <canvas id="canvas-perf-map" class="telemetry-canvas" width="280" height="145"></canvas>
+              </div>
+              <div class="cyl-details-grid" style="margin-top: 8px;">
+                <div class="detail-item">
+                  <span class="detail-label">Lubrication Regime</span>
+                  <span id="perf-lub-regime" class="detail-val">Full-Film Hydrodynamic</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Sommerfeld (νN/p)</span>
+                  <span id="perf-sommerfeld" class="detail-val">0.0142</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Brake Specific FC</span>
+                  <span id="perf-bsfc" class="detail-val">235 g/kWh</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Specific Energy (bsec)</span>
+                  <span id="perf-bsec" class="detail-val">10.34 MJ/kWh</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane 6: Valve Timing & Gas Dynamics -->
           <div class="inspector-pane" id="pane-valves">
             <div class="apple-card">
               <div class="card-header">
                 <div class="card-title-group">
-                  <span class="card-title">Valve Timing</span>
+                  <span class="card-title">Valve Timing & Lift</span>
                   <span class="card-subtitle">Lift & Duration (720°)</span>
                 </div>
                 <span class="card-action-tag">Drag to Scrub</span>
@@ -320,10 +431,28 @@
                 <span><span class="key-dot dot-orange"></span> Exhaust</span>
                 <span><span class="key-dot dot-gray"></span> Piston</span>
               </div>
+              <div class="cyl-details-grid" style="margin-top: 8px;">
+                <div class="detail-item">
+                  <span class="detail-label">Inlet Mach Index (Z)</span>
+                  <span id="valves-mach-index" class="detail-val">0.380</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Breathing Status</span>
+                  <span id="valves-choke-status" class="detail-val">Optimal (Z &lt; 0.55)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Valve Overlap</span>
+                  <span class="detail-val">40° (Scavenging)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Sonic Velocity (α)</span>
+                  <span id="valves-sonic-vel" class="detail-val">356 m/s</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Pane 5: Rolls-Royce 6¾L V12 Dyno Performance Curve -->
+          <!-- Pane 7: Dyno Sweep & Interactive Morse Test -->
           <div class="inspector-pane" id="pane-dyno">
             <div class="apple-card">
               <div class="card-header">
@@ -339,10 +468,91 @@
                 </button>
               </div>
               <div class="canvas-wrap">
-                <canvas id="canvas-dyno-curve" class="telemetry-canvas" width="280" height="135"></canvas>
+                <canvas id="canvas-dyno-curve" class="telemetry-canvas" width="280" height="130"></canvas>
               </div>
-              <div class="card-footer-info" style="margin-top: 6px;">
-                <span>Twin Bi-Turbo Dynamic Boost Buildup & Tidal Torque Plateau</span>
+            </div>
+
+            <!-- Interactive Morse Test Section (Ganesan Section 15.2.2) -->
+            <div class="apple-card" style="margin-top: 8px;">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Morse Test (Cylinder Cutout)</span>
+                  <span class="card-subtitle">Cut cylinder to measure Indicated Power</span>
+                </div>
+                <div class="morse-btn-actions">
+                  <button id="btn-morse-reset" class="apple-pill-btn btn-xs" title="Restore all 12 cylinders">All On</button>
+                  <button id="btn-morse-autorun" class="apple-pill-btn btn-xs accent-pill" title="Auto-run complete 12-cyl test">Auto Test</button>
+                </div>
+              </div>
+
+              <!-- 12 Cylinders Morse Cutout Grid -->
+              <div class="morse-cyl-grid" id="morse-cyl-buttons">
+                <!-- Buttons 1 to 12 dynamically populated or hardcoded -->
+                <button class="morse-cyl-btn active" data-cyl="1">1</button>
+                <button class="morse-cyl-btn active" data-cyl="2">2</button>
+                <button class="morse-cyl-btn active" data-cyl="3">3</button>
+                <button class="morse-cyl-btn active" data-cyl="4">4</button>
+                <button class="morse-cyl-btn active" data-cyl="5">5</button>
+                <button class="morse-cyl-btn active" data-cyl="6">6</button>
+                <button class="morse-cyl-btn active" data-cyl="7">7</button>
+                <button class="morse-cyl-btn active" data-cyl="8">8</button>
+                <button class="morse-cyl-btn active" data-cyl="9">9</button>
+                <button class="morse-cyl-btn active" data-cyl="10">10</button>
+                <button class="morse-cyl-btn active" data-cyl="11">11</button>
+                <button class="morse-cyl-btn active" data-cyl="12">12</button>
+              </div>
+
+              <div class="cyl-details-grid" style="margin-top: 8px;">
+                <div class="detail-item">
+                  <span class="detail-label">All-Firing BP</span>
+                  <span id="morse-bp-all" class="detail-val">170.0 kW</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Active BP</span>
+                  <span id="morse-bp-cur" class="detail-val">170.0 kW</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Total Indicated Power</span>
+                  <span id="morse-ip-total" class="detail-val">186.2 kW</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Calculated Mech. Eff.</span>
+                  <span id="morse-eta-m" class="detail-val">91.3%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane 8: Emissions & 3-Way Catalytic Converter -->
+          <div class="inspector-pane" id="pane-emissions">
+            <div class="apple-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Engine Emissions (Ganesan Ch. 14)</span>
+                  <span class="card-subtitle">NOx, CO & HC vs Equivalence Ratio</span>
+                </div>
+                <span class="card-tag">TWC Catalyzed</span>
+              </div>
+              <div class="canvas-wrap">
+                <canvas id="canvas-emissions" class="telemetry-canvas" width="280" height="135"></canvas>
+              </div>
+              <div class="cyl-details-grid" style="margin-top: 8px;">
+                <div class="detail-item">
+                  <span class="detail-label">NOx (Raw / Tailpipe)</span>
+                  <span id="emiss-nox-val" class="detail-val">1420 / 45 ppm</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">CO (Raw / Tailpipe)</span>
+                  <span id="emiss-co-val" class="detail-val">0.30% / 0.01%</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">HC (Raw / Tailpipe)</span>
+                  <span id="emiss-hc-val" class="detail-val">400 / 12 ppm</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Catalyst Temp & Status</span>
+                  <span id="cat-status-val" class="detail-val">580°C (Light-Off OK)</span>
+                </div>
               </div>
             </div>
           </div>

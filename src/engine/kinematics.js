@@ -4,16 +4,30 @@
 // Firing Order: 1 - 12 - 5 - 8 - 3 - 10 - 6 - 7 - 2 - 11 - 4 - 9
 // ============================================================================
 
+import {
+  computeGanesanThermodynamics,
+  simulateMorseTest,
+  ENGINE_GEOMETRY,
+  GAS_CONSTANTS
+} from './thermodynamics.js';
+
+export {
+  computeGanesanThermodynamics,
+  simulateMorseTest,
+  ENGINE_GEOMETRY,
+  GAS_CONSTANTS
+};
+
 export const ENGINE_SPECS = {
   name: "Rolls-Royce Bespoke 6¾ Litre Twin-Turbo V12",
   heritage: "Handcrafted at Goodwood, West Sussex, England",
   type: "60° V12 Twin-Turbocharged Direct Injection 48-Valve",
   displacementL: 6.75, // 6,749 cc
   boreMm: 89.0,
-  strokeMm: 90.4, // Undersquare long-stroke for tidal torque
+  strokeMm: 90.4, // Undersquare long-stroke for tidal torque (L/d = 1.016, Ganesan p. 5)
   crankRadiusMm: 45.2, // 90.4 / 2
   rodLengthMm: 162.0,
-  compressionRatio: 10.0, // Optimized for twin turbochargers
+  compressionRatio: 10.0, // Optimized for twin turbochargers (Ganesan p. 6)
   valvesPerCyl: 4, // 2 Intake, 2 Exhaust (48 total)
   intakeMaxLiftMm: 10.5,
   exhaustMaxLiftMm: 10.0,
@@ -177,7 +191,7 @@ export function calculateValveLifts(cycleDeg) {
   };
 }
 
-export function calculateChamberPressure(cycleDeg, pistonFraction) {
+export function calculateChamberPressure(cycleDeg, pistonFraction, isCut = false) {
   const deg = normalizeAngle(cycleDeg, 720);
   const rc = ENGINE_SPECS.compressionRatio;
   const gamma = 1.33;
@@ -186,6 +200,28 @@ export function calculateChamberPressure(cycleDeg, pistonFraction) {
 
   let pressureBar = 1.0;
   let temperatureK = 300;
+
+  if (isCut) {
+    // Pure Motoring Curve (Ganesan Fig. 11.2 & 15.2, pp. 325, 460)
+    // No combustion pressure rise; isentropic compression and expansion only
+    if (deg >= 540 || deg < 180) {
+      // Compression (540-720) and Expansion (0-180)
+      pressureBar = 1.0 * Math.pow(10.0 / relVol, 1.32);
+      temperatureK = 300 * Math.pow(10.0 / relVol, 0.32);
+    } else if (deg < 360) {
+      pressureBar = 1.05;
+      temperatureK = 380;
+    } else {
+      pressureBar = 0.96;
+      temperatureK = 305;
+    }
+    return {
+      pressureBar: Math.max(0.85, Math.round(pressureBar * 10) / 10),
+      temperatureK: Math.max(295, Math.round(temperatureK)),
+      volumeCm3: Math.round(((ENGINE_SPECS.displacementL * 1000 / 12) * (relVol / rc)) * 10) / 10,
+      isMotoring: true
+    };
+  }
 
   if (deg >= 540) {
     pressureBar = 1.0 * Math.pow(12.5 / relVol, gamma);
@@ -227,13 +263,16 @@ export function calculateChamberPressure(cycleDeg, pistonFraction) {
   };
 }
 
-export function computeEngineState(crankAngleDeg, rpm = 6500) {
+export function computeEngineState(crankAngleDeg, rpm = 1600, throttle = 1.0, cutCylinders = []) {
   const normCrank = normalizeAngle(crankAngleDeg, 360);
   const cycleCrank = normalizeAngle(crankAngleDeg, 720);
   const omega = (rpm * 2 * Math.PI) / 60.0;
 
   const rM = ENGINE_SPECS.crankRadiusMm / 1000.0;
   const lM = ENGINE_SPECS.rodLengthMm / 1000.0;
+
+  // Ganesan V2.0 Thermodynamics State Calculation
+  const ganesan = computeGanesanThermodynamics(rpm, throttle, cutCylinders);
 
   let activeFiringCylinder = null;
   let minFireDist = Infinity;
@@ -251,12 +290,15 @@ export function computeEngineState(crankAngleDeg, rpm = 6500) {
     const phase = getCyclePhase(cycleDeg);
 
     const pistonFrac = kinematics.s / (2 * rM);
-    const thermo = calculateChamberPressure(cycleDeg, pistonFrac);
+    const isCut = cutCylinders.includes(cyl.id);
 
-    const isSparking = cycleDeg >= 705 && cycleDeg <= 725;
-    const isCombusting = cycleDeg >= 0 && cycleDeg <= 110;
+    // If cylinder is cut (Morse Test), it only undergoes motoring compression (no combustion pressure rise)
+    const thermo = calculateChamberPressure(cycleDeg, pistonFrac, isCut);
 
-    if (cycleDeg < 60 && cycleDeg < minFireDist) {
+    const isSparking = !isCut && cycleDeg >= 705 && cycleDeg <= 725;
+    const isCombusting = !isCut && cycleDeg >= 0 && cycleDeg <= 110;
+
+    if (!isCut && cycleDeg < 60 && cycleDeg < minFireDist) {
       minFireDist = cycleDeg;
       activeFiringCylinder = cyl.id;
     }
@@ -269,6 +311,7 @@ export function computeEngineState(crankAngleDeg, rpm = 6500) {
       valves,
       phase,
       thermo,
+      isCut,
       isSparking,
       isCombusting,
       pistonFraction: pistonFrac
@@ -288,13 +331,16 @@ export function computeEngineState(crankAngleDeg, rpm = 6500) {
     cycleCrankDeg: cycleCrank,
     camAngleDeg,
     rpm,
+    throttle,
     omega,
     activeFiringCylinder: activeFiringCylinder || 1,
     cylinders: cylinderStates,
     powerReservePercent: powerReserve,
     coinStability,
     turboBoost,
-    dyno
+    dyno,
+    ganesan, // Full Ganesan V2 IC Engines Thermodynamics Core
+    cutCylinders
   };
 }
 

@@ -51,6 +51,9 @@ export class V12Scene3D {
     this.exhaustHeadersGroup = new THREE.Group();
     this.intercoolerGroup = new THREE.Group();
     this.coinGroup = new THREE.Group();
+    this.fuelSystemGroup = new THREE.Group();
+    this.catalyticGroup = new THREE.Group();
+    this.lubricationGroup = new THREE.Group();
     this.turboImpellers = [];
     this.standingCoin = null;
 
@@ -61,7 +64,10 @@ export class V12Scene3D {
       exhausts: [],
       valvetrainR: null,
       valvetrainL: null,
-      blockSlabs: []
+      blockSlabs: [],
+      fuelSystem: [],
+      catalytic: [],
+      lubrication: []
     };
     this.exhaustRunners = [];
     this.turbineHousings = [];
@@ -163,6 +169,9 @@ export class V12Scene3D {
     this.rootGroup.add(this.exhaustHeadersGroup);
     this.rootGroup.add(this.intercoolerGroup);
     this.rootGroup.add(this.coinGroup);
+    this.rootGroup.add(this.fuelSystemGroup);
+    this.rootGroup.add(this.catalyticGroup);
+    this.rootGroup.add(this.lubricationGroup);
     this.rootGroup.add(this.particlesGroup);
     this.rootGroup.add(this.calloutsGroup);
 
@@ -174,6 +183,9 @@ export class V12Scene3D {
     this._buildTwinTurbochargers();
     this._buildExhaustHeaders();
     this._buildIntercoolersAndPlenums();
+    this._buildGdiFuelSystem();
+    this._buildCatalyticConverters();
+    this._buildLubricationSystem();
     this._buildStandingCoin();
     this._buildGasParticles();
     this._buildCallouts();
@@ -1736,6 +1748,242 @@ export class V12Scene3D {
     });
   }
 
+  _buildGdiFuelSystem() {
+    this.fuelSystemGroup.clear();
+    this.explodedAssemblies.fuelSystem = [];
+
+    const crankLength = 6 * CYL_SPACING;
+    const railConfigs = [
+      { side: 'R', sign: 1,  x:  0.88, y: 1.82 },
+      { side: 'L', sign: -1, x: -0.88, y: 1.82 }
+    ];
+
+    railConfigs.forEach(cfg => {
+      const railGroup = new THREE.Group();
+      railGroup.position.set(cfg.x, cfg.y, 0);
+
+      // 1. High-Pressure Forged Stainless Common Rail (200-350 bar)
+      const railTubeGeo = new THREE.CylinderGeometry(0.045, 0.045, crankLength + 0.1, 16);
+      railTubeGeo.rotateX(Math.PI / 2);
+      const railTube = new THREE.Mesh(railTubeGeo, this.materials.starlightChrome);
+      railTube.userData.partInfo = {
+        name: `${cfg.side === 'R' ? 'Bank 1' : 'Bank 2'} High-Pressure Common Rail (350 bar)`,
+        metallurgy: "High-Yield Forged Stainless Steel Alloy (Nitride Hardened)",
+        tempK: "340 K",
+        massGrams: "2,450 g",
+        toleranceMm: "±0.002 mm",
+        heritageNote: "Maintains pulsation-damped 350 bar hydrostatic pressure for piezoelectric micro-droplet injection"
+      };
+      this.interactiveMeshes.push(railTube);
+      railGroup.add(railTube);
+
+      // 2. High-Pressure Piezo Direct Fuel Injectors (6 per bank)
+      const zStart = (crankLength / 2) - (CYL_SPACING / 2);
+      for (let c = 0; c < 6; c++) {
+        const cylZ = zStart - c * CYL_SPACING;
+        const injGroup = new THREE.Group();
+        injGroup.position.set(0, -0.08, cylZ);
+        injGroup.rotation.z = -cfg.sign * (BANK_ANGLE * 0.5);
+
+        // Injector Body
+        const bodyGeo = new THREE.CylinderGeometry(0.022, 0.016, 0.32, 16);
+        const bodyMesh = new THREE.Mesh(bodyGeo, this.materials.sparkMetal);
+        bodyMesh.userData.partInfo = {
+          name: `Cylinder ${cfg.side === 'R' ? c + 1 : c + 7} Piezo Direct Fuel Injector`,
+          metallurgy: "Multilayer Ceramic Piezoelectric Crystal Stack in Invar Housing",
+          tempK: "385 K",
+          massGrams: "185 g",
+          toleranceMm: "±0.0005 mm",
+          heritageNote: "Delivers up to 5 ultra-precise injection pulses per combustion event at 350 bar"
+        };
+        this.interactiveMeshes.push(bodyMesh);
+        injGroup.add(bodyMesh);
+
+        // Injector Electrical Connector Collar
+        const collarGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.06, 12);
+        const collar = new THREE.Mesh(collarGeo, this.materials.pianoBlack);
+        collar.position.y = 0.12;
+        injGroup.add(collar);
+
+        railGroup.add(injGroup);
+      }
+
+      // 3. High-Pressure Mechanical Fuel Pump at rear of rail
+      const hpPumpGeo = new THREE.CylinderGeometry(0.12, 0.14, 0.36, 24);
+      hpPumpGeo.rotateX(Math.PI / 2);
+      const hpPump = new THREE.Mesh(hpPumpGeo, this.materials.starlightChrome);
+      hpPump.position.set(0, 0.06, -crankLength / 2 - 0.18);
+      hpPump.userData.partInfo = {
+        name: `${cfg.side === 'R' ? 'Bank 1' : 'Bank 2'} Camshaft-Driven HP Fuel Pump`,
+        metallurgy: "DLC-Coated Piston in Forged Stainless Steel Pump Body",
+        tempK: "355 K",
+        massGrams: "3,100 g",
+        toleranceMm: "±0.001 mm",
+        heritageNote: "Driven by triple-lobe cam on exhaust camshaft, generating 350 bar system rail pressure"
+      };
+      this.interactiveMeshes.push(hpPump);
+      railGroup.add(hpPump);
+
+      this.fuelSystemGroup.add(railGroup);
+      this.explodedAssemblies.fuelSystem.push({
+        group: railGroup,
+        basePos: railGroup.position.clone(),
+        sign: cfg.sign
+      });
+    });
+  }
+
+  _buildCatalyticConverters() {
+    this.catalyticGroup.clear();
+    this.explodedAssemblies.catalytic = [];
+
+    const catConfigs = [
+      { side: 'R', sign: 1,  x:  1.95, y: 0.15, z: -0.65 },
+      { side: 'L', sign: -1, x: -1.95, y: 0.15, z: -0.65 }
+    ];
+
+    catConfigs.forEach(cfg => {
+      const catGroup = new THREE.Group();
+      catGroup.position.set(cfg.x, cfg.y, cfg.z);
+      catGroup.rotation.y = cfg.sign * 0.12;
+
+      // 1. Close-Coupled Three-Way Catalytic Converter Canister
+      const canGeo = new THREE.CylinderGeometry(0.32, 0.28, 1.1, 24);
+      canGeo.rotateX(Math.PI / 2);
+      const canMesh = new THREE.Mesh(canGeo, this.materials.exhaustHeader);
+      canMesh.userData.partInfo = {
+        name: `${cfg.side === 'R' ? 'Bank 1' : 'Bank 2'} Close-Coupled Catalytic Converter`,
+        metallurgy: "Dual Cordierite Monolith Substrate with Platinum-Palladium-Rhodium Washcoat",
+        tempK: "680 K (Light-Off > 250°C)",
+        massGrams: "7,400 g",
+        toleranceMm: "±0.010 mm",
+        heritageNote: "99.4% conversion efficiency for HC, CO, and NOx within 18 seconds of cold start"
+      };
+      this.interactiveMeshes.push(canMesh);
+      catGroup.add(canMesh);
+
+      // 2. Embossed Heat Shield Cover
+      const shieldGeo = new THREE.CylinderGeometry(0.34, 0.30, 0.95, 24, 1, true, 0, Math.PI);
+      shieldGeo.rotateX(Math.PI / 2);
+      shieldGeo.rotateZ(cfg.sign * 0.8);
+      const shieldMesh = new THREE.Mesh(shieldGeo, this.materials.starlightChrome);
+      shieldMesh.userData.partInfo = {
+        name: `${cfg.side === 'R' ? 'Bank 1' : 'Bank 2'} Multi-Layer Thermal Heat Shield`,
+        metallurgy: "Embossed Dimpled Inconel-625 Foil with Aerogel Insulation Core",
+        tempK: "360 K",
+        massGrams: "1,200 g",
+        toleranceMm: "±0.020 mm",
+        heritageNote: "Retains 90% of exhaust thermal energy to maximize catalytic light-off kinetics"
+      };
+      this.interactiveMeshes.push(shieldMesh);
+      catGroup.add(shieldMesh);
+
+      // 3. Heated Wideband Lambda Oxygen Sensor (Pre-Catalyst)
+      const o2SensorGeo = new THREE.CylinderGeometry(0.035, 0.025, 0.24, 12);
+      o2SensorGeo.rotateZ(cfg.sign * (Math.PI / 3));
+      const o2Sensor = new THREE.Mesh(o2SensorGeo, this.materials.sparkMetal);
+      o2Sensor.position.set(cfg.sign * 0.25, 0.15, 0.38);
+      o2Sensor.userData.partInfo = {
+        name: `${cfg.side === 'R' ? 'Bank 1' : 'Bank 2'} Pre-Cat Wideband Lambda Sensor`,
+        metallurgy: "Zirconia (ZrO2) Solid Electrolyte with Heated Platinum Electrodes",
+        tempK: "650 K",
+        massGrams: "210 g",
+        toleranceMm: "±0.005 mm",
+        heritageNote: "Closed-loop feedback regulating air-fuel equivalence ratio lambda = 1.000 ± 0.003"
+      };
+      this.interactiveMeshes.push(o2Sensor);
+      catGroup.add(o2Sensor);
+
+      // 4. Downpipe to exhaust tunnel
+      const downpipeGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.9, 20);
+      downpipeGeo.rotateX(Math.PI / 2 - 0.2);
+      const downpipe = new THREE.Mesh(downpipeGeo, this.materials.exhaustHeader);
+      downpipe.position.set(0, -0.1, -0.85);
+      catGroup.add(downpipe);
+
+      this.catalyticGroup.add(catGroup);
+      this.explodedAssemblies.catalytic.push({
+        group: catGroup,
+        basePos: catGroup.position.clone(),
+        sign: cfg.sign
+      });
+    });
+  }
+
+  _buildLubricationSystem() {
+    this.lubricationGroup.clear();
+    this.explodedAssemblies.lubrication = [];
+
+    const lubGroup = new THREE.Group();
+    lubGroup.position.set(0, -1.05, 0);
+
+    const crankLength = 6 * CYL_SPACING;
+
+    // 1. Dry/Wet Hybrid Oil Sump Pan (Lower crankcase base)
+    const panGeo = new THREE.BoxGeometry(1.5, 0.28, crankLength + 0.3);
+    const panMesh = new THREE.Mesh(panGeo, this.materials.pianoBlack);
+    panMesh.userData.partInfo = {
+      name: "Die-Cast Aluminum Structural Oil Pan & Lower Bedplate",
+      metallurgy: "AlSi9Cu3 Pressure Die-Casting with Cast Iron Main Bearing Inserts",
+      tempK: "365 K",
+      massGrams: "14,200 g",
+      toleranceMm: "±0.010 mm",
+      heritageNote: "Structural stiffening bedplate cross-bolted to engine block, preventing torsional deflection"
+    };
+    this.interactiveMeshes.push(panMesh);
+    lubGroup.add(panMesh);
+
+    // 2. High-Capacity Multi-Stage Gerotor Oil Pump (Front lower crank drive)
+    const pumpGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.22, 24);
+    pumpGeo.rotateZ(Math.PI / 2);
+    const pumpMesh = new THREE.Mesh(pumpGeo, this.materials.starlightChrome);
+    pumpMesh.position.set(0, 0.08, crankLength / 2 + 0.12);
+    pumpMesh.userData.partInfo = {
+      name: "Variable-Displacement Dual-Stage Gerotor Oil Pump",
+      metallurgy: "Sintered Steel Rotor with Squeeze-Cast Housing",
+      tempK: "360 K",
+      massGrams: "3,850 g",
+      toleranceMm: "±0.002 mm",
+      heritageNote: "Map-controlled pressure delivery delivering 4.5 bar oil pressure to hydrodynamic rod bearings"
+    };
+    this.interactiveMeshes.push(pumpMesh);
+    lubGroup.add(pumpMesh);
+
+    // 3. Liquid-Cooled Oil-to-Water Plate Heat Exchanger & Billet Filter Housing
+    const coolerGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.42, 24);
+    const coolerMesh = new THREE.Mesh(coolerGeo, this.materials.pianoBlack);
+    coolerMesh.position.set(0.68, 0.14, crankLength / 2 - 0.4);
+    coolerMesh.userData.partInfo = {
+      name: "Oil-to-Coolant 12-Plate Stainless Heat Exchanger",
+      metallurgy: "Vacuum-Brazed Stainless Steel Stamped Plate Matrix",
+      tempK: "360 K",
+      massGrams: "2,600 g",
+      toleranceMm: "±0.005 mm",
+      heritageNote: "Rapidly heats oil during cold starts and stabilizes peak oil temperature at 95°C under high load"
+    };
+    this.interactiveMeshes.push(coolerMesh);
+    lubGroup.add(coolerMesh);
+
+    // Chrome Spin-On Filter Cap
+    const filterCapGeo = new THREE.CylinderGeometry(0.222, 0.222, 0.05, 24);
+    const filterCap = new THREE.Mesh(filterCapGeo, this.materials.starlightChrome);
+    filterCap.position.set(0.68, 0.36, crankLength / 2 - 0.4);
+    lubGroup.add(filterCap);
+
+    // 4. Main Pressurized Oil Galleries (Distribution Tubes)
+    const galleryGeo = new THREE.CylinderGeometry(0.035, 0.035, crankLength + 0.1, 16);
+    galleryGeo.rotateX(Math.PI / 2);
+    const galleryMesh = new THREE.Mesh(galleryGeo, this.materials.starlightChrome);
+    galleryMesh.position.set(0, 0.28, 0);
+    lubGroup.add(galleryMesh);
+
+    this.lubricationGroup.add(lubGroup);
+    this.explodedAssemblies.lubrication.push({
+      group: lubGroup,
+      basePos: lubGroup.position.clone()
+    });
+  }
+
   _buildStandingCoin() {
     this.coinGroup.clear();
 
@@ -2255,7 +2503,40 @@ export class V12Scene3D {
       });
     }
 
-    // 6. Standing Coin: lifts slightly with the valley
+    // 6. GDI High-Pressure Fuel System
+    if (this.explodedAssemblies.fuelSystem) {
+      this.explodedAssemblies.fuelSystem.forEach(item => {
+        item.group.position.set(
+          item.basePos.x + item.sign * f * 1.1,
+          item.basePos.y + f * 1.4,
+          item.basePos.z
+        );
+      });
+    }
+
+    // 7. Close-Coupled Catalytic Converters
+    if (this.explodedAssemblies.catalytic) {
+      this.explodedAssemblies.catalytic.forEach(item => {
+        item.group.position.set(
+          item.basePos.x + item.sign * f * 1.9,
+          item.basePos.y - f * 0.4,
+          item.basePos.z
+        );
+      });
+    }
+
+    // 8. Lubrication Pan & Pump System
+    if (this.explodedAssemblies.lubrication) {
+      this.explodedAssemblies.lubrication.forEach(item => {
+        item.group.position.set(
+          item.basePos.x,
+          item.basePos.y - f * 1.0,
+          item.basePos.z
+        );
+      });
+    }
+
+    // 9. Standing Coin: lifts slightly with the valley
     if (this.coinGroup) {
       this.coinGroup.position.y = f * 1.2;
     }

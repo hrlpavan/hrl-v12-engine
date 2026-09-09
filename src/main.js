@@ -18,6 +18,7 @@ class V12Application {
     this.isIsolated = false;
     this.currentTheme = 'light'; // Default to Day Mode
     this.isDynoRunning = false;
+    this.cutCylinders = [];
 
     this.scene3d = null;
     this.telemetry = null;
@@ -39,7 +40,10 @@ class V12Application {
       crankEndView: document.getElementById('canvas-crank-end'),
       valveTiming: document.getElementById('canvas-valve-timing'),
       pvIndicator: document.getElementById('canvas-pv-indicator'),
-      dynoCurve: document.getElementById('canvas-dyno-curve')
+      dynoCurve: document.getElementById('canvas-dyno-curve'),
+      sankeyDiagram: document.getElementById('canvas-sankey-diagram'),
+      perfMap: document.getElementById('canvas-perf-map'),
+      emissionsMap: document.getElementById('canvas-emissions')
     };
 
     const onCrankScrub = (scrubCycleDeg) => {
@@ -89,6 +93,7 @@ class V12Application {
 
     this._buildFiringOrderStrip();
     this._bindControls();
+    this._bindMorseControls();
 
     requestAnimationFrame((t) => this._loop(t));
   }
@@ -455,10 +460,10 @@ class V12Application {
       this.engineRpm = Math.round(startRpm + (peakRpm - startRpm) * eased);
       audioEngine.setRpm(this.engineRpm);
 
-      const rpmInput = document.getElementById('engine-rpm');
+      const rpmInput = document.getElementById('rpm-slider');
       if (rpmInput) rpmInput.value = this.engineRpm;
-      const rpmText = document.getElementById('engine-rpm-val');
-      if (rpmText) rpmText.textContent = `${this.engineRpm} RPM`;
+      const rpmText = document.getElementById('rpm-display');
+      if (rpmText) rpmText.textContent = this.engineRpm;
 
       if (progress >= 1.0) {
         clearInterval(sweepInterval);
@@ -473,7 +478,7 @@ class V12Application {
             this.engineRpm = Math.round(peakRpm - (peakRpm - 1600) * settleProgress);
             audioEngine.setRpm(this.engineRpm);
             if (rpmInput) rpmInput.value = this.engineRpm;
-            if (rpmText) rpmText.textContent = `${this.engineRpm} RPM`;
+            if (rpmText) rpmText.textContent = this.engineRpm;
 
             if (settleProgress >= 1.0) {
               clearInterval(settleInterval);
@@ -488,6 +493,57 @@ class V12Application {
     }, 25);
   }
 
+  _bindMorseControls() {
+    const buttons = document.querySelectorAll('#morse-cyl-buttons .morse-cyl-btn');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cylId = parseInt(btn.dataset.cyl, 10);
+        if (this.cutCylinders.includes(cylId)) {
+          this.cutCylinders = this.cutCylinders.filter(id => id !== cylId);
+          btn.classList.remove('cut');
+        } else {
+          this.cutCylinders.push(cylId);
+          btn.classList.add('cut');
+        }
+      });
+    });
+
+    const btnReset = document.getElementById('btn-morse-reset');
+    if (btnReset) {
+      btnReset.addEventListener('click', () => {
+        this.cutCylinders = [];
+        buttons.forEach(b => b.classList.remove('cut'));
+      });
+    }
+
+    const btnAuto = document.getElementById('btn-morse-autorun');
+    if (btnAuto) {
+      btnAuto.addEventListener('click', () => this.runAutoMorseTest());
+    }
+  }
+
+  runAutoMorseTest() {
+    const buttons = document.querySelectorAll('#morse-cyl-buttons .morse-cyl-btn');
+    let step = 1;
+    this.cutCylinders = [];
+    buttons.forEach(b => b.classList.remove('cut'));
+
+    const interval = setInterval(() => {
+      if (step > 12) {
+        clearInterval(interval);
+        this.cutCylinders = [];
+        buttons.forEach(b => b.classList.remove('cut'));
+        return;
+      }
+      this.cutCylinders = [step];
+      buttons.forEach(b => {
+        const id = parseInt(b.dataset.cyl, 10);
+        b.classList.toggle('cut', id === step);
+      });
+      step++;
+    }, 320);
+  }
+
   _loop(currentTime) {
     requestAnimationFrame((t) => this._loop(t));
 
@@ -499,7 +555,7 @@ class V12Application {
       this.masterCrankAngleDeg = normalizeAngle(this.masterCrankAngleDeg + degPerSec * this.playbackRate * dt, 720);
     }
 
-    const engineState = computeEngineState(this.masterCrankAngleDeg, this.engineRpm);
+    const engineState = computeEngineState(this.masterCrankAngleDeg, this.engineRpm, 1.0, this.cutCylinders);
 
     this.scene3d.update(engineState);
     this.telemetry.render(engineState, this.selectedCylinderId);
@@ -539,6 +595,107 @@ class V12Application {
 
     document.getElementById('chamber-pressure-val').textContent = selectedCyl.thermo.pressureBar.toFixed(1);
     document.getElementById('chamber-temp-val').textContent = `${selectedCyl.thermo.temperatureK} K`;
+
+    // Ganesan V2.0 Physical and Engineering Readouts
+    const ganesan = engineState.ganesan;
+    if (ganesan) {
+      const elPistonSpeed = document.getElementById('cyl-piston-speed');
+      if (elPistonSpeed) elPistonSpeed.textContent = `${ganesan.meanPistonSpeedMs.toFixed(1)} m/s`;
+
+      const elGdiMode = document.getElementById('cyl-gdi-mode');
+      if (elGdiMode) elGdiMode.textContent = ganesan.gdiMode;
+
+      const elPhi = document.getElementById('cyl-phi-val');
+      if (elPhi) elPhi.textContent = `${ganesan.phi.toFixed(2)} (${ganesan.airFuel.actualAfRatio.toFixed(1)}:1)`;
+
+      const elMaf = document.getElementById('cyl-maf-val');
+      if (elMaf) elMaf.textContent = `${ganesan.airFuel.massAirFlowKgH} kg/h`;
+
+      const elMff = document.getElementById('cyl-mff-val');
+      if (elMff) elMff.textContent = `${ganesan.airFuel.massFuelFlowKgH} kg/h`;
+
+      // Thermodynamic Indicator Readouts
+      const elImep = document.getElementById('thermo-imep-val');
+      if (elImep) elImep.textContent = `${ganesan.power.imepBar.toFixed(2)} bar`;
+
+      const elBmep = document.getElementById('thermo-bmep-val');
+      if (elBmep) elBmep.textContent = `${ganesan.power.bmepBar.toFixed(2)} bar`;
+
+      const elFmep = document.getElementById('thermo-fmep-val');
+      if (elFmep) elFmep.textContent = `${ganesan.power.fmepBar.toFixed(2)} bar`;
+
+      const elEtaM = document.getElementById('thermo-etam-val');
+      if (elEtaM) elEtaM.textContent = `${ganesan.efficiencies.mechanicalPct.toFixed(1)}%`;
+
+      const elEtaBth = document.getElementById('thermo-etabth-val');
+      if (elEtaBth) elEtaBth.textContent = `${ganesan.efficiencies.brakeThermalPct.toFixed(1)}%`;
+
+      const elEtaRel = document.getElementById('thermo-etarel-val');
+      if (elEtaRel) elEtaRel.textContent = `${ganesan.efficiencies.relativePct.toFixed(1)}%`;
+
+      // Sankey Heat Balance Readouts
+      const elSqf = document.getElementById('sankey-qfuel');
+      if (elSqf) elSqf.textContent = `${ganesan.heatBalance.qFuelKw} kW`;
+
+      const elSbp = document.getElementById('sankey-bp');
+      if (elSbp) elSbp.textContent = `${ganesan.heatBalance.brakePowerKw} kW (${ganesan.heatBalance.pctBrakePower}%)`;
+
+      const elSqcool = document.getElementById('sankey-qcool');
+      if (elSqcool) elSqcool.textContent = `${ganesan.heatBalance.qCoolantKw} kW (${ganesan.heatBalance.pctCoolant}%)`;
+
+      const elSqex = document.getElementById('sankey-qex');
+      if (elSqex) elSqex.textContent = `${ganesan.heatBalance.qExhaustKw} kW (${ganesan.heatBalance.pctExhaust}%)`;
+
+      // Performance Map & Lubrication
+      const elPlub = document.getElementById('perf-lub-regime');
+      if (elPlub) elPlub.textContent = ganesan.friction.lubricationRegime;
+
+      const elPsom = document.getElementById('perf-sommerfeld');
+      if (elPsom) elPsom.textContent = ganesan.friction.sommerfeldParam.toFixed(4);
+
+      const elPbsfc = document.getElementById('perf-bsfc');
+      if (elPbsfc) elPbsfc.textContent = `${ganesan.power.bsfcGKwh} g/kWh`;
+
+      const elPbsec = document.getElementById('perf-bsec');
+      if (elPbsec) elPbsec.textContent = `${ganesan.power.bsecMjKwh} MJ/kWh`;
+
+      // Valve Mach Index
+      const elMach = document.getElementById('valves-mach-index');
+      if (elMach) elMach.textContent = ganesan.airFuel.machData.machIndexZ.toFixed(3);
+
+      const elChoke = document.getElementById('valves-choke-status');
+      if (elChoke) elChoke.textContent = ganesan.airFuel.machData.isChoked ? 'CHOKED (Z > 0.55)' : 'Optimal (Z ≤ 0.55)';
+
+      const elSonic = document.getElementById('valves-sonic-vel');
+      if (elSonic) elSonic.textContent = `${ganesan.airFuel.machData.sonicVelocityMs} m/s`;
+
+      // Morse Test Section
+      const allFiringBp = ganesan.power.bpDeliveredKw / (this.cutCylinders.length === 0 ? 1 : Math.max(0.05, (12 - this.cutCylinders.length) / 12));
+      const elMbpAll = document.getElementById('morse-bp-all');
+      if (elMbpAll) elMbpAll.textContent = `${allFiringBp.toFixed(1)} kW`;
+
+      const elMbpCur = document.getElementById('morse-bp-cur');
+      if (elMbpCur) elMbpCur.textContent = `${ganesan.power.bpDeliveredKw.toFixed(1)} kW`;
+
+      const elMipTot = document.getElementById('morse-ip-total');
+      if (elMipTot) elMipTot.textContent = `${ganesan.power.ipTotalKw.toFixed(1)} kW`;
+
+      const elMetaM = document.getElementById('morse-eta-m');
+      if (elMetaM) elMetaM.textContent = `${ganesan.efficiencies.mechanicalPct.toFixed(1)}%`;
+
+      // Emissions Readouts
+      const elEnox = document.getElementById('emiss-nox-val');
+      if (elEnox) elEnox.textContent = `${ganesan.emissions.raw.noxPpm} / ${ganesan.emissions.tailpipe.noxPpm} ppm`;
+
+      const elEco = document.getElementById('emiss-co-val');
+      if (elEco) elEco.textContent = `${ganesan.emissions.raw.coPct}% / ${ganesan.emissions.tailpipe.coPct}%`;
+
+      const elEhc = document.getElementById('emiss-hc-val');
+      if (elEhc) elEhc.textContent = `${ganesan.emissions.raw.hcPpm} / ${ganesan.emissions.tailpipe.hcPpm} ppm`;
+
+      const elEcat = document.getElementById('cat-status-val');
+      if (elEcat) elEcat.textContent = `${ganesan.emissions.catalyst.tempC}°C (${ganesan.emissions.catalyst.isLightOff ? 'Light-Off Active' : 'Warming Up'})`;
+    }
 
     // Rolls-Royce Power Reserve Gauge update
     const prVal = engineState.powerReservePercent;
