@@ -291,6 +291,20 @@ export class V12Scene3D {
       roughness: 0.25
     });
 
+    // DOHC Cylinder Head Casting (Aerospace Aluminum Alloy)
+    this.materials.cylinderHead = new THREE.MeshStandardMaterial({
+      color: 0x3d434d,
+      metalness: 0.85,
+      roughness: 0.32
+    });
+
+    // Hydraulic Bucket Tappet (Mirror-Polished Starlight Chrome)
+    this.materials.tappet = new THREE.MeshStandardMaterial({
+      color: 0xf0f4f8,
+      metalness: 0.98,
+      roughness: 0.08
+    });
+
     // Engine Block Material Variants:
     // 1. Refraction Glass Block
     this.materials.blockGlass = new THREE.MeshPhysicalMaterial({
@@ -749,12 +763,12 @@ export class V12Scene3D {
       const bankAngleRad = degToRad(cyl.bankAngle);
 
       const linerRadius = BORE * 0.505; // ~0.444
-      const linerHeight = 2.2;
-      const linerGeo = new THREE.CylinderGeometry(linerRadius + 0.03, linerRadius, linerHeight, 32, 1, true);
+      const linerHeight = 1.55;
+      const linerGeo = new THREE.CylinderGeometry(linerRadius + 0.025, linerRadius, linerHeight, 32, 1, true);
 
       const liner = new THREE.Mesh(linerGeo, this.materials.liner);
-      // Position liner along cylinder bank axis
-      const linerCenterDist = R + L - 0.35;
+      // Position liner along cylinder bank axis so it terminates flush at block deck (u = 2.40)
+      const linerCenterDist = 1.62; // bounds: 0.845 to 2.395 (clears crank throws, terminates at deck)
       liner.position.set(
         Math.sin(bankAngleRad) * linerCenterDist,
         Math.cos(bankAngleRad) * linerCenterDist,
@@ -792,10 +806,14 @@ export class V12Scene3D {
     this.interactiveMeshes.push(crankcase);
     this.blockGroup.add(crankcase);
 
-    // Right Bank outer casting slab
-    const bankRGeo = new THREE.BoxGeometry(0.25, 2.4, crankLength + 0.2);
+    // Right Bank outer casting slab (terminates at deck joint u = 2.35)
+    const bankWallHeight = 1.45;
+    const bankRGeo = new THREE.BoxGeometry(0.22, bankWallHeight, crankLength + 0.2);
     const bankR = new THREE.Mesh(bankRGeo, blockMat);
-    bankR.position.set(1.55, 1.35, 0);
+    const bRu = 1.62, bRv = 0.44;
+    const bRx = bRu * Math.sin(BANK_ANGLE) + bRv * Math.cos(BANK_ANGLE);
+    const bRy = bRu * Math.cos(BANK_ANGLE) - bRv * Math.sin(BANK_ANGLE);
+    bankR.position.set(bRx, bRy, 0);
     bankR.rotation.z = -BANK_ANGLE;
     bankR.userData.partInfo = {
       name: "Bank 1 (Right) Outer Monoblock Wall",
@@ -808,10 +826,13 @@ export class V12Scene3D {
     this.interactiveMeshes.push(bankR);
     this.blockGroup.add(bankR);
 
-    // Left Bank outer casting slab
-    const bankLGeo = new THREE.BoxGeometry(0.25, 2.4, crankLength + 0.2);
+    // Left Bank outer casting slab (terminates at deck joint u = 2.35)
+    const bankLGeo = new THREE.BoxGeometry(0.22, bankWallHeight, crankLength + 0.2);
     const bankL = new THREE.Mesh(bankLGeo, blockMat);
-    bankL.position.set(-1.55, 1.35, 0);
+    const bLu = 1.62, bLv = -0.44;
+    const bLx = bLu * Math.sin(-BANK_ANGLE) + bLv * Math.cos(-BANK_ANGLE);
+    const bLy = bLu * Math.cos(-BANK_ANGLE) - bLv * Math.sin(-BANK_ANGLE);
+    bankL.position.set(bLx, bLy, 0);
     bankL.rotation.z = BANK_ANGLE;
     bankL.userData.partInfo = {
       name: "Bank 2 (Left) Outer Monoblock Wall",
@@ -887,6 +908,64 @@ export class V12Scene3D {
     ];
   }
 
+  _createCamLobeGeometry() {
+    const baseR = 0.12;
+    const lift = 0.07;
+    const noseR = 0.045;
+    const distNose = baseR + lift - noseR; // 0.145
+
+    const sin_a = (baseR - noseR) / distNose;
+    const cos_a = Math.sqrt(Math.max(0, 1.0 - sin_a * sin_a));
+
+    const angle_base_top = Math.atan2(baseR * cos_a, baseR * sin_a);
+    const angle_base_bot = Math.atan2(-baseR * cos_a, baseR * sin_a);
+    const angle_nose_top = Math.atan2(noseR * cos_a, noseR * sin_a);
+    const angle_nose_bot = Math.atan2(-noseR * cos_a, noseR * sin_a);
+
+    const shape = new THREE.Shape();
+    shape.absarc(0, 0, baseR, angle_base_bot, angle_base_top, false);
+    shape.lineTo(distNose + noseR * sin_a, noseR * cos_a);
+    shape.absarc(distNose, 0, noseR, angle_nose_top, angle_nose_bot, true);
+    shape.lineTo(baseR * sin_a, -baseR * cos_a);
+
+    const geo = new THREE.ExtrudeGeometry(shape, {
+      depth: 0.065,
+      bevelEnabled: true,
+      bevelSegments: 2,
+      steps: 1,
+      bevelSize: 0.005,
+      bevelThickness: 0.005
+    });
+    geo.translate(0, 0, -0.0325);
+    return geo;
+  }
+
+  _createBearingCapGeometry() {
+    const shape = new THREE.Shape();
+    const rIn = 0.068;
+    const w = 0.22;
+    const h = 0.075;
+
+    shape.moveTo(-w / 2, 0);
+    shape.lineTo(-w / 2, h);
+    shape.lineTo(w / 2, h);
+    shape.lineTo(w / 2, 0);
+    shape.lineTo(rIn, 0);
+    shape.absarc(0, 0, rIn, 0, Math.PI, false);
+    shape.lineTo(-w / 2, 0);
+
+    const geo = new THREE.ExtrudeGeometry(shape, {
+      depth: 0.06,
+      bevelEnabled: true,
+      bevelSegments: 1,
+      steps: 1,
+      bevelSize: 0.004,
+      bevelThickness: 0.004
+    });
+    geo.translate(0, 0, -0.03);
+    return geo;
+  }
+
   _buildQuadCamValvetrain() {
     this.valvetrainGroup.clear();
     const crankLength = 6 * CYL_SPACING;
@@ -899,227 +978,301 @@ export class V12Scene3D {
     this.explodedAssemblies.valvetrainR = this.valvetrainBankR;
     this.explodedAssemblies.valvetrainL = this.valvetrainBankL;
 
-    // DOHC: 4 Camshafts total:
-    // Right Bank: Intake Cam (inner valley side) & Exhaust Cam (outer side)
-    // Left Bank:  Intake Cam (inner valley side) & Exhaust Cam (outer side)
-    const headTopDist = R + L + 0.85;
-
-    // Camshaft configurations
-    const camConfigs = [
-      // Right Bank (Bank 1)
-      { id: 'R_IN', bank: 'R', bankAngle:  BANK_ANGLE, type: 'intake',  xOff: -0.22, yOff: 0.15 },
-      { id: 'R_EX', bank: 'R', bankAngle:  BANK_ANGLE, type: 'exhaust', xOff:  0.26, yOff: 0.10 },
-      // Left Bank (Bank 2)
-      { id: 'L_IN', bank: 'L', bankAngle: -BANK_ANGLE, type: 'intake',  xOff:  0.22, yOff: 0.15 },
-      { id: 'L_EX', bank: 'L', bankAngle: -BANK_ANGLE, type: 'exhaust', xOff: -0.26, yOff: 0.10 }
-    ];
-
     this.camshaftMeshes = [];
 
-    camConfigs.forEach(cfg => {
-      const camShaftGroup = new THREE.Group();
+    // Shared high-precision CAD geometries
+    const camLobeGeo = this._createCamLobeGeometry();
+    const bearingCapGeo = this._createBearingCapGeometry();
+    const boltGeo = new THREE.CylinderGeometry(0.014, 0.014, 0.025, 6);
+    const camBarGeo = new THREE.CylinderGeometry(0.065, 0.065, crankLength + 0.5, 20);
+    camBarGeo.rotateX(Math.PI / 2);
+    const camGearGeo = new THREE.CylinderGeometry(0.46, 0.46, 0.10, 32);
+    camGearGeo.rotateX(Math.PI / 2);
 
-      // Compute base position of camshaft centerline
-      const basePosX = Math.sin(cfg.bankAngle) * headTopDist;
-      const basePosY = Math.cos(cfg.bankAngle) * headTopDist;
+    const inStemGeo = new THREE.CylinderGeometry(0.022, 0.022, 0.62, 14);
+    const inHeadGeo = new THREE.CylinderGeometry(0.16, 0.04, 0.04, 20);
+    const exStemGeo = new THREE.CylinderGeometry(0.022, 0.022, 0.62, 14);
+    const exHeadGeo = new THREE.CylinderGeometry(0.13, 0.04, 0.04, 20);
 
-      // Local offset rotated by bank angle
-      const rotX = cfg.xOff * Math.cos(cfg.bankAngle) - cfg.yOff * Math.sin(cfg.bankAngle);
-      const rotY = cfg.xOff * Math.sin(cfg.bankAngle) + cfg.yOff * Math.cos(cfg.bankAngle);
+    const springSeatGeo = new THREE.CylinderGeometry(0.10, 0.10, 0.02, 16);
+    const springRetainerGeo = new THREE.CylinderGeometry(0.095, 0.095, 0.025, 16);
+    const tappetGeo = new THREE.CylinderGeometry(0.11, 0.11, 0.08, 20);
 
-      camShaftGroup.position.set(basePosX + rotX, basePosY + rotY, 0);
+    const springCurve = this._createHelicalSpringCurve(0.075, 0.38, 6);
+    const springGeo = new THREE.TubeGeometry(springCurve, 40, 0.013, 8, false);
 
-      // Main Camshaft Bar
-      const camBarGeo = new THREE.CylinderGeometry(0.08, 0.08, crankLength + 0.6, 20);
-      camBarGeo.rotateX(Math.PI / 2);
-      const camBar = new THREE.Mesh(camBarGeo, this.materials.camshaft);
-      camBar.userData.partInfo = {
-        name: `${cfg.bank === 'R' ? 'Bank 1' : 'Bank 2'} ${cfg.type === 'intake' ? 'Intake' : 'Exhaust'} Camshaft`,
-        metallurgy: "Deep Nitrided Chilled Micro-Alloy Cast Iron",
-        tempK: "370 K",
-        massGrams: "3,400 g",
-        toleranceMm: "±0.002 mm",
-        heritageNote: "Dual VVT phasors continuously varying valve overlap for imperceptible torque delivery"
+    const u_deck = 2.45;
+    const u_cam = 3.19;
+
+    ['R', 'L'].forEach(bank => {
+      const isR = bank === 'R';
+      const bankAngle = isR ? BANK_ANGLE : -BANK_ANGLE;
+      const b_sign = isR ? 1 : -1;
+      const targetValvetrainGroup = isR ? this.valvetrainBankR : this.valvetrainBankL;
+
+      const u_x = Math.sin(bankAngle);
+      const u_y = Math.cos(bankAngle);
+      const v_x = b_sign * Math.cos(bankAngle);
+      const v_y = -b_sign * Math.sin(bankAngle);
+
+      const bankCyls = CYLINDERS.filter(c => c.bank === bank);
+
+      // 1. CNC Billet Aluminum Cylinder Head Casting
+      const headWidth = 0.78;
+      const headHeight = 0.65;
+      const headLength = crankLength + 0.35;
+      const headGeo = new THREE.BoxGeometry(headWidth, headHeight, headLength);
+      const headMesh = new THREE.Mesh(headGeo, this.materials.cylinderHead);
+      const u_head = 2.76;
+      headMesh.position.set(u_head * u_x, u_head * u_y, 0);
+      headMesh.rotation.z = -bankAngle;
+      headMesh.userData.partInfo = {
+        name: `Bank ${isR ? '1 (Right)' : '2 (Left)'} DOHC 24-Valve Cylinder Head`,
+        metallurgy: "Precision CNC Cast AlSi7Mg0.3 Aluminum Alloy with Integrated Water Jackets",
+        tempK: "385 K",
+        massGrams: "21,800 g",
+        toleranceMm: "±0.003 mm",
+        heritageNote: "Rigid monoblock head casting housing 24 valves, hydraulic tappets, and twin camshafts"
       };
-      this.interactiveMeshes.push(camBar);
-      camShaftGroup.add(camBar);
+      this.interactiveMeshes.push(headMesh);
+      targetValvetrainGroup.add(headMesh);
 
-      // 12 Cam Lobes (2 valves per cylinder x 6 cylinders per bank)
-      for (let c = 0; c < 6; c++) {
-        const cylZ = zStart - c * CYL_SPACING;
-        for (const valveZ of [cylZ - 0.12, cylZ + 0.12]) {
-          // Teardrop cam lobe profile
-          const lobeGeo = new THREE.CylinderGeometry(0.13, 0.13, 0.08, 16);
-          lobeGeo.rotateX(Math.PI / 2);
-          const lobe = new THREE.Mesh(lobeGeo, this.materials.camshaft);
-          lobe.position.set(0, 0.04, valveZ);
-          lobe.scale.set(1.0, 1.45, 1.0); // Egg/teardrop lift profile
-          camShaftGroup.add(lobe);
+      // 2. Dual Camshafts (Intake on inner valley, Exhaust on outer flank)
+      const camTypes = [
+        { type: 'intake',  v_offset: -0.20, name: `Bank ${isR ? '1' : '2'} Intake Camshaft` },
+        { type: 'exhaust', v_offset:  0.20, name: `Bank ${isR ? '1' : '2'} Exhaust Camshaft` }
+      ];
+
+      camTypes.forEach(ct => {
+        const camX = u_cam * u_x + ct.v_offset * v_x;
+        const camY = u_cam * u_y + ct.v_offset * v_y;
+
+        const camShaftGroup = new THREE.Group();
+        camShaftGroup.position.set(camX, camY, 0);
+
+        // Main Camshaft Bar
+        const camBar = new THREE.Mesh(camBarGeo, this.materials.camshaft);
+        camBar.userData.partInfo = {
+          name: ct.name,
+          metallurgy: "Deep Nitrided Chilled Micro-Alloy Cast Iron",
+          tempK: "370 K",
+          massGrams: "3,400 g",
+          toleranceMm: "±0.002 mm",
+          heritageNote: "Dual VVT phasors continuously varying valve overlap for imperceptible torque delivery"
+        };
+        this.interactiveMeshes.push(camBar);
+        camShaftGroup.add(camBar);
+
+        // Camshaft Drive Sprocket at Front
+        const camGear = new THREE.Mesh(camGearGeo, this.materials.gear);
+        camGear.position.set(0, 0, zStart + 0.32);
+        camShaftGroup.add(camGear);
+
+        // 12 Precision Cam Lobes (2 valves per cylinder x 6 cylinders)
+        const angle_to_valve = isR ? 240.0 : 300.0;
+
+        bankCyls.forEach(cyl => {
+          const pinIndex = cyl.pin - 1;
+          const baseZ = zStart - pinIndex * CYL_SPACING;
+          const zOffset = b_sign * 0.08;
+          const cylZ = baseZ + zOffset;
+
+          const peak_crank = (cyl.firingTdc + (ct.type === 'intake' ? 460 : 260)) % 720;
+          const peak_cam = peak_crank / 2.0;
+          const lobe_offset_rad = degToRad((angle_to_valve - peak_cam) % 360);
+
+          [cylZ - 0.13, cylZ + 0.13].forEach(valveZ => {
+            const lobe = new THREE.Mesh(camLobeGeo, this.materials.camshaft);
+            lobe.position.set(0, 0, valveZ);
+            lobe.rotation.z = lobe_offset_rad;
+            camShaftGroup.add(lobe);
+          });
+        });
+
+        targetValvetrainGroup.add(camShaftGroup);
+        this.camshaftMeshes.push({ cfg: { bank, type: ct.type }, group: camShaftGroup });
+
+        // 7 Camshaft Bearing Bridges & Caps
+        const cylZs = bankCyls.map(cyl => {
+          const pinIndex = cyl.pin - 1;
+          return zStart - pinIndex * CYL_SPACING + b_sign * 0.08;
+        });
+
+        const bearingZs = [zStart + 0.18];
+        for (let i = 0; i < cylZs.length - 1; i++) {
+          bearingZs.push((cylZs[i] + cylZs[i + 1]) / 2.0);
         }
-      }
+        bearingZs.push(-zStart - 0.18);
 
-      // Camshaft Sprocket / Timing Gear (Driven at 1/2 crank speed)
-      const camGearGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.12, 32);
-      camGearGeo.rotateX(Math.PI / 2);
-      const camGear = new THREE.Mesh(camGearGeo, this.materials.gear);
-      camGear.position.set(0, 0, zStart + 0.35);
-      camGear.userData.partInfo = {
-        name: `${cfg.bank === 'R' ? 'Bank 1' : 'Bank 2'} Camshaft Drive Sprocket`,
-        metallurgy: "Sintered Steel Powder Metallurgy",
-        tempK: "350 K",
-        massGrams: "850 g",
-        toleranceMm: "±0.005 mm",
-        heritageNote: "Inverted tooth silent sprocket minimizing timing chain pitch engagement noise"
-      };
-      this.interactiveMeshes.push(camGear);
-      camShaftGroup.add(camGear);
+        bearingZs.forEach(bz => {
+          const capGroup = new THREE.Group();
+          capGroup.position.set(camX, camY, bz);
+          capGroup.rotation.z = -bankAngle;
 
-      if (cfg.bank === 'R') {
-        this.valvetrainBankR.add(camShaftGroup);
-      } else {
-        this.valvetrainBankL.add(camShaftGroup);
-      }
-      this.camshaftMeshes.push({ cfg, group: camShaftGroup });
-    });
+          const capMesh = new THREE.Mesh(bearingCapGeo, this.materials.gear);
+          capGroup.add(capMesh);
 
-    // 48 Valves with Real-time Compressing Helical Springs
-    this.cylinderMeshes.forEach(cylMesh => {
-      const bankAngle = cylMesh.bankAngleRad;
-      const headDist = R + L + 0.65;
-      const targetValvetrainGroup = cylMesh.bank === 'R' ? this.valvetrainBankR : this.valvetrainBankL;
+          // Fastening studs
+          [-0.07, 0.07].forEach(bx => {
+            const bolt = new THREE.Mesh(boltGeo, this.materials.starlightChrome);
+            bolt.position.set(bx, 0.08, 0);
+            capGroup.add(bolt);
+          });
 
-      // Cylinder Head Center
-      const headX = Math.sin(bankAngle) * headDist;
-      const headY = Math.cos(bankAngle) * headDist;
-      const z = cylMesh.cylZ;
-
-      // 2 Intake Valves (inner) & 2 Exhaust Valves (outer)
-      // Intake valves
-      [-0.12, 0.12].forEach(valveZOff => {
-        const valveGroup = new THREE.Group();
-        const inStemGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.65, 12);
-        const inStem = new THREE.Mesh(inStemGeo, this.materials.intakeValve);
-        inStem.position.y = 0.325;
-        valveGroup.add(inStem);
-
-        // Valve Poppet Disc Head (large intake)
-        const inHeadGeo = new THREE.CylinderGeometry(0.17, 0.04, 0.06, 20);
-        const inHead = new THREE.Mesh(inHeadGeo, this.materials.intakeValve);
-        inHead.userData.partInfo = {
-          name: `Intake Poppet Valve (Cylinder #${cylMesh.id})`,
-          metallurgy: "Austenitic Chrome-Nickel-Manganese Alloy Steel",
-          tempK: "480 K",
-          massGrams: "54 g",
-          toleranceMm: "±0.003 mm",
-          heritageNote: "Stellite hard-faced seat ensuring airtight seal and ultra-low induction turbulence"
-        };
-        this.interactiveMeshes.push(inHead);
-        valveGroup.add(inHead);
-
-        // Helical Wire Spring (3D spiral curve)
-        const springCurve = this._createHelicalSpringCurve(0.08, 0.42, 6);
-        const springGeo = new THREE.TubeGeometry(springCurve, 40, 0.015, 8, false);
-        const springMesh = new THREE.Mesh(springGeo, this.materials.spring);
-        springMesh.position.y = 0.12;
-        valveGroup.add(springMesh);
-
-        // Position valve in head
-        const inOffset = cylMesh.bank === 'R' ? -0.16 : 0.16;
-        const inPosX = headX + inOffset * Math.cos(bankAngle);
-        const inPosY = headY - inOffset * Math.sin(bankAngle);
-        const inPosZ = z + valveZOff;
-        valveGroup.position.set(inPosX, inPosY, inPosZ);
-        valveGroup.rotation.z = -bankAngle;
-        valveGroup.userData = {
-          baseX: inPosX,
-          baseY: inPosY,
-          bankAngle: bankAngle
-        };
-
-        targetValvetrainGroup.add(valveGroup);
-        cylMesh.inValves.push(valveGroup);
-        cylMesh.inSprings.push(springMesh);
+          targetValvetrainGroup.add(capGroup);
+        });
       });
 
-      // Exhaust valves
-      [-0.12, 0.12].forEach(valveZOff => {
-        const valveGroup = new THREE.Group();
-        const exStemGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.65, 12);
-        const exStem = new THREE.Mesh(exStemGeo, this.materials.exhaustValve);
-        exStem.position.y = 0.325;
-        valveGroup.add(exStem);
+      // 3. 24 Valves with Helical Springs & Bucket Tappets (12 Intake + 12 Exhaust per bank)
+      bankCyls.forEach(cyl => {
+        const cylMesh = this.cylinderMeshes.find(m => m.id === cyl.id);
+        if (!cylMesh) return;
 
-        // Valve Poppet Disc Head (exhaust)
-        const exHeadGeo = new THREE.CylinderGeometry(0.14, 0.04, 0.06, 20);
-        const exHead = new THREE.Mesh(exHeadGeo, this.materials.exhaustValve);
-        exHead.userData.partInfo = {
-          name: `Exhaust Poppet Valve (Cylinder #${cylMesh.id})`,
-          metallurgy: "Nimonic 80A Nickel-Chromium High-Temperature Superalloy",
-          tempK: "920 K",
-          massGrams: "58 g",
-          toleranceMm: "±0.003 mm",
-          heritageNote: "Hollow sodium-filled stem conducting extreme combustion heat away from valve face"
-        };
-        this.interactiveMeshes.push(exHead);
-        valveGroup.add(exHead);
+        cylMesh.inValves = [];
+        cylMesh.inSprings = [];
+        cylMesh.exValves = [];
+        cylMesh.exSprings = [];
 
-        // Helical Wire Spring
-        const springCurve = this._createHelicalSpringCurve(0.08, 0.42, 6);
-        const springGeo = new THREE.TubeGeometry(springCurve, 40, 0.015, 8, false);
-        const springMesh = new THREE.Mesh(springGeo, this.materials.spring);
-        springMesh.position.y = 0.12;
-        valveGroup.add(springMesh);
+        const pinIndex = cyl.pin - 1;
+        const baseZ = zStart - pinIndex * CYL_SPACING;
+        const zOffset = b_sign * 0.08;
+        const cylZ = baseZ + zOffset;
 
-        // Position exhaust valve in head (outer side)
-        const exOffset = cylMesh.bank === 'R' ? 0.18 : -0.18;
-        const exPosX = headX + exOffset * Math.cos(bankAngle);
-        const exPosY = headY - exOffset * Math.sin(bankAngle);
-        const exPosZ = z + valveZOff;
-        valveGroup.position.set(exPosX, exPosY, exPosZ);
-        valveGroup.rotation.z = -bankAngle;
-        valveGroup.userData = {
-          baseX: exPosX,
-          baseY: exPosY,
-          bankAngle: bankAngle
-        };
+        // INTAKE VALVES (v_offset = -0.20)
+        const in_valX = u_deck * u_x - 0.20 * v_x;
+        const in_valY = u_deck * u_y - 0.20 * v_y;
 
-        targetValvetrainGroup.add(valveGroup);
-        cylMesh.exValves.push(valveGroup);
-        cylMesh.exSprings.push(springMesh);
+        [cylZ - 0.13, cylZ + 0.13].forEach(valveZ => {
+          const valveGroup = new THREE.Group();
+
+          // Poppet Valve Face
+          const head = new THREE.Mesh(inHeadGeo, this.materials.intakeValve);
+          head.position.y = 0.02;
+          valveGroup.add(head);
+
+          // Valve Stem
+          const stem = new THREE.Mesh(inStemGeo, this.materials.intakeValve);
+          stem.position.y = 0.31;
+          valveGroup.add(stem);
+
+          // Spring Seat in Head
+          const seat = new THREE.Mesh(springSeatGeo, this.materials.gear);
+          seat.position.y = 0.12;
+          valveGroup.add(seat);
+
+          // Helical Spring
+          const spring = new THREE.Mesh(springGeo, this.materials.spring);
+          spring.position.y = 0.14;
+          valveGroup.add(spring);
+
+          // Spring Retainer
+          const retainer = new THREE.Mesh(springRetainerGeo, this.materials.gear);
+          retainer.position.y = 0.52;
+          valveGroup.add(retainer);
+
+          // Hydraulic Bucket Tappet (directly contacts camshaft base circle at y = 0.62)
+          const tappet = new THREE.Mesh(tappetGeo, this.materials.tappet);
+          tappet.position.y = 0.58;
+          tappet.userData.partInfo = {
+            name: `Hydraulic Bucket Tappet (Cylinder #${cyl.id})`,
+            metallurgy: "DLC-Coated Case-Hardened Chrome-Moly Steel",
+            tempK: "375 K",
+            massGrams: "42 g",
+            toleranceMm: "±0.001 mm",
+            heritageNote: "Zero-lash hydraulic lash adjuster maintaining dead-silent valvetrain clearance"
+          };
+          this.interactiveMeshes.push(tappet);
+          valveGroup.add(tappet);
+
+          valveGroup.position.set(in_valX, in_valY, valveZ);
+          valveGroup.rotation.z = -bankAngle;
+          valveGroup.userData = {
+            baseX: in_valX,
+            baseY: in_valY,
+            bankAngle: bankAngle
+          };
+
+          targetValvetrainGroup.add(valveGroup);
+          cylMesh.inValves.push(valveGroup);
+          cylMesh.inSprings.push(spring);
+        });
+
+        // EXHAUST VALVES (v_offset = +0.20)
+        const ex_valX = u_deck * u_x + 0.20 * v_x;
+        const ex_valY = u_deck * u_y + 0.20 * v_y;
+
+        [cylZ - 0.13, cylZ + 0.13].forEach(valveZ => {
+          const valveGroup = new THREE.Group();
+
+          const head = new THREE.Mesh(exHeadGeo, this.materials.exhaustValve);
+          head.position.y = 0.02;
+          valveGroup.add(head);
+
+          const stem = new THREE.Mesh(exStemGeo, this.materials.exhaustValve);
+          stem.position.y = 0.31;
+          valveGroup.add(stem);
+
+          const seat = new THREE.Mesh(springSeatGeo, this.materials.gear);
+          seat.position.y = 0.12;
+          valveGroup.add(seat);
+
+          const spring = new THREE.Mesh(springGeo, this.materials.spring);
+          spring.position.y = 0.14;
+          valveGroup.add(spring);
+
+          const retainer = new THREE.Mesh(springRetainerGeo, this.materials.gear);
+          retainer.position.y = 0.52;
+          valveGroup.add(retainer);
+
+          const tappet = new THREE.Mesh(tappetGeo, this.materials.tappet);
+          tappet.position.y = 0.58;
+          tappet.userData.partInfo = {
+            name: `Exhaust Bucket Tappet (Cylinder #${cyl.id})`,
+            metallurgy: "DLC-Coated Case-Hardened Chrome-Moly Steel",
+            tempK: "410 K",
+            massGrams: "42 g",
+            toleranceMm: "±0.001 mm",
+            heritageNote: "Zero-lash hydraulic lash adjuster ensuring smooth exhaust valve opening"
+          };
+          this.interactiveMeshes.push(tappet);
+          valveGroup.add(tappet);
+
+          valveGroup.position.set(ex_valX, ex_valY, valveZ);
+          valveGroup.rotation.z = -bankAngle;
+          valveGroup.userData = {
+            baseX: ex_valX,
+            baseY: ex_valY,
+            bankAngle: bankAngle
+          };
+
+          targetValvetrainGroup.add(valveGroup);
+          cylMesh.exValves.push(valveGroup);
+          cylMesh.exSprings.push(spring);
+        });
+
+        // Central High-Energy Spark Plug
+        const plugGroup = new THREE.Group();
+        const ceramicGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.5, 14);
+        const ceramic = new THREE.Mesh(ceramicGeo, this.materials.sparkCeramic);
+        ceramic.position.y = 0.25;
+        plugGroup.add(ceramic);
+
+        const hexGeo = new THREE.CylinderGeometry(0.065, 0.065, 0.18, 6);
+        const hex = new THREE.Mesh(hexGeo, this.materials.sparkMetal);
+        hex.position.y = 0.08;
+        plugGroup.add(hex);
+
+        const sparkGlowGeo = new THREE.SphereGeometry(0.08, 12, 12);
+        const sparkGlow = new THREE.Mesh(sparkGlowGeo, this.materials.sparkPlasma.clone());
+        sparkGlow.position.y = -0.05;
+        sparkGlow.visible = false;
+        plugGroup.add(sparkGlow);
+        cylMesh.sparkGlow = sparkGlow;
+
+        plugGroup.position.set(u_deck * u_x, u_deck * u_y, cylZ);
+        plugGroup.rotation.z = -bankAngle;
+        targetValvetrainGroup.add(plugGroup);
       });
-
-      // Central Spark Plug (in pent-roof chamber center between the 4 valves)
-      const plugGroup = new THREE.Group();
-      const ceramicGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.5, 14);
-      const ceramic = new THREE.Mesh(ceramicGeo, this.materials.sparkCeramic);
-      ceramic.position.y = 0.25;
-      plugGroup.add(ceramic);
-
-      const hexGeo = new THREE.CylinderGeometry(0.065, 0.065, 0.18, 6);
-      const hex = new THREE.Mesh(hexGeo, this.materials.sparkMetal);
-      hex.position.y = 0.08;
-      hex.userData.partInfo = {
-        name: `High-Energy Spark Plug (Cylinder #${cylMesh.id})`,
-        metallurgy: "Fine-Wire Iridium Tip with Alumina Ceramic Insulator",
-        tempK: "750 K",
-        massGrams: "45 g",
-        toleranceMm: "±0.005 mm",
-        heritageNote: "Precise multi-spark ignition discharge igniting lean fuel charges instantly"
-      };
-      this.interactiveMeshes.push(hex);
-      plugGroup.add(hex);
-
-      // Plasma Spark Tip Glow
-      const sparkGlowGeo = new THREE.SphereGeometry(0.08, 12, 12);
-      const sparkGlow = new THREE.Mesh(sparkGlowGeo, this.materials.sparkPlasma.clone());
-      sparkGlow.position.y = -0.05;
-      sparkGlow.visible = false;
-      plugGroup.add(sparkGlow);
-      cylMesh.sparkGlow = sparkGlow;
-
-      plugGroup.position.set(headX, headY, z);
-      plugGroup.rotation.z = -bankAngle;
-      targetValvetrainGroup.add(plugGroup);
     });
   }
 
@@ -1392,13 +1545,10 @@ export class V12Scene3D {
 
     banks.forEach(b => {
       const bankGroup = new THREE.Group();
-      const headDist = R + L + 0.65;
-      const headX = Math.sin(b.bankAngle) * headDist;
-      const headY = Math.cos(b.bankAngle) * headDist;
-      const exOffset = b.sign * 0.18;
-
-      const portX = headX + exOffset * Math.cos(b.bankAngle);
-      const portY = headY - exOffset * Math.sin(b.bankAngle);
+      const port_u = 2.68;
+      const port_v = b.sign * 0.38;
+      const portX = port_u * Math.sin(b.bankAngle) + port_v * Math.cos(b.bankAngle);
+      const portY = port_u * Math.cos(b.bankAngle) - port_v * Math.sin(b.bankAngle);
 
       // Turbine Inlet collector point (where runners merge)
       const collectorX = b.turboX - b.sign * 0.28;
@@ -1407,7 +1557,8 @@ export class V12Scene3D {
 
       // 6 Tuned Stainless Steel Header Runners for cylinders 1-6 / 7-12
       for (let c = 0; c < 6; c++) {
-        const cylZ = zStart - c * CYL_SPACING;
+        const zOffset = b.side === 'R' ? 0.08 : -0.08;
+        const cylZ = zStart - c * CYL_SPACING + zOffset;
         const cylNum = b.side === 'R' ? c + 1 : c + 7;
 
         // Exhaust port collar flange
