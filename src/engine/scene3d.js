@@ -54,6 +54,20 @@ export class V12Scene3D {
     this.turboImpellers = [];
     this.standingCoin = null;
 
+    // Flagship Feature States
+    this.explodedFactor = 0.0;
+    this.isThermalMode = false;
+    this.isAutoTour = false;
+    this.tourProgress = 0.0;
+
+    // Interactive 3D Raycasting & Part Inspector
+    this.raycaster = new THREE.Raycaster();
+    this.mouse = new THREE.Vector2(-999, -999);
+    this.interactiveMeshes = [];
+    this.hoveredMesh = null;
+    this.onPartHover = null; // (partInfo, mouseX, mouseY) => {}
+    this.onPartClick = null; // (partInfo) => {}
+
     // Cylinders dynamic parts cache: { id, pistonGroup, rodGroup, inValves, exValves, inSprings, exSprings, sparkGlow, fireMesh, pointLight }
     this.cylinderMeshes = [];
 
@@ -67,7 +81,7 @@ export class V12Scene3D {
     this.intakeParticles = [];
     this.exhaustParticles = [];
 
-    // Camera preset targets (including Rolls-Royce Turbo & Coin Test focus)
+    // Camera preset targets (including Rolls-Royce Turbo, Coin Test, and Tour)
     this.cameraPresets = {
       hero:    { pos: new THREE.Vector3(4.8, 3.8, 5.2),  target: new THREE.Vector3(0, 0.6, 0) },
       front:   { pos: new THREE.Vector3(0, 1.2, 6.2),    target: new THREE.Vector3(0, 0.5, 0) },
@@ -77,7 +91,8 @@ export class V12Scene3D {
       turbo:   { pos: new THREE.Vector3(4.2, 1.8, 0.8),  target: new THREE.Vector3(2.28, 1.35, -0.25) },
       cyl1:    { pos: new THREE.Vector3(1.8, 2.2, 3.2),  target: new THREE.Vector3(0.8, 1.4, 2.8) },
       crank:   { pos: new THREE.Vector3(3.2, -0.6, 2.2), target: new THREE.Vector3(0, -0.2, 0) },
-      dohc:    { pos: new THREE.Vector3(2.5, 4.2, 2.0),  target: new THREE.Vector3(0.8, 2.2, 1.0) }
+      dohc:    { pos: new THREE.Vector3(2.5, 4.2, 2.0),  target: new THREE.Vector3(0.8, 2.2, 1.0) },
+      tour:    { pos: new THREE.Vector3(5.2, 3.2, 5.0),  target: new THREE.Vector3(0, 0.8, 0) }
     };
 
     this._init();
@@ -147,6 +162,10 @@ export class V12Scene3D {
     this._buildGasParticles();
     this._buildCallouts();
     this._buildStudioFloor();
+
+    // 8. Pointer Event Listeners for Raycast Part Inspection
+    this.renderer.domElement.addEventListener('pointermove', (e) => this._onPointerMove(e));
+    this.renderer.domElement.addEventListener('click', (e) => this._onPointerClick(e));
 
     // Handle Resize
     window.addEventListener('resize', () => this.onWindowResize());
@@ -418,6 +437,15 @@ export class V12Scene3D {
     frontMainGeo.rotateX(Math.PI / 2);
     const frontMainMesh = new THREE.Mesh(frontMainGeo, this.materials.crankshaft);
     frontMainMesh.position.set(0, 0, zStart + 0.38);
+    frontMainMesh.userData.partInfo = {
+      name: "Front Main Bearing Journal",
+      metallurgy: "Nitro-Carburized 42CrMo4 Alloy Steel",
+      tempK: "365 K",
+      massGrams: "4,200 g",
+      toleranceMm: "±0.002 mm",
+      heritageNote: "Tri-metal lead-indium bearing shells with pressurized hydrodynamic oil wedge"
+    };
+    this.interactiveMeshes.push(frontMainMesh);
     this.crankshaftGroup.add(frontMainMesh);
 
     for (let i = 0; i < 6; i++) {
@@ -431,6 +459,15 @@ export class V12Scene3D {
         interGeo.rotateX(Math.PI / 2);
         const interMesh = new THREE.Mesh(interGeo, this.materials.crankshaft);
         interMesh.position.set(0, 0, interJournalZ);
+        interMesh.userData.partInfo = {
+          name: `Main Bearing Journal #${i + 2}`,
+          metallurgy: "Induction-Hardened 42CrMo4 Micro-Alloy Steel",
+          tempK: "368 K",
+          massGrams: "4,150 g",
+          toleranceMm: "±0.002 mm",
+          heritageNote: "Cross-drilled pressurized oil galleys lubricating adjacent connecting rod journals"
+        };
+        this.interactiveMeshes.push(interMesh);
         this.crankshaftGroup.add(interMesh);
       }
 
@@ -444,6 +481,15 @@ export class V12Scene3D {
       pinGeo.rotateX(Math.PI / 2);
       const pinMesh = new THREE.Mesh(pinGeo, this.materials.crankshaft);
       pinMesh.position.set(0, R, 0);
+      pinMesh.userData.partInfo = {
+        name: `Crankpin Throw #${i + 1} (${throwAngles[i]}°)`,
+        metallurgy: "42CrMo4 Quenched & Tempered Micro-Alloy",
+        tempK: "375 K",
+        massGrams: "5,800 g",
+        toleranceMm: "±0.002 mm",
+        heritageNote: "120° symmetric throw indexing; primary & secondary balance"
+      };
+      this.interactiveMeshes.push(pinMesh);
       throwSubGroup.add(pinMesh);
 
       // Front & Rear Crank Webs with Counterweights
@@ -460,6 +506,15 @@ export class V12Scene3D {
         const cwMesh = new THREE.Mesh(cwGeo, this.materials.crankshaft);
         cwMesh.position.set(0, -0.32, zOff);
         cwMesh.scale.set(1.2, 0.7, 1.0);
+        cwMesh.userData.partInfo = {
+          name: `Crankshaft Counterweight (Throw #${i + 1})`,
+          metallurgy: "Precision Dynamic Balanced Forged Steel",
+          tempK: "360 K",
+          massGrams: "4,650 g",
+          toleranceMm: "±0.010 mm",
+          heritageNote: "Precision-milled lightening pockets for minimal rotating inertia"
+        };
+        this.interactiveMeshes.push(cwMesh);
         throwSubGroup.add(cwMesh);
       }
 
@@ -479,6 +534,15 @@ export class V12Scene3D {
     flywheelGeo.rotateX(Math.PI / 2);
     this.flywheelMesh = new THREE.Mesh(flywheelGeo, this.materials.flywheel);
     this.flywheelMesh.position.set(0, 0, rearZ - 0.25);
+    this.flywheelMesh.userData.partInfo = {
+      name: "Billet Steel Flywheel",
+      metallurgy: "Forged Steel with Induction-Hardened Ring Gear",
+      tempK: "340 K",
+      massGrams: "14,500 g",
+      toleranceMm: "±0.005 mm",
+      heritageNote: "High-inertia rotational dampener ensuring velvety idle speed stability"
+    };
+    this.interactiveMeshes.push(this.flywheelMesh);
     this.crankshaftGroup.add(this.flywheelMesh);
 
     // Ring gear teeth ring
@@ -493,6 +557,15 @@ export class V12Scene3D {
     damperGeo.rotateX(Math.PI / 2);
     const damperMesh = new THREE.Mesh(damperGeo, this.materials.flywheel);
     damperMesh.position.set(0, 0, frontZ);
+    damperMesh.userData.partInfo = {
+      name: "Viscous Torsional Damper",
+      metallurgy: "Silicon Fluid Inertia Ring with Steel Casing",
+      tempK: "330 K",
+      massGrams: "6,200 g",
+      toleranceMm: "±0.010 mm",
+      heritageNote: "Absorbs harmonic crankshaft twist across the entire 600 - 6,000 RPM range"
+    };
+    this.interactiveMeshes.push(damperMesh);
     this.crankshaftGroup.add(damperMesh);
 
     const crankTimingGearGeo = new THREE.CylinderGeometry(0.48, 0.48, 0.18, 28);
@@ -526,6 +599,15 @@ export class V12Scene3D {
       const pistonGeo = new THREE.CylinderGeometry(pistonRadius, pistonRadius, pistonHeight, 32);
       const pistonMesh = new THREE.Mesh(pistonGeo, this.materials.piston);
       pistonMesh.castShadow = true;
+      pistonMesh.userData.partInfo = {
+        name: `Piston Crown & Skirt (Cylinder #${cyl.id})`,
+        metallurgy: "Forged T6 High-Silicon Aluminum Alloy (AlSi12CuNiMg)",
+        tempK: "490 K",
+        massGrams: "485 g",
+        toleranceMm: "±0.005 mm",
+        heritageNote: "Low-friction graphite skirt coating with CNC bowl combustion crown profile"
+      };
+      this.interactiveMeshes.push(pistonMesh);
       pistonGroup.add(pistonMesh);
 
       // Piston Rings (3 ring grooves)
@@ -541,6 +623,15 @@ export class V12Scene3D {
       pinGeo.rotateX(Math.PI / 2);
       const pinMesh = new THREE.Mesh(pinGeo, this.materials.wristPin);
       pinMesh.position.y = -0.05;
+      pinMesh.userData.partInfo = {
+        name: `Floating Wrist Pin (Cylinder #${cyl.id})`,
+        metallurgy: "Case-Hardened 16MnCr5 Alloy Steel with Diamond-Like Carbon (DLC)",
+        tempK: "440 K",
+        massGrams: "115 g",
+        toleranceMm: "±0.001 mm",
+        heritageNote: "Full-floating gudgeon pin retained with high-tensile wire circlips"
+      };
+      this.interactiveMeshes.push(pinMesh);
       pistonGroup.add(pinMesh);
 
       // In-Cylinder Combustion Fireball (inside combustion chamber at top of piston)
@@ -566,6 +657,15 @@ export class V12Scene3D {
       const rodShaftGeo = new THREE.BoxGeometry(rodWidth, L, rodDepth);
       const rodShaft = new THREE.Mesh(rodShaftGeo, this.materials.rod);
       rodShaft.position.y = L / 2;
+      rodShaft.userData.partInfo = {
+        name: `H-Beam Connecting Rod (Cylinder #${cyl.id})`,
+        metallurgy: "Forged & Shot-Peened 34CrNiMo6 High-Strength Alloy Steel",
+        tempK: "410 K",
+        massGrams: "620 g",
+        toleranceMm: "±0.004 mm",
+        heritageNote: "Fracture-split cracked big end journal ensuring 100% molecular mating accuracy"
+      };
+      this.interactiveMeshes.push(rodShaft);
       rodGroup.add(rodShaft);
 
       // Big End (around crankpin)
@@ -631,6 +731,15 @@ export class V12Scene3D {
         cylZ
       );
       liner.rotation.z = -bankAngleRad;
+      liner.userData.partInfo = {
+        name: `Cylinder Liner #${cyl.id}`,
+        metallurgy: "Centrifugally Cast Nodular Iron (Nikasil Bore)",
+        tempK: "450 K",
+        massGrams: "1,120 g",
+        toleranceMm: "±0.003 mm",
+        heritageNote: "Cross-hatch plateau honed cylinder bore ensuring microscopic oil retention"
+      };
+      this.interactiveMeshes.push(liner);
       this.blockGroup.add(liner);
     });
 
@@ -642,6 +751,15 @@ export class V12Scene3D {
     crankcaseGeo.rotateX(Math.PI / 2);
     const crankcase = new THREE.Mesh(crankcaseGeo, blockMat);
     crankcase.position.set(0, -0.2, 0);
+    crankcase.userData.partInfo = {
+      name: "Deep-Skirt Crankcase Saddle",
+      metallurgy: "High-Purity Cast Aluminum-Silicon Alloy (AlSi7Mg)",
+      tempK: "360 K",
+      massGrams: "28,500 g",
+      toleranceMm: "±0.015 mm",
+      heritageNote: "Cross-bolted main bearing caps for exceptional bottom-end torsional rigidity"
+    };
+    this.interactiveMeshes.push(crankcase);
     this.blockGroup.add(crankcase);
 
     // Right Bank outer casting slab
@@ -649,6 +767,15 @@ export class V12Scene3D {
     const bankR = new THREE.Mesh(bankRGeo, blockMat);
     bankR.position.set(1.55, 1.35, 0);
     bankR.rotation.z = -BANK_ANGLE;
+    bankR.userData.partInfo = {
+      name: "Bank 1 (Right) Outer Monoblock Wall",
+      metallurgy: "AlSi7Mg T6 Structural Core",
+      tempK: "370 K",
+      massGrams: "18,400 g",
+      toleranceMm: "±0.020 mm",
+      heritageNote: "Integrated water jacket cooling channels enveloping all 6 cylinders"
+    };
+    this.interactiveMeshes.push(bankR);
     this.blockGroup.add(bankR);
 
     // Left Bank outer casting slab
@@ -656,24 +783,60 @@ export class V12Scene3D {
     const bankL = new THREE.Mesh(bankLGeo, blockMat);
     bankL.position.set(-1.55, 1.35, 0);
     bankL.rotation.z = BANK_ANGLE;
+    bankL.userData.partInfo = {
+      name: "Bank 2 (Left) Outer Monoblock Wall",
+      metallurgy: "AlSi7Mg T6 Structural Core",
+      tempK: "370 K",
+      massGrams: "18,400 g",
+      toleranceMm: "±0.020 mm",
+      heritageNote: "Integrated high-flow coolant passageways dampening mechanical resonance"
+    };
+    this.interactiveMeshes.push(bankL);
     this.blockGroup.add(bankL);
 
     // Front Timing Cover Plate
     const frontCoverGeo = new THREE.BoxGeometry(2.4, 2.8, 0.15);
     const frontCover = new THREE.Mesh(frontCoverGeo, blockMat);
     frontCover.position.set(0, 0.8, zStart + CYL_SPACING * 0.7);
+    frontCover.userData.partInfo = {
+      name: "Front Timing Chain & Gear Cover",
+      metallurgy: "Die-Cast Magnesium-Aluminum Alloy",
+      tempK: "345 K",
+      massGrams: "4,200 g",
+      toleranceMm: "±0.010 mm",
+      heritageNote: "Acoustically decoupled timing chest isolating chain drive vibration"
+    };
+    this.interactiveMeshes.push(frontCover);
     this.blockGroup.add(frontCover);
 
     // Rear Bellhousing Plate
     const rearCoverGeo = new THREE.BoxGeometry(2.6, 2.8, 0.15);
     const rearCover = new THREE.Mesh(rearCoverGeo, blockMat);
     rearCover.position.set(0, 0.8, -zStart - CYL_SPACING * 0.7);
+    rearCover.userData.partInfo = {
+      name: "Rear Bellhousing Transmission Interface",
+      metallurgy: "High-Tensile Cast Aluminum Alloy",
+      tempK: "340 K",
+      massGrams: "5,100 g",
+      toleranceMm: "±0.010 mm",
+      heritageNote: "Precision locating dowels aligning the 8-speed satellite-aided transmission"
+    };
+    this.interactiveMeshes.push(rearCover);
     this.blockGroup.add(rearCover);
 
     // Deep finned Oil Sump (Pan) at the bottom
     const sumpGeo = new THREE.BoxGeometry(1.8, 0.65, crankLength + 0.3);
     const sump = new THREE.Mesh(sumpGeo, this.materials.blockSolid);
     sump.position.set(0, -1.35, 0);
+    sump.userData.partInfo = {
+      name: "Finned Dry-Sump Oil Reservoir Pan",
+      metallurgy: "Cast Aluminum with Integral Windage Tray",
+      tempK: "365 K",
+      massGrams: "7,800 g",
+      toleranceMm: "±0.015 mm",
+      heritageNote: "Multi-stage scavenge pumps maintaining constant oil pressure under 1.2G lateral loads"
+    };
+    this.interactiveMeshes.push(sump);
     this.blockGroup.add(sump);
 
     // Sump cooling fins
@@ -683,12 +846,28 @@ export class V12Scene3D {
       fin.position.set(0, -1.35 + f * 0.05, 0);
       this.blockGroup.add(fin);
     }
+
+    // Save references for Exploded View disassembly
+    this.explodedAssemblies.blockSlabs = [
+      { mesh: bankR, dir: new THREE.Vector3(1.0, 0.2, 0), basePos: bankR.position.clone() },
+      { mesh: bankL, dir: new THREE.Vector3(-1.0, 0.2, 0), basePos: bankL.position.clone() },
+      { mesh: frontCover, dir: new THREE.Vector3(0, 0, 1.2), basePos: frontCover.position.clone() },
+      { mesh: rearCover, dir: new THREE.Vector3(0, 0, -1.2), basePos: rearCover.position.clone() },
+      { mesh: sump, dir: new THREE.Vector3(0, -1.0, 0), basePos: sump.position.clone() }
+    ];
   }
 
   _buildQuadCamValvetrain() {
     this.valvetrainGroup.clear();
     const crankLength = 6 * CYL_SPACING;
     const zStart = (crankLength / 2) - (CYL_SPACING / 2);
+
+    this.valvetrainBankR = new THREE.Group();
+    this.valvetrainBankL = new THREE.Group();
+    this.valvetrainGroup.add(this.valvetrainBankR);
+    this.valvetrainGroup.add(this.valvetrainBankL);
+    this.explodedAssemblies.valvetrainR = this.valvetrainBankR;
+    this.explodedAssemblies.valvetrainL = this.valvetrainBankL;
 
     // DOHC: 4 Camshafts total:
     // Right Bank: Intake Cam (inner valley side) & Exhaust Cam (outer side)
@@ -724,6 +903,15 @@ export class V12Scene3D {
       const camBarGeo = new THREE.CylinderGeometry(0.08, 0.08, crankLength + 0.6, 20);
       camBarGeo.rotateX(Math.PI / 2);
       const camBar = new THREE.Mesh(camBarGeo, this.materials.camshaft);
+      camBar.userData.partInfo = {
+        name: `${cfg.bank === 'R' ? 'Bank 1' : 'Bank 2'} ${cfg.type === 'intake' ? 'Intake' : 'Exhaust'} Camshaft`,
+        metallurgy: "Deep Nitrided Chilled Micro-Alloy Cast Iron",
+        tempK: "370 K",
+        massGrams: "3,400 g",
+        toleranceMm: "±0.002 mm",
+        heritageNote: "Dual VVT phasors continuously varying valve overlap for imperceptible torque delivery"
+      };
+      this.interactiveMeshes.push(camBar);
       camShaftGroup.add(camBar);
 
       // 12 Cam Lobes (2 valves per cylinder x 6 cylinders per bank)
@@ -745,9 +933,22 @@ export class V12Scene3D {
       camGearGeo.rotateX(Math.PI / 2);
       const camGear = new THREE.Mesh(camGearGeo, this.materials.gear);
       camGear.position.set(0, 0, zStart + 0.35);
+      camGear.userData.partInfo = {
+        name: `${cfg.bank === 'R' ? 'Bank 1' : 'Bank 2'} Camshaft Drive Sprocket`,
+        metallurgy: "Sintered Steel Powder Metallurgy",
+        tempK: "350 K",
+        massGrams: "850 g",
+        toleranceMm: "±0.005 mm",
+        heritageNote: "Inverted tooth silent sprocket minimizing timing chain pitch engagement noise"
+      };
+      this.interactiveMeshes.push(camGear);
       camShaftGroup.add(camGear);
 
-      this.camshaftsGroup.add(camShaftGroup);
+      if (cfg.bank === 'R') {
+        this.valvetrainBankR.add(camShaftGroup);
+      } else {
+        this.valvetrainBankL.add(camShaftGroup);
+      }
       this.camshaftMeshes.push({ cfg, group: camShaftGroup });
     });
 
@@ -755,6 +956,7 @@ export class V12Scene3D {
     this.cylinderMeshes.forEach(cylMesh => {
       const bankAngle = cylMesh.bankAngleRad;
       const headDist = R + L + 0.65;
+      const targetValvetrainGroup = cylMesh.bank === 'R' ? this.valvetrainBankR : this.valvetrainBankL;
 
       // Cylinder Head Center
       const headX = Math.sin(bankAngle) * headDist;
@@ -773,6 +975,15 @@ export class V12Scene3D {
         // Valve Poppet Disc Head (large intake)
         const inHeadGeo = new THREE.CylinderGeometry(0.17, 0.04, 0.06, 20);
         const inHead = new THREE.Mesh(inHeadGeo, this.materials.intakeValve);
+        inHead.userData.partInfo = {
+          name: `Intake Poppet Valve (Cylinder #${cylMesh.id})`,
+          metallurgy: "Austenitic Chrome-Nickel-Manganese Alloy Steel",
+          tempK: "480 K",
+          massGrams: "54 g",
+          toleranceMm: "±0.003 mm",
+          heritageNote: "Stellite hard-faced seat ensuring airtight seal and ultra-low induction turbulence"
+        };
+        this.interactiveMeshes.push(inHead);
         valveGroup.add(inHead);
 
         // Helical Wire Spring (3D spiral curve)
@@ -795,7 +1006,7 @@ export class V12Scene3D {
           bankAngle: bankAngle
         };
 
-        this.valvetrainGroup.add(valveGroup);
+        targetValvetrainGroup.add(valveGroup);
         cylMesh.inValves.push(valveGroup);
         cylMesh.inSprings.push(springMesh);
       });
@@ -811,6 +1022,15 @@ export class V12Scene3D {
         // Valve Poppet Disc Head (exhaust)
         const exHeadGeo = new THREE.CylinderGeometry(0.14, 0.04, 0.06, 20);
         const exHead = new THREE.Mesh(exHeadGeo, this.materials.exhaustValve);
+        exHead.userData.partInfo = {
+          name: `Exhaust Poppet Valve (Cylinder #${cylMesh.id})`,
+          metallurgy: "Nimonic 80A Nickel-Chromium High-Temperature Superalloy",
+          tempK: "920 K",
+          massGrams: "58 g",
+          toleranceMm: "±0.003 mm",
+          heritageNote: "Hollow sodium-filled stem conducting extreme combustion heat away from valve face"
+        };
+        this.interactiveMeshes.push(exHead);
         valveGroup.add(exHead);
 
         // Helical Wire Spring
@@ -833,7 +1053,7 @@ export class V12Scene3D {
           bankAngle: bankAngle
         };
 
-        this.valvetrainGroup.add(valveGroup);
+        targetValvetrainGroup.add(valveGroup);
         cylMesh.exValves.push(valveGroup);
         cylMesh.exSprings.push(springMesh);
       });
@@ -848,6 +1068,15 @@ export class V12Scene3D {
       const hexGeo = new THREE.CylinderGeometry(0.065, 0.065, 0.18, 6);
       const hex = new THREE.Mesh(hexGeo, this.materials.sparkMetal);
       hex.position.y = 0.08;
+      hex.userData.partInfo = {
+        name: `High-Energy Spark Plug (Cylinder #${cylMesh.id})`,
+        metallurgy: "Fine-Wire Iridium Tip with Alumina Ceramic Insulator",
+        tempK: "750 K",
+        massGrams: "45 g",
+        toleranceMm: "±0.005 mm",
+        heritageNote: "Precise multi-spark ignition discharge igniting lean fuel charges instantly"
+      };
+      this.interactiveMeshes.push(hex);
       plugGroup.add(hex);
 
       // Plasma Spark Tip Glow
@@ -860,7 +1089,7 @@ export class V12Scene3D {
 
       plugGroup.position.set(headX, headY, z);
       plugGroup.rotation.z = -bankAngle;
-      this.valvetrainGroup.add(plugGroup);
+      targetValvetrainGroup.add(plugGroup);
     });
   }
 
@@ -911,6 +1140,8 @@ export class V12Scene3D {
   _buildTwinTurbochargers() {
     this.turboGroup.clear();
     this.turboImpellers = [];
+    this.explodedAssemblies.turbos = [];
+    this.turbineHousings = [];
 
     // Symmetrical Twin Turbochargers: Right Bank (+X) and Left Bank (-X)
     // Mounted on outside flanks alongside cylinder banks with CAD precision
@@ -937,13 +1168,31 @@ export class V12Scene3D {
       downpipeGeo.rotateX(Math.PI / 2);
       const downpipeMesh = new THREE.Mesh(downpipeGeo, this.materials.turboTurbine);
       downpipeMesh.position.set(0, -0.04, -0.90);
+      downpipeMesh.userData.partInfo = {
+        name: `${cfg.side === 'R' ? 'Bank 1' : 'Bank 2'} Exhaust Downpipe (Hot Side)`,
+        metallurgy: "Hydroformed 321 Austenitic Stainless Steel",
+        tempK: "880 K",
+        massGrams: "3,850 g",
+        toleranceMm: "±0.015 mm",
+        heritageNote: "Low-backpressure mandrel-bent downpipe routing exhaust gases to catalytic converters"
+      };
+      this.interactiveMeshes.push(downpipeMesh);
       tbGroup.add(downpipeMesh);
 
       // 2. Turbine Volute Housing (Cast Iron Snail Shell, Hot Side)
-      // Torus in XY plane centered at z = -0.27 (spans z = -0.38 to -0.16)
       const turbineGeo = new THREE.TorusGeometry(0.33, 0.11, 20, 36, Math.PI * 1.85);
       const turbineMesh = new THREE.Mesh(turbineGeo, this.materials.turboTurbine);
       turbineMesh.position.set(0, 0, -0.27);
+      turbineMesh.userData.partInfo = {
+        name: `${cfg.side === 'R' ? 'Bank 1' : 'Bank 2'} Inconel Turbine Volute Housing`,
+        metallurgy: "D-5S High-Nickel Ni-Resist Ductile Iron with Inconel 713C Turbine Wheel",
+        tempK: "1,180 K",
+        massGrams: "6,800 g",
+        toleranceMm: "±0.008 mm",
+        heritageNote: "Twin-scroll volute directing exhaust gas pulses onto Inconel turbine wheel at up to 210,000 RPM"
+      };
+      this.interactiveMeshes.push(turbineMesh);
+      this.turbineHousings.push(turbineMesh);
       tbGroup.add(turbineMesh);
 
       // Turbine Tangential Inlet Flange (Faces inward to mate cleanly with header collector)
@@ -954,11 +1203,19 @@ export class V12Scene3D {
       tbGroup.add(turbInlet);
 
       // 3. CHRA Center Bearing Cartridge (Water & Oil Cooled Center Housing)
-      // Positioned cleanly between housings: z = -0.14 to +0.14 (length 0.28)
       const chraGeo = new THREE.CylinderGeometry(0.125, 0.125, 0.28, 20);
       chraGeo.rotateX(Math.PI / 2);
       const chraMesh = new THREE.Mesh(chraGeo, this.materials.gear);
       chraMesh.position.set(0, 0, 0);
+      chraMesh.userData.partInfo = {
+        name: `${cfg.side === 'R' ? 'Bank 1' : 'Bank 2'} CHRA Ceramic Ball Bearing Cartridge`,
+        metallurgy: "Silicon Nitride (Si3N4) Ceramic Ball Bearings in Nodular Iron Core",
+        tempK: "460 K",
+        massGrams: "2,400 g",
+        toleranceMm: "±0.002 mm",
+        heritageNote: "Water and oil cooled center housing providing frictionless spool-up with near-zero lag"
+      };
+      this.interactiveMeshes.push(chraMesh);
       tbGroup.add(chraMesh);
 
       // CHRA Cooling Ribs / Flanges
@@ -983,14 +1240,21 @@ export class V12Scene3D {
       tbGroup.add(drainLine);
 
       // 4. Compressor Housing (Mirror Billet Aluminum Volute, Cold Side)
-      // Torus in XY plane centered at z = +0.27 (spans z = +0.15 to +0.39)
       const compGeo = new THREE.TorusGeometry(0.36, 0.12, 20, 36, Math.PI * 1.85);
       const compMesh = new THREE.Mesh(compGeo, this.materials.turboCompressor);
       compMesh.position.set(0, 0, 0.27);
+      compMesh.userData.partInfo = {
+        name: `${cfg.side === 'R' ? 'Bank 1' : 'Bank 2'} Billet CNC Compressor Volute`,
+        metallurgy: "A356.0 Aerospace Cast Aluminum (T6 Tempered)",
+        tempK: "390 K",
+        massGrams: "3,200 g",
+        toleranceMm: "±0.005 mm",
+        heritageNote: "Ported shroud anti-surge ring delivering continuous 1.62 bar absolute boost pressure"
+      };
+      this.interactiveMeshes.push(compMesh);
       tbGroup.add(compMesh);
 
       // Compressor Inlet Bellmouth (Velocity Stack facing forward along +Z)
-      // Spans z = +0.39 to +0.71
       const inletGeo = new THREE.CylinderGeometry(0.20, 0.16, 0.32, 24);
       inletGeo.rotateX(Math.PI / 2);
       const inletMesh = new THREE.Mesh(inletGeo, this.materials.turboCompressor);
@@ -1004,6 +1268,15 @@ export class V12Scene3D {
       const noseConeGeo = new THREE.ConeGeometry(0.06, 0.14, 16);
       noseConeGeo.rotateX(Math.PI / 2);
       const noseCone = new THREE.Mesh(noseConeGeo, this.materials.starlightChrome);
+      noseCone.userData.partInfo = {
+        name: `${cfg.side === 'R' ? 'Bank 1' : 'Bank 2'} Billet Titanium Compressor Impeller`,
+        metallurgy: "Milled 5-Axis Forged Ti-6Al-4V Titanium Alloy",
+        tempK: "380 K",
+        massGrams: "215 g",
+        toleranceMm: "±0.001 mm",
+        heritageNote: "Ultra-low inertia extended-tip aerodynamic wheel achieving full boost at just 1,600 RPM"
+      };
+      this.interactiveMeshes.push(noseCone);
       impellerGroup.add(noseCone);
 
       for (let b = 0; b < 8; b++) {
@@ -1029,7 +1302,6 @@ export class V12Scene3D {
       tbGroup.add(boostPipeMesh);
 
       // 5. Wastegate Actuator Canister & Calibrated Linkage
-      // Mounted on rigid bracket on outer flank (+X for Bank R, -X for Bank L)
       const wgBracketGeo = new THREE.BoxGeometry(0.18, 0.03, 0.08);
       const wgBracket = new THREE.Mesh(wgBracketGeo, this.materials.gear);
       wgBracket.position.set(cfg.sign * 0.32, 0.12, 0.10);
@@ -1040,6 +1312,15 @@ export class V12Scene3D {
       wastegateGeo.rotateX(Math.PI / 2);
       const wastegate = new THREE.Mesh(wastegateGeo, this.materials.starlightChrome);
       wastegate.position.set(cfg.sign * 0.40, 0.12, 0.02);
+      wastegate.userData.partInfo = {
+        name: `${cfg.side === 'R' ? 'Bank 1' : 'Bank 2'} Electronic Wastegate Actuator`,
+        metallurgy: "Stainless Steel Diaphragm with High-Speed Stepper Motor",
+        tempK: "370 K",
+        massGrams: "780 g",
+        toleranceMm: "±0.010 mm",
+        heritageNote: "Closed-loop electronic boost modulation delivering the signature Rolls-Royce flat 900 Nm wave"
+      };
+      this.interactiveMeshes.push(wastegate);
       tbGroup.add(wastegate);
 
       // Stainless actuator rod running rearward to turbine wastegate flapper arm
@@ -1056,11 +1337,20 @@ export class V12Scene3D {
       tbGroup.add(flapperArm);
 
       this.turboGroup.add(tbGroup);
+
+      // Exploded view registration
+      this.explodedAssemblies.turbos.push({
+        group: tbGroup,
+        basePos: tbGroup.position.clone(),
+        sign: cfg.sign
+      });
     });
   }
 
   _buildExhaustHeaders() {
     this.exhaustHeadersGroup.clear();
+    this.explodedAssemblies.exhausts = [];
+    this.exhaustRunners = [];
 
     const crankLength = 6 * CYL_SPACING;
     const zStart = (crankLength / 2) - (CYL_SPACING / 2);
@@ -1088,6 +1378,7 @@ export class V12Scene3D {
       // 6 Tuned Stainless Steel Header Runners for cylinders 1-6 / 7-12
       for (let c = 0; c < 6; c++) {
         const cylZ = zStart - c * CYL_SPACING;
+        const cylNum = b.side === 'R' ? c + 1 : c + 7;
 
         // Exhaust port collar flange
         const flangeGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.03, 16);
@@ -1110,6 +1401,16 @@ export class V12Scene3D {
 
         const runnerGeo = new THREE.TubeGeometry(runnerCurve, 24, 0.048, 12, false);
         const runnerMesh = new THREE.Mesh(runnerGeo, this.materials.exhaustHeader);
+        runnerMesh.userData.partInfo = {
+          name: `Equal-Length Exhaust Runner (Cylinder #${cylNum})`,
+          metallurgy: "Hydroformed 321 Stainless Steel (1.5mm wall thickness)",
+          tempK: "1,050 K",
+          massGrams: "480 g",
+          toleranceMm: "±0.010 mm",
+          heritageNote: "Equal-length runner pulse tuning scavenges residual combustion exhaust pulses"
+        };
+        this.interactiveMeshes.push(runnerMesh);
+        this.exhaustRunners.push(runnerMesh);
         bankGroup.add(runnerMesh);
       }
 
@@ -1118,14 +1419,29 @@ export class V12Scene3D {
       colGeo.rotateZ(b.sign * (Math.PI / 2));
       const colMesh = new THREE.Mesh(colGeo, this.materials.exhaustHeader);
       colMesh.position.set(collectorX - b.sign * 0.08, collectorY, collectorZ);
+      colMesh.userData.partInfo = {
+        name: `${b.side === 'R' ? 'Bank 1' : 'Bank 2'} Exhaust Collector Merge Pyramid`,
+        metallurgy: "Investment Cast 321 Stainless Steel",
+        tempK: "1,120 K",
+        massGrams: "1,250 g",
+        toleranceMm: "±0.005 mm",
+        heritageNote: "Aerodynamic merge collector converting gas kinetic velocity into turbine drive energy"
+      };
+      this.interactiveMeshes.push(colMesh);
       bankGroup.add(colMesh);
 
       this.exhaustHeadersGroup.add(bankGroup);
+      this.explodedAssemblies.exhausts.push({
+        group: bankGroup,
+        basePos: bankGroup.position.clone(),
+        sign: b.sign
+      });
     });
   }
 
   _buildIntercoolersAndPlenums() {
     this.intercoolerGroup.clear();
+    this.explodedAssemblies.intercoolers = [];
 
     const crankLength = 6 * CYL_SPACING;
     const intercoolerLength = crankLength + 0.2;
@@ -1144,18 +1460,45 @@ export class V12Scene3D {
       // 1. Main Charge Cooler Billet Aluminum Enclosure
       const housingGeo = new THREE.BoxGeometry(0.92, 0.42, intercoolerLength);
       const housing = new THREE.Mesh(housingGeo, this.materials.intercooler);
+      housing.userData.partInfo = {
+        name: `${cfg.side === 'R' ? 'Bank 1' : 'Bank 2'} Water-to-Air Charge Air Cooler`,
+        metallurgy: "Furnace-Brazed Aluminum Core with Cast End Tanks",
+        tempK: "325 K",
+        massGrams: "8,900 g",
+        toleranceMm: "±0.008 mm",
+        heritageNote: "Dedicated secondary cooling radiator circuit cooling intake air from 160°C down to 40°C"
+      };
+      this.interactiveMeshes.push(housing);
       icGroup.add(housing);
 
       // 2. Goodwood Piano Black Acoustic Shroud Top Cover
       const shroudGeo = new THREE.BoxGeometry(0.86, 0.06, intercoolerLength - 0.2);
       const shroud = new THREE.Mesh(shroudGeo, this.materials.pianoBlack);
       shroud.position.y = 0.22;
+      shroud.userData.partInfo = {
+        name: `${cfg.side === 'R' ? 'Bank 1' : 'Bank 2'} Acoustic Damping Cover`,
+        metallurgy: "Multilayer Composite with Goodwood Piano Black Finish",
+        tempK: "320 K",
+        massGrams: "1,600 g",
+        toleranceMm: "±0.015 mm",
+        heritageNote: "Sound-deadening composite shell isolating high-frequency turbo induction hiss"
+      };
+      this.interactiveMeshes.push(shroud);
       icGroup.add(shroud);
 
       // 3. Rolls-Royce Starlight Mirror-Polished Center Plaque
       const plaqueGeo = new THREE.BoxGeometry(0.48, 0.02, 2.4);
       const plaque = new THREE.Mesh(plaqueGeo, this.materials.starlightChrome);
       plaque.position.set(0, 0.255, 0);
+      plaque.userData.partInfo = {
+        name: "Rolls-Royce Goodwood Hand-Built Bespoke Plaque",
+        metallurgy: "Mirror-Polished Stainless Ingot with Laser-Etched Insignia",
+        tempK: "315 K",
+        massGrams: "650 g",
+        toleranceMm: "±0.001 mm",
+        heritageNote: "Hand-engraved signature of the master engine builder at Goodwood, West Sussex"
+      };
+      this.interactiveMeshes.push(plaque);
       icGroup.add(plaque);
 
       // Subtle longitudinal accent fin lines
@@ -1178,6 +1521,11 @@ export class V12Scene3D {
       }
 
       this.intercoolerGroup.add(icGroup);
+      this.explodedAssemblies.intercoolers.push({
+        group: icGroup,
+        basePos: icGroup.position.clone(),
+        sign: cfg.sign
+      });
     });
 
     // 5. Water Cooling Crossover Manifolds (Valley front & rear)
@@ -1186,6 +1534,15 @@ export class V12Scene3D {
       crossTubeGeo.rotateZ(Math.PI / 2);
       const crossTube = new THREE.Mesh(crossTubeGeo, this.materials.starlightChrome);
       crossTube.position.set(0, 2.35, zPos);
+      crossTube.userData.partInfo = {
+        name: "Coolant Crossover Distribution Pipe",
+        metallurgy: "Seamless Extruded Aluminum Alloy 6061-T6",
+        tempK: "330 K",
+        massGrams: "1,150 g",
+        toleranceMm: "±0.005 mm",
+        heritageNote: "Equalizes coolant temperature between Bank 1 and Bank 2 within 0.5°C"
+      };
+      this.interactiveMeshes.push(crossTube);
       this.intercoolerGroup.add(crossTube);
     });
   }
@@ -1201,6 +1558,15 @@ export class V12Scene3D {
     // 1. Polished Chrome Valley Pedestal / Engine Plaque
     const pedestalGeo = new THREE.BoxGeometry(0.65, 0.05, 0.65);
     const pedestal = new THREE.Mesh(pedestalGeo, this.materials.starlightChrome);
+    pedestal.userData.partInfo = {
+      name: "Royce Balance Test Calibration Pedestal",
+      metallurgy: "Mirror-Lapped Stainless Steel (Optical Flatness)",
+      tempK: "305 K",
+      massGrams: "1,450 g",
+      toleranceMm: "±0.0005 mm",
+      heritageNote: "Optically flat platform mounted over engine crankcase valley for vibration testing"
+    };
+    this.interactiveMeshes.push(pedestal);
     coinHolderGroup.add(pedestal);
 
     // Inset Piano Black Medallion Pad
@@ -1210,13 +1576,20 @@ export class V12Scene3D {
     coinHolderGroup.add(pad);
 
     // 2. Standing Silver Coin (1906 British Sovereign / Silver Crown)
-    // Standing precisely on edge! Cylinder axis is X, so circular faces point left/right or angled
     const coinGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.022, 48);
-    // Rotate so coin sits on its rim standing upright
     coinGeo.rotateZ(Math.PI / 2);
     const coinMesh = new THREE.Mesh(coinGeo, this.materials.silverCoin);
     coinMesh.position.y = 0.18 + 0.04;
     coinMesh.rotation.y = 0.45; // Sits at an elegant 3/4 display angle
+    coinMesh.userData.partInfo = {
+      name: "1906 Rolls-Royce Silver Sovereign (Coin Test)",
+      metallurgy: "92.5% Sterling Silver (Crown Coinage Alloy)",
+      tempK: "298 K",
+      massGrams: "28.28 g",
+      toleranceMm: "±0.001 mm",
+      heritageNote: "The historic proof of pure V12 balance: stays standing on its 1.2mm edge while revving to 6,000 RPM"
+    };
+    this.interactiveMeshes.push(coinMesh);
     coinHolderGroup.add(coinMesh);
 
     // Coin Milled Reeded Outer Edge Ring
@@ -1565,9 +1938,242 @@ export class V12Scene3D {
       this.standingCoin.position.x = Math.sin(t * 16.0) * microAmp;
     }
 
-    // 8. Update OrbitControls & Render
+    // 8. Dynamic Thermal FLIR Emission Modulation
+    if (this.isThermalMode) {
+      const rpmRatio = (engineState.rpm - 600) / 5400; // 0 to 1
+      const boostRatio = (engineState.boostBar || 0) / 1.62;
+      const thermalStress = Math.min(1.0, Math.max(0.0, rpmRatio * 0.7 + boostRatio * 0.6));
+
+      const glowIntensity = 0.7 + thermalStress * 2.2;
+      if (this.materials.exhaustHeader) {
+        this.materials.exhaustHeader.emissiveIntensity = glowIntensity;
+        if (thermalStress > 0.65) {
+          this.materials.exhaustHeader.emissive.setHex(0xffaa22); // Molten incandescent yellow
+        } else {
+          this.materials.exhaustHeader.emissive.setHex(0xcc1100); // Crimson red
+        }
+      }
+      if (this.materials.turboTurbine) {
+        this.materials.turboTurbine.emissiveIntensity = glowIntensity * 1.3;
+        if (thermalStress > 0.65) {
+          this.materials.turboTurbine.emissive.setHex(0xff8800);
+        } else {
+          this.materials.turboTurbine.emissive.setHex(0xdd1100);
+        }
+      }
+    }
+
+    // 9. Cinematic Drone Auto-Tour Orbital Camera
+    if (this.isAutoTour) {
+      this.tourProgress = (this.tourProgress + 0.0016) % 1.0;
+      const angle = this.tourProgress * Math.PI * 2;
+      const radius = 6.2 + Math.sin(angle * 2) * 1.2;
+      const camY = 2.6 + Math.cos(angle * 3) * 1.4;
+      this.camera.position.set(
+        Math.sin(angle) * radius,
+        camY,
+        Math.cos(angle) * radius
+      );
+      this.controls.target.set(0, 0.7 + Math.sin(angle * 2) * 0.4, 0);
+    }
+
+    // 10. Update OrbitControls & Render
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
+  }
+
+  setExplodedFactor(factor) {
+    this.explodedFactor = THREE.MathUtils.clamp(factor, 0.0, 1.0);
+    const f = this.explodedFactor;
+
+    // 1. Intercoolers: move upward (+Y) and outward (±X)
+    if (this.explodedAssemblies.intercoolers) {
+      this.explodedAssemblies.intercoolers.forEach(item => {
+        item.group.position.set(
+          item.basePos.x + item.sign * f * 1.3,
+          item.basePos.y + f * 1.6,
+          item.basePos.z
+        );
+      });
+    }
+
+    // 2. Valvetrain (Heads, Quad Camshafts, 48 Valves, Helical Springs, Plugs):
+    // Displace outward along the 60° bank angle axis: (sin(30°), cos(30°))
+    if (this.valvetrainBankR) {
+      this.valvetrainBankR.position.set(
+        Math.sin(BANK_ANGLE) * f * 1.5,
+        Math.cos(BANK_ANGLE) * f * 1.5,
+        0
+      );
+    }
+    if (this.valvetrainBankL) {
+      this.valvetrainBankL.position.set(
+        -Math.sin(BANK_ANGLE) * f * 1.5,
+        Math.cos(BANK_ANGLE) * f * 1.5,
+        0
+      );
+    }
+
+    // 3. Twin Turbochargers: move outward along X and slightly down
+    if (this.explodedAssemblies.turbos) {
+      this.explodedAssemblies.turbos.forEach(item => {
+        item.group.position.set(
+          item.basePos.x + item.sign * f * 1.8,
+          item.basePos.y - f * 0.3,
+          item.basePos.z
+        );
+      });
+    }
+
+    // 4. Exhaust Headers: move outward along X
+    if (this.explodedAssemblies.exhausts) {
+      this.explodedAssemblies.exhausts.forEach(item => {
+        item.group.position.set(
+          item.basePos.x + item.sign * f * 1.4,
+          item.basePos.y - f * 0.15,
+          item.basePos.z
+        );
+      });
+    }
+
+    // 5. Monoblock casting outer slabs: separate outward
+    if (this.explodedAssemblies.blockSlabs) {
+      this.explodedAssemblies.blockSlabs.forEach(item => {
+        item.mesh.position.copy(item.basePos).addScaledVector(item.dir, f * 1.2);
+      });
+    }
+
+    // 6. Standing Coin: lifts slightly with the valley
+    if (this.coinGroup) {
+      this.coinGroup.position.y = f * 1.2;
+    }
+  }
+
+  setThermalMode(enabled) {
+    this.isThermalMode = !!enabled;
+
+    if (this.isThermalMode) {
+      this.scene.background.setHex(0x06060c);
+      this.scene.fog.color.setHex(0x06060c);
+      if (this.ambientLight) this.ambientLight.intensity = 0.5;
+      if (this.keyLight) this.keyLight.intensity = 0.8;
+      if (this.fillLight) this.fillLight.intensity = 0.3;
+
+      // Apply FLIR false-color thermal palette:
+      // Cool rotating assembly: Deep Indigo/Cyan
+      this.materials.crankshaft.color.setHex(0x1a3a88);
+      this.materials.crankshaft.emissive.setHex(0x0a1640);
+      this.materials.crankshaft.emissiveIntensity = 0.4;
+
+      this.materials.rod.color.setHex(0x225599);
+      this.materials.rod.emissive.setHex(0x0e244d);
+      this.materials.rod.emissiveIntensity = 0.35;
+
+      // Pistons & Liners: Warm amber
+      this.materials.piston.color.setHex(0xff7700);
+      this.materials.piston.emissive.setHex(0x552200);
+      this.materials.piston.emissiveIntensity = 0.5;
+
+      this.materials.liner.color.setHex(0xcc6600);
+      this.materials.liner.emissive.setHex(0x441800);
+      this.materials.liner.emissiveIntensity = 0.4;
+
+      // Exhaust headers: Incandescent orange-red
+      this.materials.exhaustHeader.color.setHex(0xff2a00);
+      this.materials.exhaustHeader.emissive.setHex(0xcc1100);
+      this.materials.exhaustHeader.emissiveIntensity = 1.0;
+
+      // Turbines: High-temp crimson
+      this.materials.turboTurbine.color.setHex(0xff1100);
+      this.materials.turboTurbine.emissive.setHex(0xdd1100);
+      this.materials.turboTurbine.emissiveIntensity = 1.2;
+
+      // Compressors: Cool cyan
+      this.materials.turboCompressor.color.setHex(0x0099bb);
+      this.materials.turboCompressor.emissive.setHex(0x002233);
+      this.materials.turboCompressor.emissiveIntensity = 0.3;
+
+      // Intercoolers: Cryogenic blue
+      this.materials.intercooler.color.setHex(0x0066cc);
+      this.materials.intercooler.emissive.setHex(0x001a44);
+      this.materials.intercooler.emissiveIntensity = 0.4;
+
+      // Exhaust valves: Hot orange
+      this.materials.exhaustValve.color.setHex(0xff4400);
+      this.materials.exhaustValve.emissive.setHex(0x881100);
+      this.materials.exhaustValve.emissiveIntensity = 0.8;
+    } else {
+      // Restore normal PBR materials and studio lighting
+      this._initMaterials();
+      this.setTheme(this.currentTheme);
+    }
+  }
+
+  toggleAutoTour(enabled) {
+    this.isAutoTour = enabled !== undefined ? enabled : !this.isAutoTour;
+    if (this.isAutoTour) {
+      this.tourProgress = 0.0;
+    }
+    return this.isAutoTour;
+  }
+
+  _onPointerMove(e) {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+    const intersects = this.raycaster.intersectObjects(this.interactiveMeshes, false);
+
+    if (intersects.length > 0) {
+      const hitMesh = intersects[0].object;
+      if (this.hoveredMesh !== hitMesh) {
+        if (this.hoveredMesh) this._unhighlightPart(this.hoveredMesh);
+        this.hoveredMesh = hitMesh;
+        this._highlightPart(hitMesh);
+      }
+      if (this.onPartHover && hitMesh.userData && hitMesh.userData.partInfo) {
+        this.onPartHover(hitMesh.userData.partInfo, { clientX: e.clientX, clientY: e.clientY });
+      }
+    } else {
+      if (this.hoveredMesh) {
+        this._unhighlightPart(this.hoveredMesh);
+        this.hoveredMesh = null;
+      }
+      if (this.onPartHover) {
+        this.onPartHover(null);
+      }
+    }
+  }
+
+  _onPointerClick(e) {
+    if (this.hoveredMesh && this.hoveredMesh.userData && this.hoveredMesh.userData.partInfo) {
+      const worldPos = new THREE.Vector3();
+      this.hoveredMesh.getWorldPosition(worldPos);
+      this.controls.target.lerp(worldPos, 0.75);
+      if (this.onPartClick) {
+        this.onPartClick(this.hoveredMesh.userData.partInfo, this.hoveredMesh);
+      }
+    }
+  }
+
+  _highlightPart(mesh) {
+    if (!mesh || !mesh.material) return;
+    if (!mesh.userData._origMaterial) {
+      mesh.userData._origMaterial = mesh.material;
+    }
+    mesh.material = mesh.userData._origMaterial.clone();
+    if (mesh.material.emissive) {
+      mesh.material.emissive.setHex(0x0071e3); // Rolls-Royce / Apple Pro Electric Cyan
+      mesh.material.emissiveIntensity = 0.9;
+    }
+  }
+
+  _unhighlightPart(mesh) {
+    if (!mesh || !mesh.userData || !mesh.userData._origMaterial) return;
+    mesh.material.dispose();
+    mesh.material = mesh.userData._origMaterial;
+    mesh.userData._origMaterial = null;
   }
 
   onWindowResize() {

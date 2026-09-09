@@ -17,6 +17,7 @@ class V12Application {
     this.selectedCylinderId = 1;
     this.isIsolated = false;
     this.currentTheme = 'light'; // Default to Day Mode
+    this.isDynoRunning = false;
 
     this.scene3d = null;
     this.telemetry = null;
@@ -37,7 +38,8 @@ class V12Application {
       sliderCrank: document.getElementById('canvas-slider-crank'),
       crankEndView: document.getElementById('canvas-crank-end'),
       valveTiming: document.getElementById('canvas-valve-timing'),
-      pvIndicator: document.getElementById('canvas-pv-indicator')
+      pvIndicator: document.getElementById('canvas-pv-indicator'),
+      dynoCurve: document.getElementById('canvas-dyno-curve')
     };
 
     const onCrankScrub = (scrubCycleDeg) => {
@@ -46,6 +48,40 @@ class V12Application {
     };
 
     this.telemetry = new TelemetryManager(canvases, onCrankScrub);
+
+    // Wire 3D Raycasting Part Inspector Tooltip HUD
+    const tooltipEl = document.getElementById('part-tooltip');
+    const tooltipName = document.getElementById('tooltip-part-name');
+    const tooltipMetallurgy = document.getElementById('tooltip-part-metallurgy');
+    const tooltipTemp = document.getElementById('tooltip-part-temp');
+    const tooltipMass = document.getElementById('tooltip-part-mass');
+    const tooltipTolerance = document.getElementById('tooltip-part-tolerance');
+    const tooltipNote = document.getElementById('tooltip-part-note');
+
+    this.scene3d.onPartHover = (partInfo, coords) => {
+      if (!partInfo || !tooltipEl) {
+        if (tooltipEl) tooltipEl.style.display = 'none';
+        return;
+      }
+      if (tooltipName) tooltipName.textContent = partInfo.name || 'V12 Component';
+      if (tooltipMetallurgy) tooltipMetallurgy.textContent = partInfo.metallurgy || 'Aerospace Alloy';
+      if (tooltipTemp) tooltipTemp.textContent = partInfo.tempK || '360 K';
+      if (tooltipMass) tooltipMass.textContent = partInfo.massGrams || '—';
+      if (tooltipTolerance) tooltipTolerance.textContent = partInfo.toleranceMm || '±0.005 mm';
+      if (tooltipNote) tooltipNote.textContent = partInfo.heritageNote || '';
+
+      if (coords) {
+        const left = Math.min(window.innerWidth - 330, Math.max(10, coords.clientX));
+        const top = Math.min(window.innerHeight - 230, Math.max(75, coords.clientY));
+        tooltipEl.style.left = `${left}px`;
+        tooltipEl.style.top = `${top}px`;
+      }
+      tooltipEl.style.display = 'block';
+    };
+
+    this.scene3d.onPartClick = (partInfo) => {
+      audioEngine.blipThrottle(0.3);
+    };
 
     this._buildFiringOrderStrip();
     this._bindControls();
@@ -301,7 +337,43 @@ class V12Application {
     if (btnZenMode) btnZenMode.addEventListener('click', () => toggleZenMode());
     if (btnZenExit) btnZenExit.addEventListener('click', () => toggleZenMode(false));
 
-    // 14. Keyboard Shortcuts
+    // 14. Exploded View Disassembly Slider (0% - 100%)
+    const sliderExploded = document.getElementById('slider-exploded-view');
+    const textExploded = document.getElementById('exploded-val-text');
+    if (sliderExploded) {
+      sliderExploded.addEventListener('input', (e) => {
+        const factor = parseFloat(e.target.value);
+        this.scene3d.setExplodedFactor(factor);
+        if (textExploded) textExploded.textContent = `${Math.round(factor * 100)}%`;
+      });
+    }
+
+    // 15. Thermal FLIR Mode Toggle
+    const btnThermal = document.getElementById('btn-thermal-toggle');
+    if (btnThermal) {
+      btnThermal.addEventListener('click', () => {
+        btnThermal.classList.toggle('active');
+        const isThermal = btnThermal.classList.contains('active');
+        this.scene3d.setThermalMode(isThermal);
+      });
+    }
+
+    // 16. Cinematic Drone Auto-Tour
+    const btnCameraTour = document.getElementById('btn-camera-tour');
+    if (btnCameraTour) {
+      btnCameraTour.addEventListener('click', () => {
+        const isTour = this.scene3d.toggleAutoTour();
+        btnCameraTour.classList.toggle('active', isTour);
+      });
+    }
+
+    // 17. Automated Dyno Sweep Triggers
+    const btnDyno = document.getElementById('btn-dock-dyno-pull');
+    const btnDynoRun = document.getElementById('btn-dyno-pull-run');
+    if (btnDyno) btnDyno.addEventListener('click', () => this.runDynoPull());
+    if (btnDynoRun) btnDynoRun.addEventListener('click', () => this.runDynoPull());
+
+    // 18. Keyboard Shortcuts
     window.addEventListener('keydown', (e) => {
       if (e.code === 'Space') {
         e.preventDefault();
@@ -318,8 +390,83 @@ class V12Application {
         btnAudio.click();
       } else if (e.key === 't' || e.key === 'T') {
         setTheme(this.currentTheme === 'light' ? 'dark' : 'light');
+      } else if (e.key === 'd' || e.key === 'D') {
+        this.runDynoPull();
       }
     });
+  }
+
+  /**
+   * Automated Dyno Pull Sweep Simulation
+   * Wide-open throttle sweep from 600 RPM to 6,000 RPM with live boost buildup,
+   * 900 Nm tidal torque plateau, and twin turbo blow-off valve flutter on lift-off.
+   */
+  runDynoPull() {
+    if (this.isDynoRunning) return;
+    this.isDynoRunning = true;
+
+    // Switch inspector tab to dyno tab so user sees live trace
+    const dynoTabBtn = document.querySelector('.inspector-tabs .seg-btn[data-tab="dyno"]');
+    if (dynoTabBtn) dynoTabBtn.click();
+
+    const btnDyno = document.getElementById('btn-dock-dyno-pull');
+    const btnDynoRun = document.getElementById('btn-dyno-pull-run');
+    if (btnDyno) btnDyno.classList.add('dyno-running');
+    if (btnDynoRun) btnDynoRun.classList.add('dyno-running');
+
+    this.isPlaying = true;
+    audioEngine.ensureContext();
+    audioEngine.start();
+    audioEngine.blipThrottle(0.95);
+
+    const startRpm = 600;
+    const peakRpm = 6000;
+    const durationMs = 4200;
+    const startTime = performance.now();
+
+    const sweepInterval = setInterval(() => {
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(1.0, elapsed / durationMs);
+
+      // Smooth power delivery acceleration curve
+      const eased = progress < 0.5
+        ? 4 * progress * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+      this.engineRpm = Math.round(startRpm + (peakRpm - startRpm) * eased);
+      audioEngine.setRpm(this.engineRpm);
+
+      const rpmInput = document.getElementById('engine-rpm');
+      if (rpmInput) rpmInput.value = this.engineRpm;
+      const rpmText = document.getElementById('engine-rpm-val');
+      if (rpmText) rpmText.textContent = `${this.engineRpm} RPM`;
+
+      if (progress >= 1.0) {
+        clearInterval(sweepInterval);
+        // Cut throttle and trigger twin turbo blow-off valve flutter!
+        audioEngine.playBovFlutter();
+
+        // Ease RPM back down to steady 1,600 RPM
+        setTimeout(() => {
+          let settleProgress = 0;
+          const settleInterval = setInterval(() => {
+            settleProgress += 0.05;
+            this.engineRpm = Math.round(peakRpm - (peakRpm - 1600) * settleProgress);
+            audioEngine.setRpm(this.engineRpm);
+            if (rpmInput) rpmInput.value = this.engineRpm;
+            if (rpmText) rpmText.textContent = `${this.engineRpm} RPM`;
+
+            if (settleProgress >= 1.0) {
+              clearInterval(settleInterval);
+              this.engineRpm = 1600;
+              this.isDynoRunning = false;
+              if (btnDyno) btnDyno.classList.remove('dyno-running');
+              if (btnDynoRun) btnDynoRun.classList.remove('dyno-running');
+            }
+          }, 35);
+        }, 350);
+      }
+    }, 25);
   }
 
   _loop(currentTime) {

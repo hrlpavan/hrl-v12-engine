@@ -256,15 +256,46 @@ export class V12AudioEngine {
     return !this.isMuted;
   }
 
-  blipThrottle(amount = 2500) {
+  playBovFlutter() {
+    if (this.isMuted || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    try {
+      const flutterOsc = this.ctx.createOscillator();
+      const flutterGain = this.ctx.createGain();
+      const flutterFilter = this.ctx.createBiquadFilter();
+
+      flutterFilter.type = "bandpass";
+      flutterFilter.frequency.setValueAtTime(1800, now);
+      flutterFilter.Q.setValueAtTime(3.5, now);
+
+      flutterGain.gain.setValueAtTime(0.12, now);
+      flutterGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+      flutterOsc.type = "sawtooth";
+      flutterOsc.frequency.setValueAtTime(130, now);
+      flutterOsc.frequency.exponentialRampToValueAtTime(50, now + 0.4);
+
+      flutterOsc.connect(flutterFilter);
+      flutterFilter.connect(flutterGain);
+      flutterGain.connect(this.masterGain);
+
+      flutterOsc.start(now);
+      flutterOsc.stop(now + 0.42);
+    } catch (err) {
+      // Audio context may be closed or uninitialized
+    }
+  }
+
+  blipThrottle(amount = 1600) {
     if (this.isMuted) return;
     const originalRpm = this.currentRpm;
-    const targetRpm = Math.min(9500, originalRpm + amount);
+    const targetRpm = Math.min(6000, originalRpm + amount);
     this.setRpm(targetRpm);
 
     setTimeout(() => {
       this.setRpm(originalRpm);
-    }, 400);
+      this.playBovFlutter();
+    }, 450);
   }
 }
 

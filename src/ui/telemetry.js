@@ -3,7 +3,7 @@
 // Adaptive Light/Dark Studio Theme Support · Precision Visuals
 // ============================================================================
 
-import { ENGINE_SPECS, calculateValveLifts, calculateChamberPressure, normalizeAngle, degToRad } from '../engine/kinematics.js';
+import { ENGINE_SPECS, calculateValveLifts, calculateChamberPressure, normalizeAngle, degToRad, DYNO_CURVE_DATA } from '../engine/kinematics.js';
 
 export class TelemetryManager {
   constructor(canvases, onCrankScrub) {
@@ -11,13 +11,15 @@ export class TelemetryManager {
     this.crankEndViewCanvas = canvases.crankEndView;
     this.valveTimingCanvas = canvases.valveTiming;
     this.pvIndicatorCanvas = canvases.pvIndicator;
+    this.dynoCurveCanvas = canvases.dynoCurve;
     this.onCrankScrub = onCrankScrub;
     this.theme = 'light'; // Default to Day Mode
 
-    this.ctxSlider = this.sliderCrankCanvas.getContext('2d');
-    this.ctxCrank = this.crankEndViewCanvas.getContext('2d');
-    this.ctxValve = this.valveTimingCanvas.getContext('2d');
-    this.ctxPv = this.pvIndicatorCanvas.getContext('2d');
+    this.ctxSlider = this.sliderCrankCanvas ? this.sliderCrankCanvas.getContext('2d') : null;
+    this.ctxCrank = this.crankEndViewCanvas ? this.crankEndViewCanvas.getContext('2d') : null;
+    this.ctxValve = this.valveTimingCanvas ? this.valveTimingCanvas.getContext('2d') : null;
+    this.ctxPv = this.pvIndicatorCanvas ? this.pvIndicatorCanvas.getContext('2d') : null;
+    this.ctxDyno = this.dynoCurveCanvas ? this.dynoCurveCanvas.getContext('2d') : null;
 
     this._setupCanvasResolution();
     this._setupInteractions();
@@ -50,7 +52,7 @@ export class TelemetryManager {
 
   _setupCanvasResolution() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    [this.sliderCrankCanvas, this.crankEndViewCanvas, this.valveTimingCanvas, this.pvIndicatorCanvas].forEach(canvas => {
+    [this.sliderCrankCanvas, this.crankEndViewCanvas, this.valveTimingCanvas, this.pvIndicatorCanvas, this.dynoCurveCanvas].forEach(canvas => {
       if (!canvas) return;
       const rect = canvas.getBoundingClientRect();
       const w = rect.width > 0 ? rect.width : (canvas.clientWidth || 280);
@@ -122,6 +124,9 @@ export class TelemetryManager {
     this._renderCrankEndView(engineState, selectedCyl);
     this._renderValveTiming(selectedCyl);
     this._renderPvIndicator(selectedCyl);
+    if (this.dynoCurveCanvas) {
+      this._renderDynoCurve(engineState);
+    }
   }
 
   /**
@@ -507,5 +512,146 @@ export class TelemetryManager {
     ctx.fillStyle = colors.textPrimary;
     ctx.font = '8.5px "JetBrains Mono", monospace';
     ctx.fillText(`${cyl.thermo.temperatureK} K`, curX + 8, Math.max(padTop + 24, curY + 7));
+  }
+
+  /**
+   * 5. Rolls-Royce 6¾L V12 Dyno Performance Map (Torque Plateau & Power Curve)
+   */
+  _renderDynoCurve(engineState) {
+    if (!this.dynoCurveCanvas || !this.ctxDyno) return;
+    const ctx = this.ctxDyno;
+    const w = this.dynoCurveCanvas.clientWidth;
+    const h = this.dynoCurveCanvas.clientHeight;
+    ctx.clearRect(0, 0, w, h);
+
+    const colors = this._getColors();
+    const padLeft = 36;
+    const padRight = 36;
+    const padTop = 22;
+    const padBottom = 22;
+    const plotW = w - padLeft - padRight;
+    const plotH = h - padTop - padBottom;
+
+    const minRpm = 600;
+    const maxRpm = 6000;
+    const maxTorque = 1000; // 0 - 1000 Nm
+    const maxPower = 650;   // 0 - 650 bhp
+
+    // Draw gridlines
+    ctx.strokeStyle = colors.gridLine;
+    ctx.lineWidth = 0.75;
+
+    // Horizontal grid (Torque 250, 500, 750, 900, 1000 Nm)
+    [250, 500, 750, 900, 1000].forEach(tVal => {
+      const y = padTop + plotH - (tVal / maxTorque) * plotH;
+      ctx.beginPath();
+      ctx.setLineDash([2, 4]);
+      ctx.moveTo(padLeft, y);
+      ctx.lineTo(padLeft + plotW, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = colors.textTertiary;
+      ctx.font = '8px "JetBrains Mono", monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(`${tVal}`, padLeft - 4, y + 3);
+    });
+
+    // Vertical RPM grid (1000, 2000, 3000, 4000, 5000, 6000)
+    [1000, 2000, 3000, 4000, 5000, 6000].forEach(rpmVal => {
+      const x = padLeft + ((rpmVal - minRpm) / (maxRpm - minRpm)) * plotW;
+      ctx.beginPath();
+      ctx.setLineDash([2, 4]);
+      ctx.moveTo(x, padTop);
+      ctx.lineTo(x, padTop + plotH);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = colors.textTertiary;
+      ctx.font = '8px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${rpmVal / 1000}k`, x, padTop + plotH + 12);
+    });
+
+    // Right Y-axis labels (Power in bhp: 150, 300, 450, 563, 600)
+    [150, 300, 450, 563, 600].forEach(pVal => {
+      const y = padTop + plotH - (pVal / maxPower) * plotH;
+      ctx.fillStyle = colors.orange;
+      ctx.font = '8px "JetBrains Mono", monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(`${pVal}`, padLeft + plotW + 4, y + 3);
+    });
+
+    // Plot Torque Curve (Blue / Rolls-Royce Electric Blue, 900 Nm plateau)
+    ctx.beginPath();
+    ctx.strokeStyle = colors.blue;
+    ctx.lineWidth = 2.2;
+    DYNO_CURVE_DATA.forEach((pt, i) => {
+      const x = padLeft + ((pt.rpm - minRpm) / (maxRpm - minRpm)) * plotW;
+      const y = padTop + plotH - (pt.torqueNm / maxTorque) * plotH;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // Plot Horsepower Curve (Amber-Orange)
+    ctx.beginPath();
+    ctx.strokeStyle = colors.orange;
+    ctx.lineWidth = 2.2;
+    DYNO_CURVE_DATA.forEach((pt, i) => {
+      const x = padLeft + ((pt.rpm - minRpm) / (maxRpm - minRpm)) * plotW;
+      const y = padTop + plotH - (pt.bhp / maxPower) * plotH;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // Active Engine Operating Tracer
+    const curRpm = engineState.rpm;
+    const dyno = engineState.dyno || { torqueNm: 900, bhp: 563, bmepBar: 16.8 };
+    const curX = padLeft + ((curRpm - minRpm) / (maxRpm - minRpm)) * plotW;
+    const curYTorque = padTop + plotH - (dyno.torqueNm / maxTorque) * plotH;
+    const curYPower = padTop + plotH - (dyno.bhp / maxPower) * plotH;
+
+    // Vertical RPM scrubber line
+    ctx.strokeStyle = colors.textPrimary;
+    ctx.lineWidth = 1.0;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(curX, padTop);
+    ctx.lineTo(curX, padTop + plotH);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Tracer dot for Torque
+    ctx.beginPath();
+    ctx.arc(curX, curYTorque, 4.5, 0, Math.PI * 2);
+    ctx.fillStyle = colors.blue;
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Tracer dot for Horsepower
+    ctx.beginPath();
+    ctx.arc(curX, curYPower, 4.5, 0, Math.PI * 2);
+    ctx.fillStyle = colors.orange;
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Telemetry Legend Header
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 9px "JetBrains Mono", monospace';
+    ctx.fillStyle = colors.blue;
+    ctx.fillText(`TORQUE: ${dyno.torqueNm} Nm`, padLeft + 6, padTop + 4);
+
+    ctx.fillStyle = colors.orange;
+    ctx.fillText(`POWER: ${dyno.bhp} bhp`, padLeft + 125, padTop + 4);
+
+    ctx.fillStyle = colors.textSecondary;
+    ctx.font = '8px "JetBrains Mono", monospace';
+    ctx.fillText(`BMEP: ${dyno.bmepBar} bar · BOOST: ${(engineState.boostBar || 1.0).toFixed(2)} bar`, padLeft + 230, padTop + 4);
   }
 }

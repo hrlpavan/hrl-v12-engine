@@ -1240,3 +1240,154 @@ body.zen-active .zen-exit-chip {
     display: none;
   }
 }
+
+/* ============================================================================
+   FLAGSHIP 100X FEATURES: RAYCAST TOOLTIP, EXPLO-VIEW, DYNO & THERMAL
+   ============================================================================ */
+
+/* 3D Raycasting Part Inspector Tooltip (Apple Pro Studio Glass) */
+.part-tooltip-hud {
+  position: absolute;
+  pointer-events: none;
+  z-index: 50;
+  width: 300px;
+  background: var(--apple-card-bg);
+  border: 1px solid var(--apple-border);
+  box-shadow: var(--apple-shadow-lg), 0 0 24px rgba(0, 113, 227, 0.16);
+  border-radius: var(--apple-radius-md);
+  backdrop-filter: var(--apple-blur);
+  -webkit-backdrop-filter: var(--apple-blur);
+  padding: 12px 14px;
+  transform: translate(16px, 16px);
+  transition: opacity 0.12s ease;
+}
+
+.part-tooltip-header {
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--apple-border-subtle);
+  padding-bottom: 6px;
+}
+
+.part-tooltip-badge {
+  font-family: var(--apple-mono);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  color: var(--apple-blue);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+  display: block;
+}
+
+.part-tooltip-title {
+  font-family: var(--apple-font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--apple-text-primary);
+  margin: 0;
+  letter-spacing: -0.2px;
+}
+
+.part-tooltip-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.part-spec-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.part-spec-label {
+  color: var(--apple-text-tertiary);
+  font-family: var(--apple-font);
+}
+
+.part-spec-val {
+  color: var(--apple-text-primary);
+  font-family: var(--apple-mono);
+  font-weight: 500;
+  text-align: right;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.part-tooltip-note {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--apple-border-subtle);
+  font-size: 9.5px;
+  font-style: italic;
+  color: var(--apple-text-secondary);
+  line-height: 1.35;
+}
+
+/* Exploded View Capsule in Dock */
+.dock-exploded-capsule {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--apple-track-bg);
+  border: 1px solid var(--apple-border-subtle);
+  padding: 2px 8px;
+  border-radius: var(--apple-radius-pill);
+}
+
+.exploded-label {
+  font-family: var(--apple-font);
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--apple-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.dock-exploded-capsule input[type="range"] {
+  width: 65px;
+}
+
+.exploded-pct {
+  font-family: var(--apple-mono);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--apple-blue);
+  min-width: 24px;
+}
+
+/* Dyno Run Pill Button */
+.dyno-run-pill, .accent-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 149, 0, 0.14);
+  border: 1px solid var(--apple-orange);
+  color: var(--apple-orange);
+  font-family: var(--apple-font);
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: var(--apple-radius-pill);
+  cursor: pointer;
+  transition: var(--apple-transition);
+}
+
+.dyno-run-pill:hover, .accent-pill:hover {
+  background: var(--apple-orange);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(255, 149, 0, 0.35);
+}
+
+.dyno-running {
+  animation: dynoPulse 1.2s infinite alternate ease-in-out;
+}
+
+@keyframes dynoPulse {
+  0% { transform: scale(1.0); box-shadow: 0 0 4px rgba(255, 149, 0, 0.4); }
+  100% { transform: scale(1.04); box-shadow: 0 0 14px rgba(255, 149, 0, 0.8); }
+}

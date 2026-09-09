@@ -277,10 +277,11 @@ export function computeEngineState(crankAngleDeg, rpm = 6500) {
 
   const camAngleDeg = normalizeAngle(crankAngleDeg * 0.5, 360);
 
-  // Rolls-Royce Power Reserve & Coin Balance
+  // Rolls-Royce Power Reserve, Coin Balance, Turbo Boost & Dyno Performance
   const powerReserve = calculatePowerReserve(rpm);
   const coinStability = calculateCoinStability(rpm);
   const turboBoost = calculateTurboBoost(rpm);
+  const dyno = calculateDynoPerformance(rpm);
 
   return {
     crankAngleDeg: normCrank,
@@ -292,7 +293,8 @@ export function computeEngineState(crankAngleDeg, rpm = 6500) {
     cylinders: cylinderStates,
     powerReservePercent: powerReserve,
     coinStability,
-    turboBoost
+    turboBoost,
+    dyno
   };
 }
 
@@ -343,3 +345,47 @@ export function calculateTurboBoost(rpm) {
     relativePsi: Math.round(boostPsi * 10) / 10
   };
 }
+
+/**
+ * Rolls-Royce 6¾L Twin-Turbo Dyno Performance Model
+ * 900 Nm tidal torque plateau from 1,600 RPM, peaking at 563 bhp at 5,250 RPM.
+ */
+export function calculateDynoPerformance(rpm) {
+  let torqueNm = 480;
+  if (rpm <= 1000) {
+    torqueNm = 480 + ((rpm - 600) / 400) * 200;
+  } else if (rpm <= 1600) {
+    torqueNm = 680 + ((rpm - 1000) / 600) * 220;
+  } else if (rpm <= 4500) {
+    torqueNm = 900;
+  } else if (rpm <= 5250) {
+    torqueNm = 900 - ((rpm - 4500) / 750) * 135;
+  } else {
+    torqueNm = 765 - ((rpm - 5250) / 750) * 145;
+  }
+
+  const bhp = Math.round(((torqueNm * rpm) / 7127.0) * 10) / 10;
+  const kw = Math.round(bhp * 0.7457);
+  const bmepBar = Math.round(((4.0 * Math.PI * torqueNm) / (0.006749 * 1e5)) * 10) / 10;
+
+  return {
+    rpm,
+    torqueNm: Math.round(torqueNm),
+    bhp,
+    kw,
+    bmepBar,
+    peakBhp: ENGINE_SPECS.peakPowerBhp,
+    peakTorqueNm: ENGINE_SPECS.peakTorqueNm
+  };
+}
+
+/**
+ * Pre-computed Dyno Curve Points for visualization
+ */
+export const DYNO_CURVE_DATA = (() => {
+  const points = [];
+  for (let r = 600; r <= 6000; r += 100) {
+    points.push(calculateDynoPerformance(r));
+  }
+  return points;
+})();

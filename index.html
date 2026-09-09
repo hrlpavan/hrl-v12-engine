@@ -16,6 +16,35 @@
 
     <!-- Apple-Style HUD Overlay Layer -->
     <div id="hud-overlay">
+      <!-- 3D Raycasting Part Inspector Tooltip (Apple Pro Glass HUD) -->
+      <div id="part-tooltip" class="part-tooltip-hud" style="display: none;">
+        <div class="part-tooltip-header">
+          <span class="part-tooltip-badge">V12 BESPOKE COMPONENT</span>
+          <h4 id="tooltip-part-name" class="part-tooltip-title">Piston Crown & Skirt</h4>
+        </div>
+        <div class="part-tooltip-body">
+          <div class="part-spec-row">
+            <span class="part-spec-label">Metallurgy</span>
+            <span id="tooltip-part-metallurgy" class="part-spec-val">Forged T6 High-Silicon Aluminum</span>
+          </div>
+          <div class="part-spec-row">
+            <span class="part-spec-label">Operating Temp</span>
+            <span id="tooltip-part-temp" class="part-spec-val">490 K</span>
+          </div>
+          <div class="part-spec-row">
+            <span class="part-spec-label">Component Mass</span>
+            <span id="tooltip-part-mass" class="part-spec-val">485 g</span>
+          </div>
+          <div class="part-spec-row">
+            <span class="part-spec-label">Machining Tolerance</span>
+            <span id="tooltip-part-tolerance" class="part-spec-val">±0.005 mm</span>
+          </div>
+          <div class="part-tooltip-note" id="tooltip-part-note">
+            Low-friction graphite skirt coating with CNC bowl combustion crown profile
+          </div>
+        </div>
+      </div>
+
       <!-- TOP NAVIGATION BAR (Apple Floating Glass Header) -->
       <header class="apple-nav">
         <!-- Left: Brand & Architecture -->
@@ -150,6 +179,7 @@
           <button class="seg-btn" data-tab="kinematics">Kinematics</button>
           <button class="seg-btn" data-tab="thermo">Indicator P-V</button>
           <button class="seg-btn" data-tab="valves">Valves</button>
+          <button class="seg-btn" data-tab="dyno">Dyno Pull</button>
         </div>
 
         <!-- Tab Content Panes -->
@@ -284,6 +314,30 @@
               </div>
             </div>
           </div>
+
+          <!-- Pane 5: Rolls-Royce 6¾L V12 Dyno Performance Curve -->
+          <div class="inspector-pane" id="pane-dyno">
+            <div class="apple-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Dyno Performance Map</span>
+                  <span class="card-subtitle">900 Nm Wave · 563 bhp</span>
+                </div>
+                <button id="btn-dyno-pull-run" class="dyno-run-pill" title="Trigger Automated WOT Dyno Sweep">
+                  <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                  <span>Dyno Pull</span>
+                </button>
+              </div>
+              <div class="canvas-wrap">
+                <canvas id="canvas-dyno-curve" class="telemetry-canvas" width="280" height="135"></canvas>
+              </div>
+              <div class="card-footer-info" style="margin-top: 6px;">
+                <span>Twin Bi-Turbo Dynamic Boost Buildup & Tidal Torque Plateau</span>
+              </div>
+            </div>
+          </div>
         </div>
       </aside>
 
@@ -310,6 +364,7 @@
             <button id="btn-step-back-15" class="apple-pill-btn btn-sm" title="Step -15°">−15°</button>
             <button id="btn-step-fwd-15" class="apple-pill-btn btn-sm" title="Step +15°">+15°</button>
             <button id="btn-step-fwd-1" class="apple-pill-btn btn-xs" title="Step +1°">+1°</button>
+            <button id="btn-dock-dyno-pull" class="apple-pill-btn btn-sm accent-pill" title="Automated Dyno Pull (600 - 6,000 RPM)">Dyno</button>
           </div>
 
           <div class="dock-slider-row">
@@ -343,6 +398,7 @@
             <button class="seg-btn" data-camera="side">Side</button>
             <button class="seg-btn" data-camera="crank">Crank</button>
             <button class="seg-btn" data-camera="dohc">DOHC</button>
+            <button class="seg-btn" data-camera="tour" id="btn-camera-tour" title="Cinematic Drone Auto-Tour">Tour</button>
           </div>
 
           <!-- Cutaway & Overlays -->
@@ -354,10 +410,18 @@
               <button class="seg-btn" data-cutaway="xray">X-Ray</button>
             </div>
 
+            <!-- Exploded View Disassembly Slider (0% - 100%) -->
+            <div class="dock-exploded-capsule" title="Continuous 3D Disassembly (0% - 100%)">
+              <span class="exploded-label">Explode</span>
+              <input type="range" id="slider-exploded-view" min="0" max="1" step="0.01" value="0" class="apple-mini-slider" />
+              <span id="exploded-val-text" class="exploded-pct">0%</span>
+            </div>
+
             <div class="apple-toggle-group">
               <button class="toggle-pill active" data-overlay="callouts">Labels</button>
               <button class="toggle-pill active" data-overlay="combustionFx">Combustion</button>
               <button class="toggle-pill active" data-overlay="gasFlow">Flow</button>
+              <button class="toggle-pill" id="btn-thermal-toggle" title="FLIR False-Color Thermal Imaging">Thermal</button>
               <button class="toggle-pill" id="btn-isolate-toggle">Isolate</button>
             </div>
           </div>
