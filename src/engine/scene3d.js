@@ -54,6 +54,18 @@ export class V12Scene3D {
     this.turboImpellers = [];
     this.standingCoin = null;
 
+    // Sub-assemblies for Exploded View & Thermal mapping
+    this.explodedAssemblies = {
+      turbos: [],
+      intercoolers: [],
+      exhausts: [],
+      valvetrainR: null,
+      valvetrainL: null,
+      blockSlabs: []
+    };
+    this.exhaustRunners = [];
+    this.turbineHousings = [];
+
     // Flagship Feature States
     this.explodedFactor = 0.0;
     this.isThermalMode = false;
