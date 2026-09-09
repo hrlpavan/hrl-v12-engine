@@ -516,7 +516,8 @@ export function computeGanesanThermodynamics(rpm, throttle = 1.0, cutCylinders =
 
   // Active firing cylinders (accounting for Morse test cutouts!)
   const totalCyls = ENGINE_GEOMETRY.cylinders;
-  const firingCyls = totalCyls - cutCylinders.length;
+  const cutList = Array.isArray(cutCylinders) ? cutCylinders : [];
+  const firingCyls = totalCyls - cutList.length;
   const cylPowerRatio = Math.max(0, firingCyls / totalCyls);
 
   const ipTotalKw = ((imepBar * 1e5) * lM * aM * nStrokesPerMin * totalCyls) / 60000.0;
