@@ -54,8 +54,11 @@ export class V12Scene3D {
     this.fuelSystemGroup = new THREE.Group();
     this.catalyticGroup = new THREE.Group();
     this.lubricationGroup = new THREE.Group();
+    this.egrGroup = new THREE.Group();
     this.turboImpellers = [];
     this.standingCoin = null;
+    this.scvFlaps = [];
+    this.isEcoMode = false;
 
     // Sub-assemblies for Exploded View & Thermal mapping
     this.explodedAssemblies = {
@@ -67,7 +70,8 @@ export class V12Scene3D {
       blockSlabs: [],
       fuelSystem: [],
       catalytic: [],
-      lubrication: []
+      lubrication: [],
+      egr: []
     };
     this.exhaustRunners = [];
     this.turbineHousings = [];
@@ -172,6 +176,7 @@ export class V12Scene3D {
     this.rootGroup.add(this.fuelSystemGroup);
     this.rootGroup.add(this.catalyticGroup);
     this.rootGroup.add(this.lubricationGroup);
+    this.rootGroup.add(this.egrGroup);
     this.rootGroup.add(this.particlesGroup);
     this.rootGroup.add(this.calloutsGroup);
 
@@ -186,6 +191,7 @@ export class V12Scene3D {
     this._buildGdiFuelSystem();
     this._buildCatalyticConverters();
     this._buildLubricationSystem();
+    this._buildCooledEgrSystem();
     this._buildStandingCoin();
     this._buildGasParticles();
     this._buildCallouts();
@@ -649,22 +655,70 @@ export class V12Scene3D {
       // Piston Assembly Group
       const pistonGroup = new THREE.Group();
 
-      // Piston Crown & Skirt Geometry
+      // 1. Piston Slipper Skirt & Pin Boss Body (Ganesan Section 12.6.1, p. 367)
       const pistonRadius = BORE * 0.48; // ~0.42
-      const pistonHeight = 0.55;
+      const pistonHeight = 0.52;
       const pistonGeo = new THREE.CylinderGeometry(pistonRadius, pistonRadius, pistonHeight, 32);
       const pistonMesh = new THREE.Mesh(pistonGeo, this.materials.piston);
       pistonMesh.castShadow = true;
       pistonMesh.userData.partInfo = {
-        name: `Piston Crown & Skirt (Cylinder #${cyl.id})`,
-        metallurgy: "Forged T6 High-Silicon Aluminum Alloy (AlSi12CuNiMg)",
-        tempK: "490 K",
-        massGrams: "485 g",
-        toleranceMm: "±0.005 mm",
-        heritageNote: "Low-friction graphite skirt coating with CNC bowl combustion crown profile"
+        name: `Low-Friction Slipper Piston (Cylinder #${cyl.id})`,
+        metallurgy: "Forged T6 High-Silicon Aluminum Alloy (AlSi12CuNiMg) with Graphite Coated Skirt",
+        tempK: "460 K",
+        massGrams: "410 g",
+        toleranceMm: "±0.003 mm",
+        heritageNote: "Ganesan p. 367: Shortened slipper skirt with reduced surface contact area minimizes mechanical friction (mmep) and inertia loading"
       };
       this.interactiveMeshes.push(pistonMesh);
       pistonGroup.add(pistonMesh);
+
+      // 2. Ganesan Toroidal Squish Combustion Chamber Bowl (Ganesan Sec. 11.18.1, Fig. 11.19d & Sec. 20.6.1, p. 669)
+      const bowlGroup = new THREE.Group();
+      bowlGroup.position.y = pistonHeight / 2;
+
+      // Annular squish quench land (70% squish area, Ganesan p. 700)
+      const squishLandGeo = new THREE.CylinderGeometry(pistonRadius, pistonRadius, 0.02, 32);
+      const squishLand = new THREE.Mesh(squishLandGeo, this.materials.piston);
+      squishLand.position.y = 0.01;
+      bowlGroup.add(squishLand);
+
+      // Recessed Toroidal Donut Bowl Cavity (creates vertical smoke-ring vortex)
+      const bowlTorusGeo = new THREE.TorusGeometry(0.20, 0.07, 16, 32);
+      bowlTorusGeo.rotateX(Math.PI / 2);
+      const ceramicBowlMat = new THREE.MeshStandardMaterial({
+        color: 0xc89d6c, // Thermal barrier ceramic bronze coating
+        metalness: 0.25,
+        roughness: 0.4
+      });
+      const bowlTorus = new THREE.Mesh(bowlTorusGeo, ceramicBowlMat);
+      bowlTorus.position.y = -0.01;
+      bowlTorus.userData.partInfo = {
+        name: `Toroidal Squish Combustion Bowl (Cylinder #${cyl.id})`,
+        metallurgy: "Plasma-Sprayed Zirconia Thermal Barrier Coating (TBC) on Crown",
+        tempK: "480 K",
+        massGrams: "75 g",
+        toleranceMm: "±0.002 mm",
+        heritageNote: "Ganesan Fig. 11.19(d) & 20.24: Toroidal donut cavity with 70% squish area generates high-velocity air vortex for ultra-lean stratified combustion"
+      };
+      this.interactiveMeshes.push(bowlTorus);
+      bowlGroup.add(bowlTorus);
+
+      // Central conical pip in the toroidal bowl (aerodynamic vortex guide)
+      const pipGeo = new THREE.ConeGeometry(0.08, 0.08, 16);
+      const pipMesh = new THREE.Mesh(pipGeo, ceramicBowlMat);
+      pipMesh.position.y = 0.02;
+      pipMesh.userData.partInfo = {
+        name: `Combustion Bowl Central Deflector Pip`,
+        metallurgy: "Heat-Resistant Nickel-Chromium Alloy Inlay",
+        tempK: "510 K",
+        massGrams: "25 g",
+        toleranceMm: "±0.001 mm",
+        heritageNote: "Guides fuel spray into toroidal circulation without wall impingement (Ganesan p. 355)"
+      };
+      this.interactiveMeshes.push(pipMesh);
+      bowlGroup.add(pipMesh);
+
+      pistonGroup.add(bowlGroup);
 
       // Piston Rings (3 ring grooves)
       for (let r = 0; r < 3; r++) {
@@ -1330,6 +1384,52 @@ export class V12Scene3D {
     chainMesh.position.set(0, 1.3, frontZ);
     chainMesh.scale.set(0.9, 1.4, 1.0);
     this.timingDriveGroup.add(chainMesh);
+
+    // Atkinson Cycle Continuous VVT Camshaft Phasers (Ganesan Sec. 2.10 & 20.7.5)
+    // Phasers mount at the front of Bank 1 (Right) and Bank 2 (Left) intake camshafts
+    const phaserMat = new THREE.MeshStandardMaterial({ color: 0xb4bcc8, metalness: 0.88, roughness: 0.22 });
+    const solMat = new THREE.MeshStandardMaterial({ color: 0x1d1d1f, metalness: 0.5, roughness: 0.5 });
+
+    [
+      { side: 'R', sign: 1,  x: 0.72, y: 2.18 },
+      { side: 'L', sign: -1, x: -0.72, y: 2.18 }
+    ].forEach(cfg => {
+      const phaserGroup = new THREE.Group();
+      phaserGroup.position.set(cfg.x, cfg.y, frontZ + 0.06);
+
+      // Vaned hydraulic phaser rotor housing
+      const phaserGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.12, 28);
+      phaserGeo.rotateX(Math.PI / 2);
+      const phaserMesh = new THREE.Mesh(phaserGeo, phaserMat);
+      phaserMesh.userData.partInfo = {
+        name: `${cfg.side === 'R' ? 'Bank 1' : 'Bank 2'} Atkinson Continuous VVT Camshaft Phaser`,
+        metallurgy: "Vaned Sintered Steel Rotor in Precision CNC Aluminum Housing",
+        tempK: "345 K",
+        massGrams: "1,450 g",
+        toleranceMm: "±0.001 mm",
+        heritageNote: "Ganesan Sec. 2.10 (Eq. 2.73, p. 66) & Sec. 20.7.5 (p. 672): Continuously retards intake closing (LIVC) into compression stroke for Atkinson cycle high-expansion operation"
+      };
+      this.interactiveMeshes.push(phaserMesh);
+      phaserGroup.add(phaserMesh);
+
+      // Fast-response oil control spool solenoid
+      const solGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.14, 16);
+      solGeo.rotateX(Math.PI / 2);
+      const solMesh = new THREE.Mesh(solGeo, solMat);
+      solMesh.position.z = 0.10;
+      phaserGroup.add(solMesh);
+
+      // 4-toothed timing target reluctor wheel
+      for (let t = 0; t < 4; t++) {
+        const toothGeo = new THREE.BoxGeometry(0.04, 0.08, 0.02);
+        const tooth = new THREE.Mesh(toothGeo, this.materials.starlightChrome);
+        const tAngle = (t * Math.PI) / 2;
+        tooth.position.set(0.24 * Math.cos(tAngle), 0.24 * Math.sin(tAngle), 0.06);
+        phaserGroup.add(tooth);
+      }
+
+      this.timingDriveGroup.add(phaserGroup);
+    });
   }
 
   _buildTwinTurbochargers() {
@@ -1635,6 +1735,7 @@ export class V12Scene3D {
   _buildIntercoolersAndPlenums() {
     this.intercoolerGroup.clear();
     this.explodedAssemblies.intercoolers = [];
+    this.scvFlaps = [];
 
     const crankLength = 6 * CYL_SPACING;
     const intercoolerLength = crankLength + 0.2;
@@ -1710,7 +1811,30 @@ export class V12Scene3D {
         icGroup.add(stripe);
       }
 
-      // 4. Polished Intake Runner Horns (6 runners feeding into cylinder intake ports)
+      // 4. Polished Intake Runner Horns with Ganesan Swirl Control Valves (SCV)
+      // Reference: Ganesan Section 20.8.6 (Fig. 20.10, p. 678)
+      const scvShaftGeo = new THREE.CylinderGeometry(0.02, 0.02, intercoolerLength - 0.2, 12);
+      scvShaftGeo.rotateX(Math.PI / 2);
+      const scvShaft = new THREE.Mesh(scvShaftGeo, this.materials.starlightChrome);
+      scvShaft.position.set(-cfg.sign * 0.40, -0.32, 0);
+      scvShaft.userData.partInfo = {
+        name: `${cfg.side === 'R' ? 'Bank 1' : 'Bank 2'} Swirl Control Valve (SCV) Operating Spindle`,
+        metallurgy: "Stainless Steel Operating Spindle with Precision Needle Bearings",
+        tempK: "320 K",
+        massGrams: "420 g",
+        toleranceMm: "±0.002 mm",
+        heritageNote: "Ganesan Fig. 20.10: Electronic actuator rotates spindle to close secondary runner at cruising speeds, forcing air into helical port for lean burn"
+      };
+      this.interactiveMeshes.push(scvShaft);
+      icGroup.add(scvShaft);
+
+      // SCV Electronic Servo Actuator at front of manifold
+      const scvActGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.16, 16);
+      scvActGeo.rotateZ(Math.PI / 2);
+      const scvAct = new THREE.Mesh(scvActGeo, this.materials.pianoBlack);
+      scvAct.position.set(-cfg.sign * 0.40, -0.32, (intercoolerLength / 2) - 0.05);
+      icGroup.add(scvAct);
+
       const zStart = (crankLength / 2) - (CYL_SPACING / 2);
       for (let c = 0; c < 6; c++) {
         const runnerZ = zStart - c * CYL_SPACING;
@@ -1719,6 +1843,23 @@ export class V12Scene3D {
         runner.position.set(-cfg.sign * 0.28, -0.35, runnerZ);
         runner.rotation.z = -cfg.sign * (BANK_ANGLE * 0.6);
         icGroup.add(runner);
+
+        // Individual SCV Butterfly Flap in secondary intake path
+        const scvFlapGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.015, 20);
+        scvFlapGeo.rotateX(Math.PI / 2);
+        const scvFlap = new THREE.Mesh(scvFlapGeo, this.materials.gear);
+        scvFlap.position.set(-cfg.sign * 0.32, -0.32, runnerZ);
+        scvFlap.userData.partInfo = {
+          name: `Cylinder ${cfg.side === 'R' ? c + 1 : c + 7} Swirl Control Butterfly Flap`,
+          metallurgy: "High-Tensile Stamped Stainless Disc on Ground Spindle",
+          tempK: "320 K",
+          massGrams: "24 g",
+          toleranceMm: "±0.005 mm",
+          heritageNote: "Ganesan Section 20.8.6 & Fig. 20.10: In lean mode, flap closes to create intense helical swirl (A/F up to 24:1) with minimum fuel wastage"
+        };
+        this.interactiveMeshes.push(scvFlap);
+        this.scvFlaps.push(scvFlap);
+        icGroup.add(scvFlap);
       }
 
       this.intercoolerGroup.add(icGroup);
@@ -1984,6 +2125,71 @@ export class V12Scene3D {
     });
   }
 
+  _buildCooledEgrSystem() {
+    this.egrGroup.clear();
+    this.explodedAssemblies.egr = [];
+
+    // Finned Cooled EGR Heat Exchanger & Electronic Stepper Valve
+    // Reference: Ganesan Section 14.18 (Exhaust Gas Recirculation, pp. 443-445, Fig. 14.11)
+    const egrAssembly = new THREE.Group();
+    egrAssembly.position.set(0, 1.45, -1.8);
+
+    // 1. Stainless Steel EGR Cooler Canister (Finned Heat Exchanger)
+    const coolerGeo = new THREE.CylinderGeometry(0.16, 0.16, 0.75, 24);
+    coolerGeo.rotateX(Math.PI / 2);
+    const coolerMat = new THREE.MeshStandardMaterial({ color: 0x9099a2, metalness: 0.85, roughness: 0.3 });
+    const coolerMesh = new THREE.Mesh(coolerGeo, coolerMat);
+    coolerMesh.userData.partInfo = {
+      name: "Liquid-Cooled Exhaust Gas Recirculation (EGR) Cooler",
+      metallurgy: "Laser-Welded Stainless Steel (AISI 316L) Shell-and-Tube Matrix",
+      tempK: "420 K",
+      massGrams: "2,850 g",
+      toleranceMm: "±0.005 mm",
+      heritageNote: "Ganesan Section 14.18: Drops exhaust gas temp from 750°C to 120°C before intake mixing to suppress peak flame temp and eliminate NOx"
+    };
+    this.interactiveMeshes.push(coolerMesh);
+    egrAssembly.add(coolerMesh);
+
+    // Cooling fins along cooler canister
+    for (let f = -4; f <= 4; f++) {
+      const finGeo = new THREE.CylinderGeometry(0.20, 0.20, 0.02, 24);
+      finGeo.rotateX(Math.PI / 2);
+      const finMesh = new THREE.Mesh(finGeo, coolerMat);
+      finMesh.position.z = f * 0.07;
+      egrAssembly.add(finMesh);
+    }
+
+    // 2. Electronic Stepper Motor EGR Control Valve
+    const valveBodyGeo = new THREE.BoxGeometry(0.22, 0.28, 0.22);
+    const valveBody = new THREE.Mesh(valveBodyGeo, this.materials.pianoBlack);
+    valveBody.position.set(0, 0.16, 0.45);
+    valveBody.userData.partInfo = {
+      name: "Electronic Fast-Response EGR Stepper Metering Valve",
+      metallurgy: "Cast Iron Body with High-Torque Digital Stepper Actuator",
+      tempK: "370 K",
+      massGrams: "1,200 g",
+      toleranceMm: "±0.001 mm",
+      heritageNote: "Ganesan Fig. 20.10: Meters 0-20% inert exhaust gas into intake manifold; eliminates throttling pumping loss in cruising mode"
+    };
+    this.interactiveMeshes.push(valveBody);
+    egrAssembly.add(valveBody);
+
+    // 3. Stainless crossover tubes linking exhaust headers to intake plenum
+    [-1, 1].forEach(sign => {
+      const tubeGeo = new THREE.CylinderGeometry(0.05, 0.05, 1.2, 16);
+      tubeGeo.rotateZ(sign * (Math.PI / 4));
+      const tube = new THREE.Mesh(tubeGeo, this.materials.starlightChrome);
+      tube.position.set(sign * 0.45, -0.15, 0.1);
+      egrAssembly.add(tube);
+    });
+
+    this.egrGroup.add(egrAssembly);
+    this.explodedAssemblies.egr.push({
+      group: egrAssembly,
+      basePos: egrAssembly.position.clone()
+    });
+  }
+
   _buildStandingCoin() {
     this.coinGroup.clear();
 
@@ -2104,14 +2310,17 @@ export class V12Scene3D {
   _buildCallouts() {
     this.calloutsGroup.clear();
 
-    // 3D Visual HUD Callout tags for Rolls-Royce Bespoke V12
+    // 3D Visual HUD Callout tags grounded in Prof. V. Ganesan "IC Engines"
     const calloutData = [
-      { text: "Sir Henry Royce Coin Test · Zero Vibration (1906)", pos: new THREE.Vector3(0, 2.3, 0.5) },
-      { text: "Bespoke 6¾ Litre V12 · 60° Architecture",         pos: new THREE.Vector3(0, -0.4, 2.2) },
-      { text: "Twin Bi-Turbochargers · 900 Nm @ 1,600 RPM",        pos: new THREE.Vector3(2.5, 0.6, 0.2) },
-      { text: "Water-to-Air Charge Air Coolers",                  pos: new THREE.Vector3(1.3, 2.7, -0.4) },
-      { text: "Quad-Cam 48-Valve DOHC Valvetrain",                pos: new THREE.Vector3(-1.3, 2.8, 1.2) },
-      { text: "Whisper-Quiet Billet Steel Crankshaft",            pos: new THREE.Vector3(0, 0.2, -3.4) }
+      { text: "Toroidal Squish Combustion Bowl · Ganesan Sec. 11.18.1", pos: new THREE.Vector3(0.45, 1.45, 0.4) },
+      { text: "Atkinson Continuous VVT Phaser · Ganesan Eq. 2.73",     pos: new THREE.Vector3(-0.72, 2.3, 1.9) },
+      { text: "Swirl Control Valve (SCV) · Ganesan Fig. 20.10",          pos: new THREE.Vector3(1.35, 1.9, 0.1) },
+      { text: "Cooled EGR Heat Exchanger · Ganesan Sec. 14.18",          pos: new THREE.Vector3(0, 1.8, -1.8) },
+      { text: "350-bar GDI Piezo Injector · Ganesan Sec. 20.6",         pos: new THREE.Vector3(-0.88, 1.95, -0.5) },
+      { text: "Water-to-Air Charge Air Cooler · Ganesan Sec. 18.10.1",   pos: new THREE.Vector3(1.3, 2.7, -0.4) },
+      { text: "Close-Coupled Catalyst & O2 · Ganesan Sec. 14.15",        pos: new THREE.Vector3(1.95, 0.35, -0.65) },
+      { text: "Hydrodynamic Gerotor Bedplate · Ganesan Sec. 12.9.2",     pos: new THREE.Vector3(0, -1.1, 0.5) },
+      { text: "Sir Henry Royce Coin Test · Primary & Secondary Balance", pos: new THREE.Vector3(0, 2.3, 0.45) }
     ];
 
     calloutData.forEach(item => {
@@ -2228,10 +2437,40 @@ export class V12Scene3D {
   }
 
   /**
+   * Toggle Ganesan Atkinson & Stratified Lean Burn 3D Visual Articulations
+   * Ref: Ganesan Section 20.8.6 (SCV helical swirl), Section 20.6 (Stratified lean fireball)
+   * @param {boolean} isEco
+   */
+  setEcoMode(isEco) {
+    this.isEcoMode = isEco;
+
+    // 1. Swirl Control Valve (SCV) butterfly flaps
+    this.scvFlaps.forEach(flap => {
+      flap.rotation.y = isEco ? (Math.PI / 2) : 0;
+    });
+
+    // 2. Combustion flame coloring
+    if (this.cylinderMeshes) {
+      this.cylinderMeshes.forEach(cyl => {
+        if (cyl.fireMesh && cyl.fireMesh.material) {
+          cyl.fireMesh.material.color.setHex(isEco ? 0x38bdf8 : 0xff4500);
+        }
+        if (cyl.cylLight) {
+          cyl.cylLight.color.setHex(isEco ? 0x60a5fa : 0xffaa44);
+        }
+      });
+    }
+  }
+
+  /**
    * Main Kinematic Update Loop - updates all 12 cylinders and rotating parts
    * @param {object} engineState - from computeEngineState(crankAngleDeg, rpm)
    */
   update(engineState) {
+    if (engineState.isEcoMode !== undefined && engineState.isEcoMode !== this.isEcoMode) {
+      this.setEcoMode(engineState.isEcoMode);
+    }
+
     const crankAngleRad = degToRad(engineState.crankAngleDeg);
 
     // 1. Rotate Crankshaft Group
@@ -2536,7 +2775,18 @@ export class V12Scene3D {
       });
     }
 
-    // 9. Standing Coin: lifts slightly with the valley
+    // 9. Cooled EGR Heat Exchanger & Stepper Valve
+    if (this.explodedAssemblies.egr) {
+      this.explodedAssemblies.egr.forEach(item => {
+        item.group.position.set(
+          item.basePos.x,
+          item.basePos.y + f * 1.4,
+          item.basePos.z - f * 0.5
+        );
+      });
+    }
+
+    // 10. Standing Coin: lifts slightly with the valley
     if (this.coinGroup) {
       this.coinGroup.position.y = f * 1.2;
     }

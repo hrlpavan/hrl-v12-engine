@@ -1513,3 +1513,242 @@ body.zen-active .zen-exit-chip {
   opacity: 0.75;
 }
 
+/* ==========================================================================
+   Ganesan V2.0 High-Efficiency Atkinson & Lean Burn Mode Styles
+   ========================================================================== */
+
+.eco-toggle-capsule {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--apple-track-bg);
+  padding: 4px 11px;
+  border-radius: var(--apple-radius-pill);
+  border: 1px solid var(--apple-border-subtle);
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+  color: var(--apple-text-primary);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.eco-toggle-capsule:hover {
+  background: rgba(52, 199, 89, 0.12);
+  border-color: rgba(52, 199, 89, 0.4);
+}
+
+.eco-toggle-capsule.active {
+  background: rgba(52, 199, 89, 0.18);
+  border-color: var(--apple-green);
+  box-shadow: 0 0 14px rgba(52, 199, 89, 0.3);
+}
+
+.eco-toggle-capsule.active svg {
+  stroke: var(--apple-green);
+}
+
+.eco-badge-label {
+  font-weight: 500;
+  color: var(--apple-text-secondary);
+}
+
+.eco-badge-status {
+  font-family: var(--apple-mono);
+  font-weight: 600;
+  color: var(--apple-text-primary);
+  transition: color 0.2s ease;
+}
+
+.eco-toggle-capsule.active .eco-badge-status {
+  color: var(--apple-green);
+}
+
+/* Eco Mode Inspector Pane */
+.eco-action-pill {
+  font-family: var(--apple-mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--apple-radius-pill);
+  background: rgba(52, 199, 89, 0.15);
+  border: 1px solid rgba(52, 199, 89, 0.4);
+  color: var(--apple-green);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.eco-action-pill:hover {
+  background: rgba(52, 199, 89, 0.25);
+  transform: scale(1.02);
+}
+
+.eco-action-pill.active {
+  background: var(--apple-green);
+  color: #ffffff;
+  border-color: var(--apple-green);
+  box-shadow: 0 2px 8px rgba(52, 199, 89, 0.35);
+}
+
+.eco-hero-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 14px 12px;
+  background: linear-gradient(135deg, rgba(52, 199, 89, 0.08) 0%, rgba(0, 113, 227, 0.04) 100%);
+  border: 1px solid rgba(52, 199, 89, 0.25);
+  border-radius: var(--apple-radius-md);
+}
+
+.eco-hero-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.eco-stat-large {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.eco-big-num {
+  font-family: var(--apple-mono);
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--apple-green);
+  line-height: 1;
+}
+
+.eco-big-unit {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--apple-text-secondary);
+}
+
+.eco-hero-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--apple-mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: var(--apple-radius-pill);
+  background: rgba(52, 199, 89, 0.2);
+  color: var(--apple-green);
+  border: 1px solid rgba(52, 199, 89, 0.35);
+}
+
+.eco-metrics-triple {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.eco-metric-box {
+  background: var(--apple-card-bg);
+  border: 1px solid var(--apple-border-subtle);
+  border-radius: var(--apple-radius-sm);
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.eco-sub-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--apple-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.eco-sub-val {
+  font-family: var(--apple-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--apple-text-primary);
+}
+
+.highlight-green {
+  color: var(--apple-green) !important;
+  font-weight: 700 !important;
+}
+
+/* Ganesan Principles Scroll List */
+.ganesan-rules-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-top: 4px;
+}
+
+.ganesan-rule-item {
+  background: var(--apple-track-bg);
+  border: 1px solid var(--apple-border-subtle);
+  border-radius: var(--apple-radius-sm);
+  padding: 8px 10px;
+  transition: all 0.2s ease;
+}
+
+.ganesan-rule-item:hover {
+  background: var(--apple-card-hover);
+  border-color: rgba(52, 199, 89, 0.3);
+}
+
+.ganesan-rule-item.verified {
+  border-left: 3px solid var(--apple-green);
+}
+
+.rule-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.rule-num {
+  font-family: var(--apple-mono);
+  font-size: 9px;
+  font-weight: 700;
+  background: rgba(52, 199, 89, 0.2);
+  color: var(--apple-green);
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rule-title {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--apple-text-primary);
+  flex: 1;
+}
+
+.rule-badge {
+  font-family: var(--apple-mono);
+  font-size: 8.5px;
+  font-weight: 600;
+  color: var(--apple-blue);
+  background: rgba(0, 113, 227, 0.1);
+  padding: 1px 6px;
+  border-radius: var(--apple-radius-pill);
+}
+
+.rule-desc {
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--apple-text-secondary);
+  margin: 0;
+}
+

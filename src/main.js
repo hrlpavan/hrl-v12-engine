@@ -19,6 +19,7 @@ class V12Application {
     this.currentTheme = 'light'; // Default to Day Mode
     this.isDynoRunning = false;
     this.cutCylinders = [];
+    this.isEcoMode = false;
 
     this.scene3d = null;
     this.telemetry = null;
@@ -384,6 +385,7 @@ class V12Application {
 
     // 18. 3D Part Inspector Mode Toggle (Opt-in)
     const btnInspectToggle = document.getElementById('btn-inspect-toggle');
+    const tooltipEl = document.getElementById('part-tooltip');
     if (btnInspectToggle) {
       btnInspectToggle.addEventListener('click', () => {
         const isEnabled = !btnInspectToggle.classList.contains('active');
@@ -394,6 +396,26 @@ class V12Application {
         }
       });
     }
+
+    // 18b. Ganesan High-Efficiency Atkinson & Lean Burn Toggle
+    const btnEcoToggle = document.getElementById('btn-eco-toggle');
+    const btnPaneEcoToggle = document.getElementById('btn-pane-eco-toggle');
+    const ecoStatus = document.getElementById('eco-mode-status');
+    const paneBtnLabel = document.getElementById('pane-eco-btn-label');
+    const cycleBadge = document.getElementById('eco-cycle-badge');
+
+    const toggleEcoMode = () => {
+      this.isEcoMode = !this.isEcoMode;
+      if (btnEcoToggle) btnEcoToggle.classList.toggle('active', this.isEcoMode);
+      if (btnPaneEcoToggle) btnPaneEcoToggle.classList.toggle('active', this.isEcoMode);
+      if (ecoStatus) ecoStatus.textContent = this.isEcoMode ? 'Eco (Atkinson)' : 'Standard (Otto)';
+      if (paneBtnLabel) paneBtnLabel.textContent = this.isEcoMode ? 'Atkinson Active' : 'Standard Mode';
+      if (cycleBadge) cycleBadge.textContent = this.isEcoMode ? 'Atkinson Cycle (e=13.5:1) · Stratified Lean' : 'Standard Otto Cycle · Stoichiometric';
+      this.scene3d.setEcoMode(this.isEcoMode);
+    };
+
+    if (btnEcoToggle) btnEcoToggle.addEventListener('click', toggleEcoMode);
+    if (btnPaneEcoToggle) btnPaneEcoToggle.addEventListener('click', toggleEcoMode);
 
     // 19. Keyboard Shortcuts
     window.addEventListener('keydown', (e) => {
@@ -414,6 +436,8 @@ class V12Application {
         setTheme(this.currentTheme === 'light' ? 'dark' : 'light');
       } else if (e.key === 'd' || e.key === 'D') {
         this.runDynoPull();
+      } else if (e.key === 'e' || e.key === 'E') {
+        toggleEcoMode();
       } else if (e.key === 'i' || e.key === 'I') {
         if (btnInspectToggle) btnInspectToggle.click();
       }
@@ -439,9 +463,9 @@ class V12Application {
     if (btnDynoRun) btnDynoRun.classList.add('dyno-running');
 
     this.isPlaying = true;
-    audioEngine.ensureContext();
-    audioEngine.start();
-    audioEngine.blipThrottle(0.95);
+    if (typeof audioEngine.ensureContext === 'function') audioEngine.ensureContext();
+    if (typeof audioEngine.start === 'function') audioEngine.start();
+    if (typeof audioEngine.blipThrottle === 'function') audioEngine.blipThrottle(0.95);
 
     const startRpm = 600;
     const peakRpm = 6000;
@@ -555,7 +579,7 @@ class V12Application {
       this.masterCrankAngleDeg = normalizeAngle(this.masterCrankAngleDeg + degPerSec * this.playbackRate * dt, 720);
     }
 
-    const engineState = computeEngineState(this.masterCrankAngleDeg, this.engineRpm, 1.0, this.cutCylinders);
+    const engineState = computeEngineState(this.masterCrankAngleDeg, this.engineRpm, 1.0, this.cutCylinders, this.isEcoMode);
 
     this.scene3d.update(engineState);
     this.telemetry.render(engineState, this.selectedCylinderId);
@@ -695,6 +719,52 @@ class V12Application {
 
       const elEcat = document.getElementById('cat-status-val');
       if (elEcat) elEcat.textContent = `${ganesan.emissions.catalyst.tempC}°C (${ganesan.emissions.catalyst.isLightOff ? 'Light-Off Active' : 'Warming Up'})`;
+
+      // Ganesan Real-World Fuel Economy & Mileage Readouts (Ganesan Sec. 15.5.3, p. 479)
+      if (ganesan.mileage) {
+        const m = ganesan.mileage;
+        const elEcoKml = document.getElementById('eco-mileage-kml');
+        if (elEcoKml && m.kmPerLiter != null) elEcoKml.textContent = Number(m.kmPerLiter).toFixed(1);
+
+        const elEcoMpgUs = document.getElementById('eco-mileage-mpg-us');
+        if (elEcoMpgUs && m.mpgUs != null) elEcoMpgUs.textContent = Number(m.mpgUs).toFixed(1);
+
+        const elEcoMpgUk = document.getElementById('eco-mileage-mpg-uk');
+        const ukVal = m.mpgImperial ?? m.mpgImp;
+        if (elEcoMpgUk && ukVal != null) elEcoMpgUk.textContent = Number(ukVal).toFixed(1);
+
+        const elEcoL100 = document.getElementById('eco-mileage-l100km');
+        const l100Val = m.litersPer100km ?? m.litersPer100Km;
+        if (elEcoL100 && l100Val != null) elEcoL100.textContent = Number(l100Val).toFixed(2);
+
+        const elEcoSavedPct = document.getElementById('eco-fuel-saved-pct');
+        if (elEcoSavedPct && m.fuelSavedPct != null) elEcoSavedPct.textContent = `+${Number(m.fuelSavedPct).toFixed(1)}%`;
+
+        const elEcoFuelLh = document.getElementById('eco-fuel-flow-lh');
+        if (elEcoFuelLh && m.fuelLitersPerHour != null) elEcoFuelLh.textContent = `${Number(m.fuelLitersPerHour).toFixed(1)} L/h`;
+
+        const elEcoFuelKgh = document.getElementById('eco-fuel-flow-kgh');
+        if (elEcoFuelKgh && ganesan.airFuel && ganesan.airFuel.massFuelFlowKgH != null) {
+          elEcoFuelKgh.textContent = `${Number(ganesan.airFuel.massFuelFlowKgH).toFixed(1)} kg/h`;
+        }
+
+        const elEcoBth = document.getElementById('eco-etabth-val');
+        if (elEcoBth) elEcoBth.textContent = `${ganesan.efficiencies.brakeThermalPct.toFixed(1)}%`;
+
+        const elEcoBsfc = document.getElementById('eco-bsfc-val');
+        if (elEcoBsfc) elEcoBsfc.textContent = `${ganesan.power.bsfcGKwh} g/kWh`;
+
+        const elEcoAirStd = document.getElementById('eco-eta-airstd-val');
+        if (elEcoAirStd) elEcoAirStd.textContent = `${ganesan.efficiencies.airStandardOttoPct.toFixed(1)}% (${this.isEcoMode ? 'Atkinson' : 'Otto'})`;
+
+        const elEcoExp = document.getElementById('eco-expansion-ratio');
+        if (elEcoExp) elEcoExp.textContent = `${this.isEcoMode ? '13.5 : 1 (e)' : '10.0 : 1 (r)'}`;
+
+        const elSavingBadge = document.getElementById('eco-saving-badge');
+        if (elSavingBadge) {
+          elSavingBadge.style.opacity = this.isEcoMode ? '1' : '0.4';
+        }
+      }
     }
 
     // Rolls-Royce Power Reserve Gauge update

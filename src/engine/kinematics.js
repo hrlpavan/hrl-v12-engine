@@ -7,6 +7,9 @@
 import {
   computeGanesanThermodynamics,
   simulateMorseTest,
+  calculateAtkinsonEfficiency,
+  calculateMileageAndEconomy,
+  calculateMeanPistonSpeed,
   ENGINE_GEOMETRY,
   GAS_CONSTANTS
 } from './thermodynamics.js';
@@ -14,6 +17,9 @@ import {
 export {
   computeGanesanThermodynamics,
   simulateMorseTest,
+  calculateAtkinsonEfficiency,
+  calculateMileageAndEconomy,
+  calculateMeanPistonSpeed,
   ENGINE_GEOMETRY,
   GAS_CONSTANTS
 };
@@ -156,11 +162,13 @@ export function getCyclePhase(cycleDeg) {
   }
 }
 
-export function calculateValveLifts(cycleDeg) {
+export function calculateValveLifts(cycleDeg, isEcoMode = false) {
   const deg = normalizeAngle(cycleDeg, 720);
 
-  const intakeOpen = 340;
-  const intakeClose = 580;
+  // Atkinson Cycle LIVC (Late Intake Valve Closing) & Extended Expansion
+  // Reference: Ganesan Section 2.10 (p. 65-66) & Section 20.7.5 (p. 672)
+  const intakeOpen = isEcoMode ? 350 : 340;
+  const intakeClose = isEcoMode ? 600 : 580; // Delayed closing into compression stroke
   const intakeDuration = intakeClose - intakeOpen;
   let intakeLiftNorm = 0;
 
@@ -173,8 +181,9 @@ export function calculateValveLifts(cycleDeg) {
   let exDeg = deg;
   if (exDeg < 40) exDeg += 720;
 
-  const exhaustOpen = 140;
-  const exhaustClose = 380;
+  // Extended expansion in Atkinson mode delays exhaust valve opening to 155°
+  const exhaustOpen = isEcoMode ? 155 : 140;
+  const exhaustClose = isEcoMode ? 370 : 380;
   const exhaustDuration = exhaustClose - exhaustOpen;
 
   if (deg >= exhaustOpen && deg <= exhaustClose) {
@@ -187,14 +196,14 @@ export function calculateValveLifts(cycleDeg) {
     exhaustNorm: exhaustLiftNorm,
     intakeMm: intakeLiftNorm * ENGINE_SPECS.intakeMaxLiftMm,
     exhaustMm: exhaustLiftNorm * ENGINE_SPECS.exhaustMaxLiftMm,
-    inOverlap: deg >= 340 && deg <= 380
+    inOverlap: isEcoMode ? (deg >= 350 && deg <= 370) : (deg >= 340 && deg <= 380)
   };
 }
 
-export function calculateChamberPressure(cycleDeg, pistonFraction, isCut = false) {
+export function calculateChamberPressure(cycleDeg, pistonFraction, isCut = false, isEcoMode = false) {
   const deg = normalizeAngle(cycleDeg, 720);
-  const rc = ENGINE_SPECS.compressionRatio;
-  const gamma = 1.33;
+  const rc = isEcoMode ? 10.2 : ENGINE_SPECS.compressionRatio;
+  const gamma = isEcoMode ? 1.36 : 1.33; // Higher gamma for lean mixture (Ganesan p. 114)
 
   const relVol = 1.0 + (rc - 1.0) * Math.max(0, Math.min(1, pistonFraction));
 
@@ -224,36 +233,50 @@ export function calculateChamberPressure(cycleDeg, pistonFraction, isCut = false
   }
 
   if (deg >= 540) {
-    pressureBar = 1.0 * Math.pow(12.5 / relVol, gamma);
-    temperatureK = 300 * Math.pow(12.5 / relVol, gamma - 1);
+    // In Atkinson mode with LIVC, pressure stays closer to atmospheric until intake valve closes at 600°
+    if (isEcoMode && deg < 600) {
+      pressureBar = 1.02;
+      temperatureK = 305;
+    } else {
+      const compFactor = isEcoMode ? 11.2 : 12.5;
+      pressureBar = 1.0 * Math.pow(compFactor / relVol, gamma);
+      temperatureK = 300 * Math.pow(compFactor / relVol, gamma - 1);
+    }
 
     if (deg >= 705) {
       const burnProgress = (deg - 705) / 30;
-      pressureBar += 55 * Math.sin(burnProgress * Math.PI * 0.5);
-      temperatureK += 1400 * burnProgress;
+      const pRise = isEcoMode ? 46 : 55;
+      pressureBar += pRise * Math.sin(burnProgress * Math.PI * 0.5);
+      temperatureK += (isEcoMode ? 1150 : 1400) * burnProgress;
     }
   } else if (deg < 180) {
     if (deg < 15) {
-      const pPeak = 86.0;
-      const tPeak = 2450;
-      pressureBar = 28 + (pPeak - 28) * Math.sin((deg / 15) * Math.PI * 0.5);
-      temperatureK = 900 + (tPeak - 900) * (deg / 15);
+      const pPeak = isEcoMode ? 74.0 : 86.0;
+      const tPeak = isEcoMode ? 2120 : 2450;
+      pressureBar = 25 + (pPeak - 25) * Math.sin((deg / 15) * Math.PI * 0.5);
+      temperatureK = 880 + (tPeak - 880) * (deg / 15);
     } else {
+      // Atkinson Extended Expansion retains higher pressure ratio and extracts more work (Ganesan Eq. 2.73)
       const peakVol = 1.0 + (rc - 1.0) * 0.05;
-      pressureBar = 86.0 * Math.pow(peakVol / relVol, 1.28);
-      temperatureK = 2450 * Math.pow(peakVol / relVol, 0.28);
+      const pPeak = isEcoMode ? 74.0 : 86.0;
+      const tPeak = isEcoMode ? 2120 : 2450;
+      const expIdx = isEcoMode ? 1.31 : 1.28;
+      pressureBar = pPeak * Math.pow(peakVol / relVol, expIdx);
+      temperatureK = tPeak * Math.pow(peakVol / relVol, expIdx - 1.0);
     }
 
-    if (deg >= 140) {
-      const blowdown = (deg - 140) / 40;
-      pressureBar = pressureBar * (1 - blowdown * 0.7) + 1.2 * blowdown * 0.7;
+    const blowdownAngle = isEcoMode ? 155 : 140;
+    if (deg >= blowdownAngle) {
+      const blowdown = (deg - blowdownAngle) / (180 - blowdownAngle);
+      pressureBar = pressureBar * (1 - blowdown * 0.65) + 1.15 * blowdown * 0.65;
     }
   } else if (deg < 360) {
-    pressureBar = 1.08 + 0.12 * Math.sin(((deg - 180) / 180) * Math.PI);
-    temperatureK = 850 - 400 * ((deg - 180) / 180);
+    pressureBar = 1.06 + 0.10 * Math.sin(((deg - 180) / 180) * Math.PI);
+    temperatureK = isEcoMode ? (720 - 360 * ((deg - 180) / 180)) : (850 - 400 * ((deg - 180) / 180));
   } else {
-    pressureBar = 0.94 - 0.06 * Math.sin(((deg - 360) / 180) * Math.PI);
-    temperatureK = 310 + 20 * (1 - (deg - 360) / 180);
+    // Unthrottled intake in Eco Mode maintains 0.98 bar intake manifold pressure
+    pressureBar = isEcoMode ? 0.98 : (0.94 - 0.06 * Math.sin(((deg - 360) / 180) * Math.PI));
+    temperatureK = 308 + 15 * (1 - (deg - 360) / 180);
   }
 
   return {
@@ -263,7 +286,7 @@ export function calculateChamberPressure(cycleDeg, pistonFraction, isCut = false
   };
 }
 
-export function computeEngineState(crankAngleDeg, rpm = 1600, throttle = 1.0, cutCylinders = []) {
+export function computeEngineState(crankAngleDeg, rpm = 1600, throttle = 1.0, cutCylinders = [], isEcoMode = false) {
   const normCrank = normalizeAngle(crankAngleDeg, 360);
   const cycleCrank = normalizeAngle(crankAngleDeg, 720);
   const omega = (rpm * 2 * Math.PI) / 60.0;
@@ -271,8 +294,8 @@ export function computeEngineState(crankAngleDeg, rpm = 1600, throttle = 1.0, cu
   const rM = ENGINE_SPECS.crankRadiusMm / 1000.0;
   const lM = ENGINE_SPECS.rodLengthMm / 1000.0;
 
-  // Ganesan V2.0 Thermodynamics State Calculation
-  const ganesan = computeGanesanThermodynamics(rpm, throttle, cutCylinders);
+  // Ganesan V2.0 Thermodynamics State Calculation (with Atkinson & Lean Burn Eco mode)
+  const ganesan = computeGanesanThermodynamics(rpm, throttle, cutCylinders, isEcoMode);
 
   let activeFiringCylinder = null;
   let minFireDist = Infinity;
@@ -286,14 +309,14 @@ export function computeEngineState(crankAngleDeg, rpm = 1600, throttle = 1.0, cu
     const cycleDeg = normalizeAngle(cycleCrank - cyl.firingTdc, 720);
 
     const kinematics = calculateSliderCrank(crankAngleRad, rM, lM, omega);
-    const valves = calculateValveLifts(cycleDeg);
+    const valves = calculateValveLifts(cycleDeg, isEcoMode);
     const phase = getCyclePhase(cycleDeg);
 
     const pistonFrac = kinematics.s / (2 * rM);
     const isCut = cutCylinders.includes(cyl.id);
 
-    // If cylinder is cut (Morse Test), it only undergoes motoring compression (no combustion pressure rise)
-    const thermo = calculateChamberPressure(cycleDeg, pistonFrac, isCut);
+    // If cylinder is cut (Morse Test), it only undergoes motoring compression
+    const thermo = calculateChamberPressure(cycleDeg, pistonFrac, isCut, isEcoMode);
 
     const isSparking = !isCut && cycleDeg >= 705 && cycleDeg <= 725;
     const isCombusting = !isCut && cycleDeg >= 0 && cycleDeg <= 110;
@@ -332,6 +355,7 @@ export function computeEngineState(crankAngleDeg, rpm = 1600, throttle = 1.0, cu
     camAngleDeg,
     rpm,
     throttle,
+    isEcoMode,
     omega,
     activeFiringCylinder: activeFiringCylinder || 1,
     cylinders: cylinderStates,

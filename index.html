@@ -102,6 +102,14 @@
             <span class="boost-badge-label">Boost:</span>
             <span id="turbo-boost-val" class="boost-badge-val">1.00 bar</span>
           </div>
+
+          <button id="btn-eco-toggle" class="eco-toggle-capsule" title="Toggle Ganesan High-Efficiency (Atkinson Cycle & Stratified Lean Burn)">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+            </svg>
+            <span class="eco-badge-label">Cycle:</span>
+            <span id="eco-mode-status" class="eco-badge-status">Standard (Otto)</span>
+          </button>
         </div>
 
         <!-- Right: RPM, Audio, Theme, and Inspector Toggles -->
@@ -192,6 +200,7 @@
           <button class="seg-btn" data-tab="valves">Valves</button>
           <button class="seg-btn" data-tab="dyno">Dyno</button>
           <button class="seg-btn" data-tab="emissions">Emiss</button>
+          <button class="seg-btn" data-tab="eco" title="Ganesan High-Efficiency Atkinson & Stratified Lean Burn Mode">Eco</button>
         </div>
 
         <!-- Tab Content Panes -->
@@ -552,6 +561,164 @@
                 <div class="detail-item">
                   <span class="detail-label">Catalyst Temp & Status</span>
                   <span id="cat-status-val" class="detail-val">580°C (Light-Off OK)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane 9: Ganesan High-Efficiency & Real-World Mileage -->
+          <div class="inspector-pane" id="pane-eco">
+            <div class="apple-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Real-World Fuel Economy</span>
+                  <span id="eco-cycle-badge" class="card-subtitle">Atkinson Cycle · Stratified Lean Burn</span>
+                </div>
+                <button id="btn-pane-eco-toggle" class="card-action-tag eco-action-pill" title="Toggle Ganesan Eco Mode">
+                  <span id="pane-eco-btn-label">Standard Mode</span>
+                </button>
+              </div>
+
+              <!-- Hero Fuel Economy Grid -->
+              <div class="eco-hero-container">
+                <div class="eco-hero-main">
+                  <div class="eco-stat-large">
+                    <span id="eco-mileage-kml" class="eco-big-num">14.8</span>
+                    <span class="eco-big-unit">km / L</span>
+                  </div>
+                  <div class="eco-hero-badge" id="eco-saving-badge">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M12 19V5M5 12l7-7 7 7"/>
+                    </svg>
+                    <span id="eco-fuel-saved-pct">+24.0%</span> Saved
+                  </div>
+                </div>
+
+                <div class="eco-metrics-triple">
+                  <div class="eco-metric-box">
+                    <span class="eco-sub-label">US MPG</span>
+                    <span id="eco-mileage-mpg-us" class="eco-sub-val">34.8</span>
+                  </div>
+                  <div class="eco-metric-box">
+                    <span class="eco-sub-label">UK MPG</span>
+                    <span id="eco-mileage-mpg-uk" class="eco-sub-val">41.8</span>
+                  </div>
+                  <div class="eco-metric-box">
+                    <span class="eco-sub-label">L / 100km</span>
+                    <span id="eco-mileage-l100km" class="eco-sub-val">6.76</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="cyl-details-grid" style="margin-top: 10px;">
+                <div class="detail-item">
+                  <span class="detail-label">Fuel Consumption</span>
+                  <span id="eco-fuel-flow-lh" class="detail-val">11.5 L/h</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Fuel Mass Flow</span>
+                  <span id="eco-fuel-flow-kgh" class="detail-val">8.6 kg/h</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Brake Thermal (ηbth)</span>
+                  <span id="eco-etabth-val" class="detail-val highlight-green">41.8%</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Brake Specific FC</span>
+                  <span id="eco-bsfc-val" class="detail-val highlight-green">198 g/kWh</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Air-Standard Cycle (η)</span>
+                  <span id="eco-eta-airstd-val" class="detail-val">63.0% (Atkinson)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Expansion Ratio (e)</span>
+                  <span id="eco-expansion-ratio" class="detail-val">13.5 : 1</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ganesan 4th Edition Principle Verification Card -->
+            <div class="apple-card" style="margin-top: 8px;">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Ganesan Principles Verification</span>
+                  <span class="card-subtitle">"Internal Combustion Engines" (4th Ed.)</span>
+                </div>
+                <span class="card-tag">8 Principles</span>
+              </div>
+
+              <div class="ganesan-rules-scroll">
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">1</span>
+                    <span class="rule-title">Atkinson Cycle Extended Expansion</span>
+                    <span class="rule-badge">Ganesan Eq. 2.73, p. 66</span>
+                  </div>
+                  <p class="rule-desc">Expansion ratio e = 13.5:1 with effective compression r = 10.2:1 via Late Intake Valve Closing (LIVC). Air-standard efficiency reaches 63.0% (vs 60.2% Otto), extracting maximum work from expansion.</p>
+                </div>
+
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">2</span>
+                    <span class="rule-title">Toroidal Squish Combustion Chamber Bowl</span>
+                    <span class="rule-badge">Sec. 11.18.1, Fig. 11.19d &amp; Sec. 20.6.1</span>
+                  </div>
+                  <p class="rule-desc">70% squish quench area with central aerodynamic deflector pip creates a high-velocity smoke-ring vortex in piston bowl for stable ultra-lean stratified combustion without wall wetting.</p>
+                </div>
+
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">3</span>
+                    <span class="rule-title">Swirl Control Valves (SCV) in Dual-Path Runners</span>
+                    <span class="rule-badge">Sec. 20.8.6, Fig. 20.10, p. 678</span>
+                  </div>
+                  <p class="rule-desc">Electronic stepper shuts secondary runner during cruising to force air through helical swirl port, generating intense micro-turbulent swirl (A/F up to 22:1) to accelerate flame speed and avert lean misfire.</p>
+                </div>
+
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">4</span>
+                    <span class="rule-title">Liquid-Cooled Exhaust Gas Recirculation (EGR)</span>
+                    <span class="rule-badge">Sec. 14.18, pp. 443-445, Fig. 14.11</span>
+                  </div>
+                  <p class="rule-desc">Finned 316L stainless heat exchanger cools recirculated gas to 120°C, acting as a thermal diluent to lower peak flame temperature from 2450 K to 2120 K, eliminating engine knock and cutting raw NOx by 65%.</p>
+                </div>
+
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">5</span>
+                    <span class="rule-title">Unthrottled VVA Pumping Loss Elimination</span>
+                    <span class="rule-badge">Sec. 20.6.1, p. 668 &amp; Sec. 4.5.1, p. 139</span>
+                  </div>
+                  <p class="rule-desc">Variable Valve Actuation regulates intake charge volume directly by valve closing point without throttle butterfly plate restriction, dropping pumping mean effective pressure (pmep) from 0.85 bar to 0.07 bar.</p>
+                </div>
+
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">6</span>
+                    <span class="rule-title">Low-Friction Slipper Skirt &amp; Hydrodynamic Lubrication</span>
+                    <span class="rule-badge">Ch. 12, pp. 361-387, Fig. 12.6</span>
+                  </div>
+                  <p class="rule-desc">Graphite-coated slipper skirts with reduced contact area and low-tension DLC rings reduce mechanical friction (mmep) by 20% while 0W-20 multi-grade synthetic oil maintains full-film hydrodynamic regime (νN/p ≥ 0.008).</p>
+                </div>
+
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">7</span>
+                    <span class="rule-title">Inlet-Valve Mach Index Control (Z ≤ 0.55)</span>
+                    <span class="rule-badge">Sec. 1.8.10, Eq. 1.18 &amp; Fig. 1.16</span>
+                  </div>
+                  <p class="rule-desc">Maintains inlet Mach Index Z = (b/Di)²(Vp/(Ci·α)) ≤ 0.55 across cruising range, avoiding choking and ensuring peak volumetric efficiency ηv ≥ 88%.</p>
+                </div>
+
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">8</span>
+                    <span class="rule-title">Closed-Loop Heated Lambda &amp; Dual Knock Sensors</span>
+                    <span class="rule-badge">Sec. 17.7, pp. 592-593, Fig. 17.24</span>
+                  </div>
+                  <p class="rule-desc">Heated Zirconia λ-sensor with sub-50ms response provides closed-loop AFR regulation while dual piezoelectric knock sensors advance MBT timing to target peak cylinder pressure at 12° aTDC.</p>
                 </div>
               </div>
             </div>

@@ -1,13 +1,37 @@
 {
-  "name": "v12-engine-hrl",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "hrl-x-rolls-royce",
+  "version": "2.0.0",
+  "description": "HRL x Rolls-Royce Bespoke 6¾ Litre Twin-Turbo V12 Interactive 3D CAD & Thermodynamics Simulation Platform (Grounding in Prof. V. Ganesan IC Engines 4th Edition)",
+  "main": "src/main.js",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",
     "build": "vite build",
     "preview": "vite preview"
+  },
+  "keywords": [
+    "rolls-royce",
+    "v12-engine",
+    "threejs",
+    "webgl",
+    "thermodynamics",
+    "ganesan-ic-engines",
+    "atkinson-cycle",
+    "procedural-audio",
+    "cad-simulation",
+    "automotive-engineering",
+    "digital-twin",
+    "open-source"
+  ],
+  "author": "Pavan Kumar Sadashiv <hrlinternationalprivatelimited@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hrlpavan/hrl-x-rolls-royce.git"
+  },
+  "homepage": "https://github.com/hrlpavan/hrl-x-rolls-royce#readme",
+  "bugs": {
+    "url": "https://github.com/hrlpavan/hrl-x-rolls-royce/issues"
   },
   "dependencies": {
     "three": "^0.186.0"

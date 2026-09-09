@@ -242,11 +242,20 @@ export class V12AudioEngine {
     }
   }
 
-  toggleMute() {
+  ensureContext() {
     this.init();
     if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
+  }
+
+  start() {
+    this.ensureContext();
+    this.isPlaying = true;
+  }
+
+  toggleMute() {
+    this.ensureContext();
 
     this.isMuted = !this.isMuted;
     if (this.masterGain && this.ctx) {

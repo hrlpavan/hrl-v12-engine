@@ -12,7 +12,8 @@ import {
   degToRad,
   DYNO_CURVE_DATA,
   ENGINE_GEOMETRY,
-  GAS_CONSTANTS
+  GAS_CONSTANTS,
+  calculateMeanPistonSpeed
 } from '../engine/kinematics.js';
 
 export class TelemetryManager {
@@ -137,44 +138,65 @@ export class TelemetryManager {
   }
 
   _precomputeCurves() {
-    this.valveCurveData = [];
-    this.pvCurveData = [];
-    this.pvAirStdData = [];
+    this.valveCurveDataOtto = [];
+    this.pvCurveDataOtto = [];
+    this.pvAirStdDataOtto = [];
+
+    this.valveCurveDataEco = [];
+    this.pvCurveDataEco = [];
+    this.pvAirStdDataEco = [];
 
     const rM = ENGINE_GEOMETRY.strokeMm / 2000.0;
     const lM = ENGINE_GEOMETRY.connectingRodMm / 1000.0;
-    const rc = ENGINE_GEOMETRY.compressionRatio; // 10.0
+    const rc = ENGINE_GEOMETRY.compressionRatioStandard || 10.0;
+    const rcEco = ENGINE_GEOMETRY.atkinsonEffectiveCompRatio || 10.2;
+    const expRatioEco = ENGINE_GEOMETRY.atkinsonExpansionRatio || 13.5;
 
-    // Precompute Valve and Actual PV Indicator curves over 720°
+    // Precompute Valve and Actual PV Indicator curves over 720° (both Otto and Atkinson Eco)
     for (let deg = 0; deg <= 720; deg += 2) {
-      const valves = calculateValveLifts(deg);
       const rad = degToRad(deg);
       const underRad = lM * lM - rM * rM * Math.sin(rad) * Math.sin(rad);
       const x = rM * Math.cos(rad) + Math.sqrt(Math.max(0.0001, underRad));
       const s = (rM + lM) - x;
       const frac = s / (2 * rM);
 
-      const thermo = calculateChamberPressure(deg, frac);
+      // Standard Otto
+      const valvesOtto = calculateValveLifts(deg, false);
+      const thermoOtto = calculateChamberPressure(deg, frac, false, false);
+      this.valveCurveDataOtto.push({ deg, intake: valvesOtto.intakeNorm, exhaust: valvesOtto.exhaustNorm, pistonFrac: frac });
+      this.pvCurveDataOtto.push({ deg, frac, pressure: thermoOtto.pressureBar, vol: thermoOtto.volumeCm3 });
 
-      this.valveCurveData.push({ deg, intake: valves.intakeNorm, exhaust: valves.exhaustNorm, pistonFrac: frac });
-      this.pvCurveData.push({ deg, frac, pressure: thermo.pressureBar, vol: thermo.volumeCm3 });
+      // Ganesan Atkinson Eco
+      const valvesEco = calculateValveLifts(deg, true);
+      const thermoEco = calculateChamberPressure(deg, frac, false, true);
+      this.valveCurveDataEco.push({ deg, intake: valvesEco.intakeNorm, exhaust: valvesEco.exhaustNorm, pistonFrac: frac });
+      this.pvCurveDataEco.push({ deg, frac, pressure: thermoEco.pressureBar, vol: thermoEco.volumeCm3 });
     }
 
-    // Precompute Air-Standard Otto Cycle for comparison (Ganesan Section 2.5, pp. 52-55)
-    // 1-2 isentropic compression (gamma = 1.4), 2-3 constant volume heat addition, 3-4 isentropic expansion
+    this.valveCurveData = this.valveCurveDataOtto;
+    this.pvCurveData = this.pvCurveDataOtto;
+
+    // Precompute Air-Standard Otto Cycle (Ganesan Section 2.5, pp. 52-55)
     const p1 = 1.0;
-    const p2 = p1 * Math.pow(rc, 1.4); // 25.12 bar
-    const p3 = 86.0; // Peak constant volume combustion
-    const p4 = p3 / Math.pow(rc, 1.4); // 3.42 bar
+    const p3 = 86.0;
 
     for (let i = 0; i <= 50; i++) {
       const frac = i / 50; // 0 = TDC, 1 = BDC
-      const relV = 1.0 + (rc - 1.0) * frac; // 1 at TDC, rc at BDC
-      // Compression stroke
+      const relV = 1.0 + (rc - 1.0) * frac;
       const pComp = p1 * Math.pow(rc / relV, 1.4);
-      // Expansion stroke
       const pExp = p3 * Math.pow(1.0 / relV, 1.4);
-      this.pvAirStdData.push({ frac, pComp, pExp });
+      this.pvAirStdDataOtto.push({ frac, pComp, pExp });
+    }
+    this.pvAirStdData = this.pvAirStdDataOtto;
+
+    // Precompute Air-Standard Atkinson Cycle (Ganesan Section 2.10, pp. 65-66, Eq. 2.73)
+    const p3Eco = 74.0;
+    for (let i = 0; i <= 50; i++) {
+      const frac = i / 50;
+      const relV = 1.0 + (rcEco - 1.0) * frac;
+      const pComp = p1 * Math.pow(rcEco / relV, 1.4);
+      const pExp = p3Eco * Math.pow(1.0 / (1.0 + (expRatioEco - 1.0) * (frac * (rcEco / expRatioEco))), 1.36);
+      this.pvAirStdDataEco.push({ frac, pComp, pExp });
     }
   }
 
@@ -432,14 +454,38 @@ export class TelemetryManager {
       ctx.fillText(s.name, sx0 + sw / 2 - 14, padTop + 10);
     });
 
-    // Valve Overlap Shaded Region (340° to 380° - 40° overlap, Ganesan p. 140)
-    const ovX0 = padLeft + (340 / 720) * plotW;
-    const ovW = (40 / 720) * plotW;
-    ctx.fillStyle = 'rgba(52, 199, 89, 0.22)';
+    // Valve Overlap Shaded Region
+    // Standard Otto: 340° to 380° (40° overlap, Ganesan p. 140)
+    // Atkinson Eco: 350° to 370° (20° overlap per Ganesan Section 20.7.5, p. 672)
+    const isEco = engineState && engineState.isEcoMode;
+    const activeValveData = isEco ? this.valveCurveDataEco : this.valveCurveDataOtto;
+
+    const ovStart = isEco ? 350 : 340;
+    const ovEnd = isEco ? 370 : 380;
+    const ovDuration = ovEnd - ovStart;
+    const ovX0 = padLeft + (ovStart / 720) * plotW;
+    const ovW = (ovDuration / 720) * plotW;
+    ctx.fillStyle = isEco ? 'rgba(52, 199, 89, 0.28)' : 'rgba(52, 199, 89, 0.22)';
     ctx.fillRect(ovX0, padTop, ovW, plotH);
     ctx.fillStyle = colors.green;
     ctx.font = 'bold 7.5px "JetBrains Mono", monospace';
-    ctx.fillText("OVERLAP 40°", ovX0 - 6, padTop + plotH - 6);
+    ctx.fillText(isEco ? "ATKINSON 20°" : "OVERLAP 40°", ovX0 - (isEco ? 10 : 6), padTop + plotH - 6);
+
+    // If Eco Mode, annotate LIVC marker (Late Intake Valve Closing at 600° vs 580°)
+    if (isEco) {
+      const livcX = padLeft + (600 / 720) * plotW;
+      ctx.strokeStyle = colors.blue;
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([2, 2]);
+      ctx.beginPath();
+      ctx.moveTo(livcX, padTop + 22);
+      ctx.lineTo(livcX, padTop + plotH);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = colors.blue;
+      ctx.font = 'bold 7.5px "JetBrains Mono", monospace';
+      ctx.fillText("LIVC 600°", livcX - 18, padTop + 18);
+    }
 
     // Baseline
     ctx.strokeStyle = colors.gridLine;
@@ -454,7 +500,7 @@ export class TelemetryManager {
     ctx.lineWidth = 1;
     ctx.setLineDash([2, 2]);
     ctx.beginPath();
-    this.valveCurveData.forEach((pt, i) => {
+    activeValveData.forEach((pt, i) => {
       const x = padLeft + (pt.deg / 720) * plotW;
       const y = padTop + plotH - pt.pistonFrac * (plotH * 0.7);
       if (i === 0) ctx.moveTo(x, y);
@@ -468,7 +514,7 @@ export class TelemetryManager {
     ctx.lineWidth = 2;
     ctx.beginPath();
     let exStarted = false;
-    this.valveCurveData.forEach(pt => {
+    activeValveData.forEach(pt => {
       if (pt.exhaust > 0) {
         const x = padLeft + (pt.deg / 720) * plotW;
         const y = padTop + plotH - pt.exhaust * (plotH * 0.85);
@@ -486,7 +532,7 @@ export class TelemetryManager {
     ctx.lineWidth = 2;
     ctx.beginPath();
     let inStarted = false;
-    this.valveCurveData.forEach(pt => {
+    activeValveData.forEach(pt => {
       if (pt.intake > 0) {
         const x = padLeft + (pt.deg / 720) * plotW;
         const y = padTop + plotH - pt.intake * (plotH * 0.85);
@@ -598,22 +644,27 @@ export class TelemetryManager {
     ctx.fillText('TDC (Vc)', padLeft, padTop + plotH + 14);
     ctx.fillText('BDC (Vmax)', padLeft + plotW - 48, padTop + plotH + 14);
 
-    // 1. Air-Standard Otto Cycle (Dashed reference, Ganesan p. 53)
+    // 1. Air-Standard Cycle (Dashed reference: Otto 60.2% vs Atkinson 63.0%, Ganesan p. 53, 66)
+    const isEco = engineState && engineState.isEcoMode;
+    const airStdData = isEco ? this.pvAirStdDataEco : this.pvAirStdDataOtto;
+    const pvCurve = isEco ? this.pvCurveDataEco : this.pvCurveDataOtto;
+    const peakP = isEco ? 74.0 : 86.0;
+
     ctx.strokeStyle = colors.pvAirStd;
     ctx.lineWidth = 1.0;
     ctx.setLineDash([3, 3]);
     ctx.beginPath();
-    this.pvAirStdData.forEach((pt, i) => {
+    airStdData.forEach((pt, i) => {
       const vx = padLeft + pt.frac * plotW;
       const py = padTop + plotH - (Math.min(maxBar, pt.pComp) / maxBar) * plotH;
       if (i === 0) ctx.moveTo(vx, py);
       else ctx.lineTo(vx, py);
     });
     // Top constant volume heat addition (TDC)
-    ctx.lineTo(padLeft, padTop + plotH - (Math.min(maxBar, 86.0) / maxBar) * plotH);
+    ctx.lineTo(padLeft, padTop + plotH - (Math.min(maxBar, peakP) / maxBar) * plotH);
     // Expansion stroke
-    for (let i = this.pvAirStdData.length - 1; i >= 0; i--) {
-      const pt = this.pvAirStdData[i];
+    for (let i = airStdData.length - 1; i >= 0; i--) {
+      const pt = airStdData[i];
       const vx = padLeft + pt.frac * plotW;
       const py = padTop + plotH - (Math.min(maxBar, pt.pExp) / maxBar) * plotH;
       ctx.lineTo(vx, py);
@@ -641,7 +692,7 @@ export class TelemetryManager {
     ctx.strokeStyle = colors.pvActual;
     ctx.lineWidth = 2.0;
     ctx.beginPath();
-    this.pvCurveData.forEach((pt, i) => {
+    pvCurve.forEach((pt, i) => {
       const vx = padLeft + pt.frac * plotW;
       const py = padTop + plotH - (Math.min(maxBar, pt.pressure) / maxBar) * plotH;
       if (i === 0) ctx.moveTo(vx, py);
@@ -675,12 +726,12 @@ export class TelemetryManager {
     ctx.font = '8.5px "JetBrains Mono", monospace';
     ctx.fillText(`${cyl.thermo.temperatureK} K`, curX + 8, Math.max(padTop + 24, curY + 7));
 
-    // Annotated Legends (Ganesan Actual vs Otto)
+    // Annotated Legends (Ganesan Actual vs Air-Standard)
     ctx.fillStyle = colors.pvAirStd;
     ctx.font = '7.5px "SF Pro Text", -apple-system, sans-serif';
-    ctx.fillText("-- Air-Std Otto (η=60.2%)", padLeft + 6, padTop + 12);
+    ctx.fillText(isEco ? "-- Air-Std Atkinson (η=63.0%)" : "-- Air-Std Otto (η=60.2%)", padLeft + 6, padTop + 12);
     ctx.fillStyle = colors.pvActual;
-    ctx.fillText("— Actual Turbo Cycle", padLeft + 6, padTop + 23);
+    ctx.fillText(isEco ? "— Atkinson Lean Burn Loop" : "— Actual Turbo Cycle", padLeft + 6, padTop + 23);
   }
 
   /**
@@ -863,8 +914,14 @@ export class TelemetryManager {
     });
     ctx.stroke();
 
-    // Constant BSFC Contours (Island of minimum BSFC = 220 g/kWh at sp ~ 9 m/s, bmep ~ 14 bar)
-    const contours = [
+    // Constant BSFC Contours (Island of minimum BSFC = 198 g/kWh in Eco vs 230 g/kWh in Standard, Ganesan p. 517)
+    const isEco = engineState && engineState.isEcoMode;
+    const contours = isEco ? [
+      { label: "198 (Eco)", rx: 20, ry: 13, cx: 8.8, cy: 13.5, col: colors.green },
+      { label: "210", rx: 34, ry: 22, cx: 9.0, cy: 13.5, col: colors.blue },
+      { label: "230", rx: 55, ry: 33, cx: 9.3, cy: 13.0, col: colors.orange },
+      { label: "280", rx: 82, ry: 46, cx: 9.8, cy: 12.0, col: colors.purple }
+    ] : [
       { label: "230", rx: 25, ry: 16, cx: 9.0, cy: 14.0, col: colors.green },
       { label: "250", rx: 42, ry: 26, cx: 9.2, cy: 13.5, col: colors.blue },
       { label: "280", rx: 65, ry: 38, cx: 9.5, cy: 12.5, col: colors.orange },
@@ -909,7 +966,8 @@ export class TelemetryManager {
     ctx.fillStyle = colors.textPrimary;
     ctx.font = 'bold 9px "JetBrains Mono", monospace';
     const bsfcVal = engineState.ganesan ? engineState.ganesan.power.bsfcGKwh : 235;
-    ctx.fillText(`sp: ${currentSp.toFixed(1)} m/s · BMEP: ${currentBmep.toFixed(1)} bar · BSFC: ${bsfcVal} g/kWh`, padLeft + 6, padTop - 5);
+    const modeTag = isEco ? "Atkinson Eco · " : "";
+    ctx.fillText(`${modeTag}sp: ${currentSp.toFixed(1)} m/s · BMEP: ${currentBmep.toFixed(1)} bar · BSFC: ${bsfcVal} g/kWh`, padLeft + 6, padTop - 5);
   }
 
   /**
