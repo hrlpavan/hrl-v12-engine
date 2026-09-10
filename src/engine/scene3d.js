@@ -53,8 +53,12 @@ export class V12Scene3D {
     this.feadAcPulley = null;
     this.feadTensionerPulley = null;
     this.feadTensionerArm = null;
+    this.feadAcTensionerPulley = null;
+    this.feadAcTensionerArm = null;
     this.feadIdlerPulley = null;
     this.serpentineBeltMesh = null;
+    this.feadBelt1Mesh = null;
+    this.feadBelt2Mesh = null;
     this.particlesGroup = new THREE.Group();
     this.calloutsGroup = new THREE.Group();
     this.turboGroup = new THREE.Group();
@@ -1473,6 +1477,97 @@ export class V12Scene3D {
     });
   }
 
+  /**
+   * Generates exact analytical tangent-arc waypoints for a closed serpentine belt loop.
+   * Grounded in Ganesan Chapter 12 & Euler-Eytelwein friction criteria:
+   * - Common tangents (outer or crossed internal) follow exact trigonometry
+   * - Wrap arcs follow circular pulley pitch radii
+   * - Subdivided straight spans eliminate Catmull-Rom bulging or sagging
+   */
+  _generateBeltWaypoints(pulleys, arcSteps = 10, spanStepDist = 0.22, z = 0) {
+    const n = pulleys.length;
+    const segs = [];
+
+    for (let i = 0; i < n; i++) {
+      const p1 = pulleys[i];
+      const p2 = pulleys[(i + 1) % n];
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const d = Math.hypot(dx, dy);
+      const baseAngle = Math.atan2(dy, dx);
+
+      let T;
+      if (p1.dir === p2.dir) {
+        // Outer tangent: both wrap in standard sense (circle inside loop)
+        const val = (p1.r - p2.r) / d;
+        const delta = Math.asin(Math.max(-1, Math.min(1, val)));
+        T = baseAngle + delta;
+      } else if (p1.dir === 1 && p2.dir === -1) {
+        // Crossed tangent: leaving normal pulley to reverse tensioner roller
+        const gamma = Math.asin(Math.max(-1, Math.min(1, (p1.r + p2.r) / d)));
+        T = baseAngle + gamma;
+      } else {
+        // Crossed tangent: leaving reverse tensioner roller to normal pulley
+        const gamma = Math.asin(Math.max(-1, Math.min(1, (p1.r + p2.r) / d)));
+        T = baseAngle - gamma;
+      }
+
+      // Contact normal angles:
+      // For dir = +1 (normal), normal points to right of travel: T - PI/2
+      // For dir = -1 (reverse), normal points to left of travel: T + PI/2
+      const a1 = T - p1.dir * (Math.PI / 2);
+      const a2 = T - p2.dir * (Math.PI / 2);
+
+      segs.push({
+        p1_exit: { x: p1.x + p1.r * Math.cos(a1), y: p1.y + p1.r * Math.sin(a1), alpha: a1 },
+        p2_entry: { x: p2.x + p2.r * Math.cos(a2), y: p2.y + p2.r * Math.sin(a2), alpha: a2 }
+      });
+    }
+
+    const waypoints = [];
+    for (let i = 0; i < n; i++) {
+      const prev = (i - 1 + n) % n;
+      const entryPt = segs[prev].p2_entry;
+      const exitPt = segs[i].p1_exit;
+      const p = pulleys[i];
+
+      let start = entryPt.alpha;
+      let end = exitPt.alpha;
+
+      if (p.dir === 1) {
+        while (end <= start) end += Math.PI * 2;
+      } else {
+        while (end >= start) end -= Math.PI * 2;
+      }
+
+      // 1. Sample circular arc around pulley
+      for (let s = 0; s < arcSteps; s++) {
+        const frac = s / arcSteps;
+        const angle = start + frac * (end - start);
+        waypoints.push(new THREE.Vector3(
+          p.x + p.r * Math.cos(angle),
+          p.y + p.r * Math.sin(angle),
+          z
+        ));
+      }
+
+      // 2. Sample straight common tangent span to next pulley
+      const nextEntry = segs[i].p2_entry;
+      const spanLen = Math.hypot(nextEntry.x - exitPt.x, nextEntry.y - exitPt.y);
+      const numSpanPts = Math.max(1, Math.floor(spanLen / spanStepDist));
+      for (let sp = 0; sp < numSpanPts; sp++) {
+        const frac = sp / numSpanPts;
+        waypoints.push(new THREE.Vector3(
+          exitPt.x + frac * (nextEntry.x - exitPt.x),
+          exitPt.y + frac * (nextEntry.y - exitPt.y),
+          z
+        ));
+      }
+    }
+
+    return waypoints;
+  }
+
   _buildAccessoryBeltDrive() {
     this.feadGroup.clear();
     this.feadPulleys = [];
@@ -1480,55 +1575,87 @@ export class V12Scene3D {
 
     const crankLength = 6 * CYL_SPACING;
     const frontZ = (crankLength / 2) + 0.25;
-    const feadZ = frontZ + 0.28; // Front accessory drive plane (clearly stepped in front of timing chest)
+    const feadZ = frontZ + 0.28;       // Belt 1 (Primary 8PK) plane
+    const feadZ2 = feadZ + 0.08;       // Belt 2 (Secondary 4PK Climate) plane (0.08 forward separation)
 
     // ------------------------------------------------------------------------
-    // 1. Crankshaft Harmonic Balancer & TVD Pulley (Casing + Rubber + Hub)
+    // 1. Dual-Sheave Crankshaft TVD Damper Pulley (Inner 8PK + Outer 4PK)
     // Reference: Ganesan Chapter 18 (p. 542) & Chapter 12 (p. 362)
     // ------------------------------------------------------------------------
     const crankPulleyGroup = new THREE.Group();
     crankPulleyGroup.position.set(0, 0, feadZ);
 
-    // Outer heavy nodular cast-iron inertia ring with 8 Micro-V perimeter ribs
-    const outerRingGeo = new THREE.CylinderGeometry(0.54, 0.54, 0.08, 48);
-    outerRingGeo.rotateX(Math.PI / 2);
-    const outerRingMesh = new THREE.Mesh(outerRingGeo, this.materials.flywheel);
-    outerRingMesh.userData.partInfo = {
-      name: "Torsional Vibration Damper (TVD) & Crankshaft Pulley",
+    // Inner 8PK sheave (R = 0.54, width = 0.06, drives Belt 1)
+    const innerSheaveGeo = new THREE.CylinderGeometry(0.54, 0.54, 0.06, 48);
+    innerSheaveGeo.rotateX(Math.PI / 2);
+    const innerSheaveMesh = new THREE.Mesh(innerSheaveGeo, this.materials.flywheel);
+    innerSheaveMesh.position.z = 0.0;
+    innerSheaveMesh.userData.partInfo = {
+      name: "Dual-Sheave Torsional Vibration Damper (TVD) - Inner 8PK Sheave",
       metallurgy: "High-Inertia Nodular Cast Iron with Vulcanized Elastomer Shear Ring",
       tempK: "355 K",
-      massGrams: "7,800 g",
+      massGrams: "8,200 g",
       toleranceMm: "±0.005 mm",
-      heritageNote: "Ganesan Ch. 18 (p. 542): Tuned elastomeric harmonic balancer absorbing 6th & 12th order crankshaft torsional spikes, dampening twist by 91% to protect the 8PK serpentine belt"
+      heritageNote: "Ganesan Ch. 18 (p. 542): Tuned elastomeric harmonic balancer absorbing 6th & 12th order crankshaft torsional resonance (91% twist attenuation). Inner 8PK track powers coolant pump & alternator."
     };
-    this.interactiveMeshes.push(outerRingMesh);
-    crankPulleyGroup.add(outerRingMesh);
+    this.interactiveMeshes.push(innerSheaveMesh);
+    crankPulleyGroup.add(innerSheaveMesh);
+
+    // Center dividing ridge separating the 8PK and 4PK belt channels (prevents belt crossover)
+    const centerFlangeGeo = new THREE.CylinderGeometry(0.56, 0.56, 0.016, 48);
+    centerFlangeGeo.rotateX(Math.PI / 2);
+    const centerFlangeMesh = new THREE.Mesh(centerFlangeGeo, this.materials.crankshaft);
+    centerFlangeMesh.position.z = 0.04;
+    crankPulleyGroup.add(centerFlangeMesh);
+
+    // Outer 4PK sheave (R = 0.50, width = 0.05, drives Belt 2 Climate Loop)
+    const outerSheaveGeo = new THREE.CylinderGeometry(0.50, 0.50, 0.05, 48);
+    outerSheaveGeo.rotateX(Math.PI / 2);
+    const outerSheaveMesh = new THREE.Mesh(outerSheaveGeo, this.materials.flywheel);
+    outerSheaveMesh.position.z = 0.08;
+    outerSheaveMesh.userData.partInfo = {
+      name: "Dual-Sheave TVD Damper - Outer 4PK Climate Sheave",
+      metallurgy: "Nodular Cast Iron Precision CNC Grooved Track",
+      tempK: "350 K",
+      massGrams: "1,850 g",
+      toleranceMm: "±0.005 mm",
+      heritageNote: "Ganesan Ch. 12: Independent 4PK climate sheave dedicated to the variable swashplate A/C compressor, isolating cabin NVH from engine electrical loads."
+    };
+    this.interactiveMeshes.push(outerSheaveMesh);
+    crankPulleyGroup.add(outerSheaveMesh);
+
+    // Front retaining safety lip
+    const frontLipGeo = new THREE.CylinderGeometry(0.52, 0.52, 0.012, 48);
+    frontLipGeo.rotateX(Math.PI / 2);
+    const frontLipMesh = new THREE.Mesh(frontLipGeo, this.materials.crankshaft);
+    frontLipMesh.position.z = 0.11;
+    crankPulleyGroup.add(frontLipMesh);
 
     // Recessed annular web stepped inward to eliminate coplanar Z-fighting
     const crankWebGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.04, 36);
     crankWebGeo.rotateX(Math.PI / 2);
     const crankWebMesh = new THREE.Mesh(crankWebGeo, this.materials.crankshaft);
-    crankWebMesh.position.z = -0.01;
+    crankWebMesh.position.z = -0.02;
     crankPulleyGroup.add(crankWebMesh);
 
-    // Tuned elastomeric shear rubber damping ring (converts torsional resonance into heat)
+    // Tuned elastomeric shear rubber damping ring (converts torsional resonance into viscous heat)
     const rubberGeo = new THREE.TorusGeometry(0.36, 0.024, 12, 36);
     const rubberMesh = new THREE.Mesh(rubberGeo, this.materials.tvdDamper || this.materials.belt);
     rubberMesh.position.z = 0.01;
     crankPulleyGroup.add(rubberMesh);
 
-    // Billet steel center mounting hub with Grade 12.9 high-tensile fasteners
-    const hubGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.10, 28);
+    // Billet steel center mounting hub
+    const hubGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.14, 28);
     hubGeo.rotateX(Math.PI / 2);
     const hubMesh = new THREE.Mesh(hubGeo, this.materials.crankshaft);
-    hubMesh.position.z = 0.01;
+    hubMesh.position.z = 0.03;
     crankPulleyGroup.add(hubMesh);
 
     // Central crankshaft nose bolt (Grade 12.9 chrome flanged bolt stepped forward)
     const boltGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.06, 16);
     boltGeo.rotateX(Math.PI / 2);
     const boltMesh = new THREE.Mesh(boltGeo, this.materials.starlightChrome);
-    boltMesh.position.z = 0.06;
+    boltMesh.position.z = 0.13;
     crankPulleyGroup.add(boltMesh);
 
     // 6 Perimeter hub retaining bolts
@@ -1537,13 +1664,21 @@ export class V12Scene3D {
       const bStudGeo = new THREE.CylinderGeometry(0.022, 0.022, 0.04, 12);
       bStudGeo.rotateX(Math.PI / 2);
       const bStud = new THREE.Mesh(bStudGeo, this.materials.starlightChrome);
-      bStud.position.set(0.16 * Math.cos(bAngle), 0.16 * Math.sin(bAngle), 0.05);
+      bStud.position.set(0.16 * Math.cos(bAngle), 0.16 * Math.sin(bAngle), 0.10);
       crankPulleyGroup.add(bStud);
     }
 
-    // Subtle perimeter V-grooves
-    for (let g = -0.025; g <= 0.025; g += 0.01) {
-      const grooveGeo = new THREE.TorusGeometry(0.544, 0.005, 6, 40);
+    // Inner sheave 8PK grooves
+    for (let g = -0.022; g <= 0.022; g += 0.007) {
+      const grooveGeo = new THREE.TorusGeometry(0.544, 0.0035, 6, 40);
+      const groove = new THREE.Mesh(grooveGeo, this.materials.gear);
+      groove.position.z = g;
+      crankPulleyGroup.add(groove);
+    }
+
+    // Outer sheave 4PK grooves
+    for (let g = 0.068; g <= 0.092; g += 0.008) {
+      const grooveGeo = new THREE.TorusGeometry(0.504, 0.0035, 6, 40);
       const groove = new THREE.Mesh(grooveGeo, this.materials.gear);
       groove.position.z = g;
       crankPulleyGroup.add(groove);
@@ -1554,9 +1689,8 @@ export class V12Scene3D {
     this.feadPulleys.push({ group: crankPulleyGroup, ratio: 1.0, dir: 1 });
 
     // ------------------------------------------------------------------------
-    // 2. High-Flow Centrifugal Coolant Water Pump
+    // 2. High-Flow Centrifugal Coolant Water Pump (Belt 1, Plane feadZ)
     // Reference: Ganesan Chapter 13 (Engine Cooling, pp. 396-410)
-    // Clear packaging: y = 1.35 provides 0.41 units of clearance above crank pulley!
     // ------------------------------------------------------------------------
     const wpGroup = new THREE.Group();
     const wpPos = { x: 0.0, y: 1.35, z: feadZ };
@@ -1576,18 +1710,18 @@ export class V12Scene3D {
     wpNeck.rotation.z = Math.PI / 4;
     wpGroup.add(wpNeck);
 
-    // Water pump 8-rib grooved alloy pulley
+    // Water pump 8-rib grooved alloy pulley (R = 0.40, width = 0.06)
     const wpPulleyGroup = new THREE.Group();
-    const wpPulleyGeo = new THREE.CylinderGeometry(0.40, 0.40, 0.08, 36);
+    const wpPulleyGeo = new THREE.CylinderGeometry(0.40, 0.40, 0.06, 36);
     wpPulleyGeo.rotateX(Math.PI / 2);
     const wpPulley = new THREE.Mesh(wpPulleyGeo, this.materials.pulleyAlloy || this.materials.starlightChrome);
     wpPulley.userData.partInfo = {
-      name: "Centrifugal Coolant Pump & Pulley",
+      name: "Centrifugal Coolant Pump & Pulley (Belt 1)",
       metallurgy: "Cast ADC12 Aluminum Impeller with CNC Hard-Anodized Alloy Pulley",
       tempK: "365 K",
       massGrams: "2,450 g",
       toleranceMm: "±0.008 mm",
-      heritageNote: "Ganesan Ch. 13 (pp. 396-410): Circulates 380 L/min of coolant across 12 cylinders and twin turbo jackets; consumes 0.46 - 6.5 kW auxiliary power via serpentine belt"
+      heritageNote: "Ganesan Ch. 13 (pp. 396-410): Circulates 380 L/min of coolant across 12 cylinders and twin turbo jackets; consumes 0.46 - 6.5 kW auxiliary power via primary 8PK serpentine belt."
     };
     this.interactiveMeshes.push(wpPulley);
     wpPulleyGroup.add(wpPulley);
@@ -1600,7 +1734,7 @@ export class V12Scene3D {
     wpPulleyGroup.add(wpDish);
 
     // Central bearing snout with 4 retaining studs
-    const wpCapGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.10, 20);
+    const wpCapGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.08, 20);
     wpCapGeo.rotateX(Math.PI / 2);
     const wpCap = new THREE.Mesh(wpCapGeo, this.materials.starlightChrome);
     wpCap.position.z = 0.02;
@@ -1611,7 +1745,7 @@ export class V12Scene3D {
       const studGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.03, 10);
       studGeo.rotateX(Math.PI / 2);
       const stud = new THREE.Mesh(studGeo, this.materials.crankshaft);
-      stud.position.set(0.08 * Math.cos(sAngle), 0.08 * Math.sin(sAngle), 0.06);
+      stud.position.set(0.08 * Math.cos(sAngle), 0.08 * Math.sin(sAngle), 0.05);
       wpPulleyGroup.add(stud);
     }
 
@@ -1621,9 +1755,8 @@ export class V12Scene3D {
     this.feadPulleys.push({ group: wpPulleyGroup, ratio: 170.0 / 130.0, dir: 1 });
 
     // ------------------------------------------------------------------------
-    // 3. High-Output 250A Alternator with OAD Decoupler Pulley
+    // 3. High-Output 250A Alternator with OAD Decoupler Pulley (Belt 1, Plane feadZ)
     // Reference: Ganesan Chapter 12 (p. 362)
-    // Packaging: x = 1.45, y = 0.40 (ample clearance around all neighbours)
     // ------------------------------------------------------------------------
     const altGroup = new THREE.Group();
     const altPos = { x: 1.45, y: 0.40, z: feadZ };
@@ -1642,27 +1775,27 @@ export class V12Scene3D {
     copperMesh.position.z = -0.15;
     altGroup.add(copperMesh);
 
-    // Overrunning Alternator Decoupler (OAD) Pulley
+    // Overrunning Alternator Decoupler (OAD) Pulley (R = 0.23, width = 0.06)
     const altPulleyGroup = new THREE.Group();
-    const altPulleyGeo = new THREE.CylinderGeometry(0.23, 0.23, 0.08, 28);
+    const altPulleyGeo = new THREE.CylinderGeometry(0.23, 0.23, 0.06, 28);
     altPulleyGeo.rotateX(Math.PI / 2);
     const altPulley = new THREE.Mesh(altPulleyGeo, this.materials.pulleyAlloy || this.materials.crankshaft);
     altPulley.userData.partInfo = {
-      name: "250A Alternator & OAD Decoupler Pulley",
+      name: "250A Alternator & OAD Decoupler Pulley (Belt 1)",
       metallurgy: "Cast Aluminum Housing with High-Strength Alloy Overrunning Spring Clutch",
       tempK: "370 K",
       massGrams: "6,900 g",
       toleranceMm: "±0.005 mm",
-      heritageNote: "Ganesan Ch. 12 (p. 362): Generates 250A electrical power for 350-bar direct fuel injectors and dual ECUs; OAD one-way decoupler eliminates belt chirp and rotor inertia shock"
+      heritageNote: "Ganesan Ch. 12 (p. 362): Generates 250A electrical power for 350-bar direct fuel injectors and dual ECUs; OAD one-way decoupler eliminates belt chirp and rotor inertia shock."
     };
     this.interactiveMeshes.push(altPulley);
     altPulleyGroup.add(altPulley);
 
     // OAD Clutch Hub Cap stepped forward
-    const oadCapGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.06, 16);
+    const oadCapGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.05, 16);
     oadCapGeo.rotateX(Math.PI / 2);
     const oadCap = new THREE.Mesh(oadCapGeo, this.materials.starlightChrome);
-    oadCap.position.z = 0.04;
+    oadCap.position.z = 0.035;
     altPulleyGroup.add(oadCap);
 
     altGroup.add(altPulleyGroup);
@@ -1671,92 +1804,83 @@ export class V12Scene3D {
     this.feadPulleys.push({ group: altPulleyGroup, ratio: 170.0 / 70.0, dir: 1 });
 
     // ------------------------------------------------------------------------
-    // 4. Variable Swashplate A/C Compressor
-    // Reference: Ganesan Chapter 12 (Auxiliary load amep)
-    // Packaging: x = -1.45, y = 0.40 (symmetric to alternator)
+    // 4. Upper Guide Idler Pulley (Belt 1, Plane feadZ)
+    // Ensures >140° wrap angle on alternator and water pump pulleys
     // ------------------------------------------------------------------------
-    const acGroup = new THREE.Group();
-    const acPos = { x: -1.45, y: 0.40, z: feadZ };
-    acGroup.position.set(acPos.x, acPos.y, acPos.z);
+    const idlerGroup = new THREE.Group();
+    const idlerPos = { x: 0.78, y: 1.88, z: feadZ };
+    idlerGroup.position.set(idlerPos.x, idlerPos.y, idlerPos.z);
 
-    // Compressor ribbed cylindrical body behind pulley plane
-    const acBodyGeo = new THREE.CylinderGeometry(0.40, 0.44, 0.32, 24);
-    acBodyGeo.rotateX(Math.PI / 2);
-    const acBody = new THREE.Mesh(acBodyGeo, this.materials.cylinderHead);
-    acBody.position.z = -0.19;
-    acGroup.add(acBody);
-
-    // Magnetic clutch and 8PK pulley
-    const acPulleyGroup = new THREE.Group();
-    const acPulleyGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.08, 32);
-    acPulleyGeo.rotateX(Math.PI / 2);
-    const acPulley = new THREE.Mesh(acPulleyGeo, this.materials.pulleyAlloy || this.materials.starlightChrome);
-    acPulley.userData.partInfo = {
-      name: "Variable Swashplate A/C Compressor Pulley",
-      metallurgy: "Forged Alloy Steel Clutch Rotor with Direct-Driven Triangular Dampener",
-      tempK: "345 K",
-      massGrams: "5,400 g",
-      toleranceMm: "±0.008 mm",
-      heritageNote: "Ganesan Ch. 12: External-controlled 7-piston swashplate compressor absorbing 0.35 - 3.1 kW parasitic load; seamless stroke modulation preserves whisper-quiet cabin luxury"
+    const idlerPulleyGroup = new THREE.Group();
+    const idlerGeo = new THREE.CylinderGeometry(0.23, 0.23, 0.06, 28);
+    idlerGeo.rotateX(Math.PI / 2);
+    const idlerMesh = new THREE.Mesh(idlerGeo, this.materials.starlightChrome);
+    idlerMesh.userData.partInfo = {
+      name: "Upper Guide Idler Pulley (Belt 1)",
+      metallurgy: "Deep-Groove Dual Sealed High-Speed Bearing in Precision Steel Shell",
+      tempK: "335 K",
+      massGrams: "720 g",
+      toleranceMm: "±0.002 mm",
+      heritageNote: "Ganesan Ch. 12: Ensures >140° wrap angle on alternator and water pump pulleys to satisfy Euler-Eytelwein friction criteria without excessive pre-tension."
     };
-    this.interactiveMeshes.push(acPulley);
-    acPulleyGroup.add(acPulley);
+    this.interactiveMeshes.push(idlerMesh);
+    idlerPulleyGroup.add(idlerMesh);
 
-    // Magnetic clutch triangular leaf spring hub
-    for (let a = 0; a < 3; a++) {
-      const leafGeo = new THREE.BoxGeometry(0.14, 0.035, 0.02);
-      const leaf = new THREE.Mesh(leafGeo, this.materials.starlightChrome);
-      const leafAngle = (a * Math.PI * 2) / 3;
-      leaf.position.set(0.12 * Math.cos(leafAngle), 0.12 * Math.sin(leafAngle), 0.05);
-      leaf.rotation.z = leafAngle;
-      acPulleyGroup.add(leaf);
-    }
+    // Center retaining bolt
+    const idlerBoltGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.04, 14);
+    idlerBoltGeo.rotateX(Math.PI / 2);
+    const idlerBolt = new THREE.Mesh(idlerBoltGeo, this.materials.crankshaft);
+    idlerBolt.position.z = 0.035;
+    idlerPulleyGroup.add(idlerBolt);
 
-    acGroup.add(acPulleyGroup);
-    this.feadAcPulley = acPulleyGroup;
-    this.feadGroup.add(acGroup);
-    this.feadPulleys.push({ group: acPulleyGroup, ratio: 170.0 / 125.0, dir: 1 });
+    idlerGroup.add(idlerPulleyGroup);
+    this.feadIdlerPulley = idlerPulleyGroup;
+    this.feadGroup.add(idlerGroup);
+    this.feadPulleys.push({ group: idlerPulleyGroup, ratio: 170.0 / 75.0, dir: 1 });
 
     // ------------------------------------------------------------------------
-    // 5. Dynamic Hydraulic Belt Tensioner (Pivoting Arm + Damper + Reverse Roller)
-    // Reference: Euler-Eytelwein Belt Friction Mechanics
-    // Packaging: Pivot base at (-1.18, 1.52), roller center at (-0.76, 0.98).
-    // Clearance: 0.205 units away from water pump; ZERO INTERSECTION!
+    // 5. Primary Dynamic Hydraulic Tensioner (Belt 1, Slack Return Span)
+    // Pivot at (-0.85, 0.95), swing arm extending to roller at (-0.52, 0.65)
+    // Presses on the smooth outer back of the belt (reverse bend contact)
     // ------------------------------------------------------------------------
     const tensionerGroup = new THREE.Group();
-    const tensionerPivotPos = { x: -1.18, y: 1.52, z: feadZ };
+    const tensionerPivotPos = { x: -0.85, y: 0.95, z: feadZ };
     tensionerGroup.position.set(tensionerPivotPos.x, tensionerPivotPos.y, tensionerPivotPos.z);
 
     // Internal torsion spring & hydraulic damper pivot base
-    const tBaseGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.12, 20);
+    const tBaseGeo = new THREE.CylinderGeometry(0.16, 0.16, 0.10, 20);
     tBaseGeo.rotateX(Math.PI / 2);
     const tBase = new THREE.Mesh(tBaseGeo, this.materials.crankshaft);
-    tBase.position.z = -0.06;
+    tBase.position.z = -0.05;
     tensionerGroup.add(tBase);
 
     // Pivoting cast aluminum swing arm
     const armGroup = new THREE.Group();
-    const armLength = 0.68;
-    const armGeo = new THREE.BoxGeometry(0.10, armLength, 0.06);
+    const armDx = 0.33;
+    const armDy = -0.30;
+    const armLength = Math.hypot(armDx, armDy); // ~0.446
+    const armAngle = Math.atan2(armDy, armDx);  // ~ -0.738 rad
+
+    const armGeo = new THREE.BoxGeometry(0.08, armLength, 0.05);
     const armMesh = new THREE.Mesh(armGeo, this.materials.rod);
-    armMesh.position.set(0.21, -0.27, -0.01);
-    armMesh.rotation.z = -Math.PI * 0.29; // points toward (-0.76, 0.98)
+    armMesh.position.set(armDx * 0.5, armDy * 0.5, -0.01);
+    armMesh.rotation.z = armAngle + Math.PI / 2;
     armGroup.add(armMesh);
 
-    // Smooth steel reverse-side idler roller (presses on smooth back of belt)
+    // Smooth steel reverse-side idler roller (presses on smooth back of belt at world -0.52, 0.65)
     const tRollerGroup = new THREE.Group();
-    tRollerGroup.position.set(0.42, -0.54, 0); // World position: (-0.76, 0.98, feadZ)
+    tRollerGroup.position.set(armDx, armDy, 0); // World position: (-0.52, 0.65, feadZ)
 
-    const tRollerGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.08, 28);
+    const tRollerGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.06, 28);
     tRollerGeo.rotateX(Math.PI / 2);
     const tRoller = new THREE.Mesh(tRollerGeo, this.materials.starlightChrome);
     tRoller.userData.partInfo = {
-      name: "Dynamic Hydraulic Belt Tensioner",
+      name: "Primary Dynamic Hydraulic Belt Tensioner (Belt 1)",
       metallurgy: "Precision Sintered Pivot with Internal Hydraulic Fluid Damper & Sealed Roller",
       tempK: "340 K",
       massGrams: "1,850 g",
       toleranceMm: "±0.003 mm",
-      heritageNote: "Maintains 520 N static belt preload across -40°C to +125°C thermal expansion cycles; internal hydraulic orifice dampens firing-pulse belt whip"
+      heritageNote: "Ganesan Ch. 12: Positioned strictly on the slack span (T2) returning to the crankshaft; maintains 520 N static belt preload across thermal expansion cycles with hydraulic whip damping."
     };
     this.interactiveMeshes.push(tRoller);
     tRollerGroup.add(tRoller);
@@ -1765,7 +1889,7 @@ export class V12Scene3D {
     const tRollerBoltGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.04, 14);
     tRollerBoltGeo.rotateX(Math.PI / 2);
     const tRollerBolt = new THREE.Mesh(tRollerBoltGeo, this.materials.crankshaft);
-    tRollerBolt.position.z = 0.04;
+    tRollerBolt.position.z = 0.035;
     tRollerGroup.add(tRollerBolt);
 
     armGroup.add(tRollerGroup);
@@ -1777,80 +1901,21 @@ export class V12Scene3D {
     this.feadPulleys.push({ group: tRollerGroup, ratio: 170.0 / 80.0, dir: -1 });
 
     // ------------------------------------------------------------------------
-    // 6. Upper Guide Idler Pulley (Smooth Steel)
-    // Packaging: x = 0.78, y = 1.88 (clear of water pump by 0.31 units!)
+    // 6. Belt 1: Primary Continuous Multi-Ribbed Serpentine Belt (Micro-V 8PK)
+    // Analytical Closed Tangent-Arc Curve across all 5 Pulleys at feadZ
     // ------------------------------------------------------------------------
-    const idlerGroup = new THREE.Group();
-    const idlerPos = { x: 0.78, y: 1.88, z: feadZ };
-    idlerGroup.position.set(idlerPos.x, idlerPos.y, idlerPos.z);
-
-    const idlerPulleyGroup = new THREE.Group();
-    const idlerGeo = new THREE.CylinderGeometry(0.23, 0.23, 0.08, 28);
-    idlerGeo.rotateX(Math.PI / 2);
-    const idlerMesh = new THREE.Mesh(idlerGeo, this.materials.starlightChrome);
-    idlerMesh.userData.partInfo = {
-      name: "Upper FEAD Guide Idler Pulley",
-      metallurgy: "Deep-Groove Dual Sealed High-Speed Bearing in Precision Steel Shell",
-      tempK: "335 K",
-      massGrams: "720 g",
-      toleranceMm: "±0.002 mm",
-      heritageNote: "Ensures >140° wrap angle on alternator and water pump pulleys to satisfy Euler-Eytelwein friction criteria without excessive pre-tension"
-    };
-    this.interactiveMeshes.push(idlerMesh);
-    idlerPulleyGroup.add(idlerMesh);
-
-    // Center retaining bolt
-    const idlerBoltGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.04, 14);
-    idlerBoltGeo.rotateX(Math.PI / 2);
-    const idlerBolt = new THREE.Mesh(idlerBoltGeo, this.materials.crankshaft);
-    idlerBolt.position.z = 0.04;
-    idlerPulleyGroup.add(idlerBolt);
-
-    idlerGroup.add(idlerPulleyGroup);
-    this.feadIdlerPulley = idlerPulleyGroup;
-    this.feadGroup.add(idlerGroup);
-    this.feadPulleys.push({ group: idlerPulleyGroup, ratio: 170.0 / 75.0, dir: 1 });
-
-    // ------------------------------------------------------------------------
-    // 7. Continuous Multi-Ribbed Serpentine Belt (Micro-V 8PK)
-    // Accurate 3D Closed Tangent Spline Loop Passing Snugly Across All Pulleys
-    // ------------------------------------------------------------------------
-    const beltPoints = [
-      // 1. Under Crank TVD Pulley (R = 0.54 at 0, 0)
-      new THREE.Vector3(-0.46, -0.27, feadZ),
-      new THREE.Vector3( 0.00, -0.54, feadZ),
-      new THREE.Vector3( 0.46, -0.27, feadZ),
-
-      // 2. Up to Alternator Pulley (R = 0.23 at 1.45, 0.40)
-      new THREE.Vector3( 1.28,  0.22, feadZ),
-      new THREE.Vector3( 1.68,  0.40, feadZ),
-      new THREE.Vector3( 1.54,  0.58, feadZ),
-
-      // 3. Up to Upper Guide Idler Pulley (R = 0.23 at 0.78, 1.88)
-      new THREE.Vector3( 1.00,  1.74, feadZ),
-      new THREE.Vector3( 0.78,  2.11, feadZ),
-      new THREE.Vector3( 0.56,  1.96, feadZ),
-
-      // 4. Over High-Flow Coolant Water Pump (R = 0.40 at 0.0, 1.35)
-      new THREE.Vector3( 0.32,  1.60, feadZ),
-      new THREE.Vector3( 0.00,  1.75, feadZ),
-      new THREE.Vector3(-0.32,  1.60, feadZ),
-
-      // 5. Tensioner Reverse Contact (Roller at -0.76, 0.98, R = 0.24; back of belt presses roller at x ~ -0.54)
-      new THREE.Vector3(-0.54,  1.16, feadZ),
-      new THREE.Vector3(-0.52,  0.98, feadZ),
-      new THREE.Vector3(-0.56,  0.80, feadZ),
-
-      // 6. Around A/C Compressor Pulley (R = 0.38 at -1.45, 0.40)
-      new THREE.Vector3(-1.18,  0.64, feadZ),
-      new THREE.Vector3(-1.83,  0.40, feadZ),
-      new THREE.Vector3(-1.45,  0.02, feadZ),
-      new THREE.Vector3(-0.95, -0.14, feadZ)
+    const belt1Pulleys = [
+      { name: 'Crank_Inner', x:  0.00, y: 0.00, r: 0.54, dir:  1 },
+      { name: 'Alternator',  x:  1.45, y: 0.40, r: 0.23, dir:  1 },
+      { name: 'Guide_Idler', x:  0.78, y: 1.88, r: 0.23, dir:  1 },
+      { name: 'Water_Pump',  x:  0.00, y: 1.35, r: 0.40, dir:  1 },
+      { name: 'Tensioner',   x: -0.52, y: 0.65, r: 0.22, dir: -1 }
     ];
 
-    const beltCurve = new THREE.CatmullRomCurve3(beltPoints, true);
-    const beltGeo = new THREE.TubeGeometry(beltCurve, 200, 0.038, 8, true);
-    beltGeo.scale(1.0, 1.0, 0.75);
+    const belt1Waypoints = this._generateBeltWaypoints(belt1Pulleys, 12, 0.20, feadZ);
+    const belt1Curve = new THREE.CatmullRomCurve3(belt1Waypoints, true, 'centripetal');
+    const belt1Geo = new THREE.TubeGeometry(belt1Curve, 240, 0.034, 8, true);
+    belt1Geo.scale(1.0, 1.0, 0.70); // Flatten slightly to represent multi-ribbed belt cross section
 
     const beltMat = this.materials.belt || new THREE.MeshStandardMaterial({
       color: 0x18191c,
@@ -1858,17 +1923,153 @@ export class V12Scene3D {
       metalness: 0.12
     });
 
-    this.serpentineBeltMesh = new THREE.Mesh(beltGeo, beltMat);
-    this.serpentineBeltMesh.userData.partInfo = {
-      name: "Multi-Ribbed Serpentine Belt (Micro-V 8PK)",
+    this.feadBelt1Mesh = new THREE.Mesh(belt1Geo, beltMat);
+    this.feadBelt1Mesh.userData.partInfo = {
+      name: "Primary Multi-Ribbed Serpentine Belt (Micro-V 8PK)",
       metallurgy: "High-Tensile Continuous Aramid Tensile Cords in Heat-Resistant EPDM Elastomer",
       tempK: "350 K",
       massGrams: "380 g",
       toleranceMm: "±0.050 mm",
-      heritageNote: "Ganesan Ch. 12 (pp. 358-365): 8-rib multi-V profile transmitting 12.5 kW auxiliary power at 96.5% efficiency; operates under Euler-Eytelwein belt friction law (T1/T2 = e^(μθ/sin β))"
+      heritageNote: "Ganesan Ch. 12 (pp. 358-365) & Ch. 13: 8PK multi-V profile transmitting 9.4 kW auxiliary load across coolant pump and 250A alternator at 96.5% mechanical efficiency under Euler-Eytelwein law."
     };
-    this.interactiveMeshes.push(this.serpentineBeltMesh);
-    this.feadGroup.add(this.serpentineBeltMesh);
+    this.interactiveMeshes.push(this.feadBelt1Mesh);
+    this.feadGroup.add(this.feadBelt1Mesh);
+    this.serpentineBeltMesh = this.feadBelt1Mesh; // Backwards compatibility alias
+
+    // ------------------------------------------------------------------------
+    // 7. Variable Swashplate A/C Compressor (Belt 2, Plane feadZ2 = feadZ + 0.08)
+    // Reference: Ganesan Chapter 12 (Auxiliary load amep)
+    // ------------------------------------------------------------------------
+    const acGroup = new THREE.Group();
+    const acPos = { x: -1.45, y: 0.40, z: feadZ2 };
+    acGroup.position.set(acPos.x, acPos.y, acPos.z);
+
+    // Compressor ribbed cylindrical body behind pulley plane
+    const acBodyGeo = new THREE.CylinderGeometry(0.40, 0.44, 0.32, 24);
+    acBodyGeo.rotateX(Math.PI / 2);
+    const acBody = new THREE.Mesh(acBodyGeo, this.materials.cylinderHead);
+    acBody.position.z = -0.19;
+    acGroup.add(acBody);
+
+    // Magnetic clutch and 4PK alloy pulley (R = 0.38, width = 0.05)
+    const acPulleyGroup = new THREE.Group();
+    const acPulleyGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.05, 32);
+    acPulleyGeo.rotateX(Math.PI / 2);
+    const acPulley = new THREE.Mesh(acPulleyGeo, this.materials.pulleyAlloy || this.materials.starlightChrome);
+    acPulley.userData.partInfo = {
+      name: "Variable Swashplate A/C Compressor Pulley (Belt 2)",
+      metallurgy: "Forged Alloy Steel Clutch Rotor with Direct-Driven Triangular Dampener",
+      tempK: "345 K",
+      massGrams: "5,400 g",
+      toleranceMm: "±0.008 mm",
+      heritageNote: "Ganesan Ch. 12: External-controlled 7-piston swashplate compressor absorbing 0.35 - 3.1 kW parasitic load; driven by dedicated 4PK climate belt from outer crankshaft TVD sheave."
+    };
+    this.interactiveMeshes.push(acPulley);
+    acPulleyGroup.add(acPulley);
+
+    // Magnetic clutch triangular leaf spring hub
+    for (let a = 0; a < 3; a++) {
+      const leafGeo = new THREE.BoxGeometry(0.14, 0.035, 0.02);
+      const leaf = new THREE.Mesh(leafGeo, this.materials.starlightChrome);
+      const leafAngle = (a * Math.PI * 2) / 3;
+      leaf.position.set(0.12 * Math.cos(leafAngle), 0.12 * Math.sin(leafAngle), 0.035);
+      leaf.rotation.z = leafAngle;
+      acPulleyGroup.add(leaf);
+    }
+
+    acGroup.add(acPulleyGroup);
+    this.feadAcPulley = acPulleyGroup;
+    this.feadGroup.add(acGroup);
+    this.feadPulleys.push({ group: acPulleyGroup, ratio: 158.0 / 125.0, dir: 1 });
+
+    // ------------------------------------------------------------------------
+    // 8. Dedicated A/C Dynamic Belt Tensioner (Belt 2, Slack Return Span)
+    // Pivot at (-1.05, -0.45, feadZ2), swing arm extending to roller at (-0.70, -0.20, feadZ2)
+    // Presses on the outer smooth back of the 4PK belt on the return run
+    // ------------------------------------------------------------------------
+    const acTensionerGroup = new THREE.Group();
+    const acTensionerPivotPos = { x: -1.05, y: -0.45, z: feadZ2 };
+    acTensionerGroup.position.set(acTensionerPivotPos.x, acTensionerPivotPos.y, acTensionerPivotPos.z);
+
+    // Tensioner base mount on engine block flank
+    const acTBaseGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.08, 20);
+    acTBaseGeo.rotateX(Math.PI / 2);
+    const acTBase = new THREE.Mesh(acTBaseGeo, this.materials.crankshaft);
+    acTBase.position.z = -0.05;
+    acTensionerGroup.add(acTBase);
+
+    // Pivoting swing arm extending to (-0.70, -0.20)
+    const acArmGroup = new THREE.Group();
+    const acArmDx = 0.35;
+    const acArmDy = 0.25;
+    const acArmLength = Math.hypot(acArmDx, acArmDy); // ~0.430
+    const acArmAngle = Math.atan2(acArmDy, acArmDx);  // ~ 0.620 rad
+
+    const acArmGeo = new THREE.BoxGeometry(0.07, acArmLength, 0.04);
+    const acArmMesh = new THREE.Mesh(acArmGeo, this.materials.rod);
+    acArmMesh.position.set(acArmDx * 0.5, acArmDy * 0.5, -0.01);
+    acArmMesh.rotation.z = acArmAngle + Math.PI / 2;
+    acArmGroup.add(acArmMesh);
+
+    // Smooth steel reverse-side idler roller (presses on smooth back of 4PK belt at world -0.70, -0.20)
+    const acTRollerGroup = new THREE.Group();
+    acTRollerGroup.position.set(acArmDx, acArmDy, 0); // World position: (-0.70, -0.20, feadZ2)
+
+    const acTRollerGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.05, 24);
+    acTRollerGeo.rotateX(Math.PI / 2);
+    const acTRoller = new THREE.Mesh(acTRollerGeo, this.materials.starlightChrome);
+    acTRoller.userData.partInfo = {
+      name: "Climate Loop Dynamic Belt Tensioner (Belt 2)",
+      metallurgy: "High-Strength Alloy Pivot with Internal Spring & Sealed Reverse Roller",
+      tempK: "338 K",
+      massGrams: "1,250 g",
+      toleranceMm: "±0.003 mm",
+      heritageNote: "Ganesan Ch. 12: Maintains 380 N static preload on the 4PK climate belt slack return span; absorbs magnetic clutch engagement transients."
+    };
+    this.interactiveMeshes.push(acTRoller);
+    acTRollerGroup.add(acTRoller);
+
+    // Center retaining fastener on A/C tensioner roller
+    const acTRollerBoltGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.035, 12);
+    acTRollerBoltGeo.rotateX(Math.PI / 2);
+    const acTRollerBolt = new THREE.Mesh(acTRollerBoltGeo, this.materials.crankshaft);
+    acTRollerBolt.position.z = 0.03;
+    acTRollerGroup.add(acTRollerBolt);
+
+    acArmGroup.add(acTRollerGroup);
+    acTensionerGroup.add(acArmGroup);
+
+    this.feadAcTensionerArm = acArmGroup;
+    this.feadAcTensionerPulley = acTRollerGroup;
+    this.feadGroup.add(acTensionerGroup);
+    this.feadPulleys.push({ group: acTRollerGroup, ratio: 158.0 / 75.0, dir: -1 });
+
+    // ------------------------------------------------------------------------
+    // 9. Belt 2: Secondary Climate Auxiliary Belt (Micro-V 4PK)
+    // Analytical Closed Tangent-Arc Curve across all 3 Pulleys at feadZ2
+    // ------------------------------------------------------------------------
+    const belt2Pulleys = [
+      { name: 'Crank_Outer', x:  0.00, y:  0.00, r: 0.50, dir:  1 },
+      { name: 'AC_Comp',     x: -1.45, y:  0.40, r: 0.38, dir:  1 },
+      { name: 'AC_Tension',  x: -0.70, y: -0.20, r: 0.18, dir: -1 }
+    ];
+
+    const belt2Waypoints = this._generateBeltWaypoints(belt2Pulleys, 12, 0.20, feadZ2);
+    const belt2Curve = new THREE.CatmullRomCurve3(belt2Waypoints, true, 'centripetal');
+    const belt2Geo = new THREE.TubeGeometry(belt2Curve, 180, 0.026, 8, true);
+    belt2Geo.scale(1.0, 1.0, 0.60); // 4PK profile narrower than 8PK
+
+    this.feadBelt2Mesh = new THREE.Mesh(belt2Geo, beltMat);
+    this.feadBelt2Mesh.userData.partInfo = {
+      name: "Secondary Climate Auxiliary Belt (Micro-V 4PK)",
+      metallurgy: "Heat-Resistant EPDM Elastomer with Continuous Polyamide Tensile Cords",
+      tempK: "345 K",
+      massGrams: "190 g",
+      toleranceMm: "±0.050 mm",
+      heritageNote: "Ganesan Ch. 12: Independent 4PK multi-ribbed belt (860 mm) driven by outer crankshaft TVD sheave. Isolated drive isolates passenger compartment from engine torsional pulsations."
+    };
+    this.interactiveMeshes.push(this.feadBelt2Mesh);
+    this.feadGroup.add(this.feadBelt2Mesh);
 
     // Register FEAD for Exploded Assembly
     this.explodedAssemblies.fead = [
@@ -3081,15 +3282,19 @@ export class V12Scene3D {
       this.standingCoin.position.x = Math.sin(t * 16.0) * microAmp;
     }
 
-    // 7b. Dynamic FEAD Serpentine Belt & Pulley Rotations
+    // 7b. Dynamic FEAD Dual-Belt & Pulley Rotations (Ganesan Ch. 12)
     if (this.feadPulleys && this.feadPulleys.length > 0) {
       this.feadPulleys.forEach(p => {
         p.group.rotation.z = crankAngleRad * p.ratio * p.dir;
       });
     }
     if (this.feadTensionerArm) {
-      // Dynamic tensioner micro-deflection responding to 6th & 12th order torque pulses
+      // Primary 8PK dynamic tensioner micro-deflection responding to 6th & 12th order torque pulses
       this.feadTensionerArm.rotation.z = Math.sin(crankAngleRad * 6.0) * 0.025;
+    }
+    if (this.feadAcTensionerArm) {
+      // Secondary 4PK climate tensioner micro-deflection with phase lag from A/C swashplate stroke
+      this.feadAcTensionerArm.rotation.z = Math.sin(crankAngleRad * 6.0 + 1.2) * 0.030;
     }
 
     // 8. Dynamic Thermal FLIR Emission Modulation

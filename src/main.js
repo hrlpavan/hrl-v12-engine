@@ -807,6 +807,20 @@ class V12Application {
 
         const elFeadHyst = document.getElementById('fead-hyst-kw');
         if (elFeadHyst) elFeadHyst.textContent = `${b.beltHysteresisLossKw.toFixed(2)} kW (3.8%)`;
+
+        // Dual-Belt Breakdown
+        if (b.belt1) {
+          const elB1Kw = document.getElementById('fead-belt1-kw');
+          if (elB1Kw) elB1Kw.textContent = `${b.belt1.powerKw.toFixed(2)} kW`;
+          const elB1Ten = document.getElementById('fead-belt1-tensions');
+          if (elB1Ten) elB1Ten.textContent = `${b.belt1.tightN} N / ${b.belt1.slackN} N`;
+        }
+        if (b.belt2) {
+          const elB2Kw = document.getElementById('fead-belt2-kw');
+          if (elB2Kw) elB2Kw.textContent = `${b.belt2.powerKw.toFixed(2)} kW`;
+          const elB2Ten = document.getElementById('fead-belt2-tensions');
+          if (elB2Ten) elB2Ten.textContent = `${b.belt2.tightN} N / ${b.belt2.slackN} N`;
+        }
       }
     }
 

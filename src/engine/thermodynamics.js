@@ -247,15 +247,33 @@ export function calculateAccessoryBeltDrive(rpm, throttle = 1.0, isEcoMode = fal
   const alternatorEff = 0.84;
   const alternatorKw = baseElecKw / alternatorEff;
 
-  // 3. Variable Swashplate A/C Compressor Power:
+  // Belt 1 (Primary 8PK Engine Loop: Water Pump + 250A Alternator):
+  const belt1UsefulKw = waterPumpKw + alternatorKw;
+  const belt1HysteresisKw = belt1UsefulKw * 0.035;
+  const belt1TotalKw = belt1UsefulKw + belt1HysteresisKw;
+  const belt1MassKgM = 0.125; // 8PK profile (0.125 kg/m)
+  const belt1CentrifugalN = belt1MassKgM * Math.pow(beltLinearSpeedMs, 2.0);
+  const belt1PullN = (belt1TotalKw * 1e3) / beltLinearSpeedMs;
+  const belt1TightN = Math.round(520.0 + belt1PullN * 0.55 + belt1CentrifugalN);
+  const belt1SlackN = Math.max(120, Math.round(belt1TightN - belt1PullN));
+
+  // 3. Variable Swashplate A/C Compressor Power (Belt 2: Secondary 4PK Climate Loop):
   // Displaces refrigerant proportionally; at idle ~0.4 kW, at cruise ~1.1 kW, max ~3.1 kW
   const acEcoFactor = isEcoMode ? 0.70 : 1.0;
   const acCompressorKw = Math.max(0.35, (0.35 + 0.45 * rpmRatio) * acEcoFactor);
+  const belt2HysteresisKw = acCompressorKw * 0.040;
+  const belt2TotalKw = acCompressorKw + belt2HysteresisKw;
+  const crankOuterDiaM = 0.158; // 158 mm outer sheave for A/C
+  const belt2SpeedMs = Math.PI * crankOuterDiaM * (normRpm / 60.0);
+  const belt2MassKgM = 0.065; // 4PK profile (0.065 kg/m)
+  const belt2CentrifugalN = belt2MassKgM * Math.pow(belt2SpeedMs, 2.0);
+  const belt2PullN = (belt2TotalKw * 1e3) / belt2SpeedMs;
+  const belt2TightN = Math.round(380.0 + belt2PullN * 0.55 + belt2CentrifugalN);
+  const belt2SlackN = Math.max(90, Math.round(belt2TightN - belt2PullN));
 
-  // 4. Belt Viscoelastic Hysteresis & Microslip Friction:
-  // Multi-V serpentine belt exhibits ~3.8% transmission loss via bending hysteresis & microslip
+  // 4. Combined FEAD Auxiliary Load:
   const usefulAuxKw = waterPumpKw + alternatorKw + acCompressorKw;
-  const beltHysteresisLossKw = usefulAuxKw * 0.038;
+  const beltHysteresisLossKw = belt1HysteresisKw + belt2HysteresisKw;
   const totalAuxiliaryPowerKw = usefulAuxKw + beltHysteresisLossKw;
 
   // Total accessory torque absorbed at the crankshaft nose:
@@ -268,15 +286,9 @@ export function calculateAccessoryBeltDrive(rpm, throttle = 1.0, isEcoMode = fal
   const amepPa = (totalAuxiliaryPowerKw * 1e3) / (dispM3 * nCyclesPerSec);
   const amepBar = amepPa / 1e5;
 
-  // 5. Euler-Eytelwein Belt Tension Mechanics (Micro-V 8PK Profile):
-  // Wedge angle 2*beta = 40 deg (beta = 20 deg), mu = 0.38
-  const beltMassKgM = 0.16; // 8PK aramid-reinforced EPDM belt mass
-  const centrifugalTensionN = beltMassKgM * Math.pow(beltLinearSpeedMs, 2.0); // m * v^2
-
-  const basePreloadN = 520.0; // Dynamic tensioner static spring preload
-  const effectiveBeltPullN = totalAuxiliaryTorqueNm / (crankDiaM / 2.0);
-  const tightTensionN = Math.round(basePreloadN + (effectiveBeltPullN * 0.55) + centrifugalTensionN);
-  const slackTensionN = Math.max(120, Math.round(tightTensionN - effectiveBeltPullN));
+  const tightTensionN = belt1TightN;
+  const slackTensionN = belt1SlackN;
+  const centrifugalTensionN = Math.round(belt1CentrifugalN);
 
   // Torsional Vibration Damper (Harmonic Balancer) Attenuation:
   // Converts 6th & 12th order crankshaft torsional spikes into viscous shear heat
@@ -297,10 +309,46 @@ export function calculateAccessoryBeltDrive(rpm, throttle = 1.0, isEcoMode = fal
     amepBar: Math.round(amepBar * 100) / 100,
     tightTensionN,
     slackTensionN,
-    centrifugalTensionN: Math.round(centrifugalTensionN),
+    centrifugalTensionN,
     tensionRatio: Math.round((tightTensionN / slackTensionN) * 10) / 10,
     dampedTorsionalTwistDeg,
-    tvdAttenuationPct: 91.0
+    tvdAttenuationPct: 91.0,
+
+    // Granular per-belt breakdowns:
+    belt1: {
+      name: "Primary FEAD Drive (8PK Micro-V)",
+      profile: "8PK Aramid-Reinforced EPDM (1,840 mm)",
+      subsystems: "Coolant Water Pump (130 mm) + 250A Alternator (70 mm)",
+      speedMs: Math.round(beltLinearSpeedMs * 10) / 10,
+      powerKw: Math.round(belt1TotalKw * 100) / 100,
+      tightN: belt1TightN,
+      slackN: belt1SlackN,
+      centrifugalN: Math.round(belt1CentrifugalN),
+      ratio: Math.round((belt1TightN / belt1SlackN) * 10) / 10,
+      wrapAngles: {
+        crankInnerDeg: 186.5,
+        alternatorDeg: 142.6,
+        guideIdlerDeg: 95.0,
+        waterPumpDeg: 131.4,
+        tensionerDeg: 65.0
+      }
+    },
+    belt2: {
+      name: "Climate Auxiliary Drive (4PK Micro-V)",
+      profile: "4PK EPDM Elastomer (860 mm)",
+      subsystems: "Variable Swashplate A/C Compressor (125 mm)",
+      speedMs: Math.round(belt2SpeedMs * 10) / 10,
+      powerKw: Math.round(belt2TotalKw * 100) / 100,
+      tightN: belt2TightN,
+      slackN: belt2SlackN,
+      centrifugalN: Math.round(belt2CentrifugalN),
+      ratio: Math.round((belt2TightN / belt2SlackN) * 10) / 10,
+      wrapAngles: {
+        crankOuterDeg: 148.0,
+        acCompressorDeg: 158.2,
+        tensionerDeg: 54.0
+      }
+    }
   };
 }
 

@@ -730,10 +730,10 @@
             <div class="apple-card">
               <div class="card-header">
                 <div class="card-title-group">
-                  <span class="card-title">FEAD Serpentine Belt Drive</span>
-                  <span class="card-subtitle">Auxiliary Transmission &amp; Friction (amep)</span>
+                  <span class="card-title">FEAD Dual-Belt Drive Architecture</span>
+                  <span class="card-subtitle">Ganesan Ch. 12 &amp; 13 · Twin-Loop TVD Auxiliary Drive</span>
                 </div>
-                <span id="fead-status-badge" class="card-tag">8PK Multi-Ribbed</span>
+                <span id="fead-status-badge" class="card-tag">Dual-Belt (8PK + 4PK)</span>
               </div>
 
               <div class="pressure-hero" style="margin-top: 6px;">
@@ -753,15 +753,23 @@
                   <span id="fead-amep-val" class="detail-val">0.32 bar</span>
                 </div>
                 <div class="detail-item">
-                  <span class="detail-label">Torque Absorbed</span>
+                  <span class="detail-label">Total Absorbed Torque</span>
                   <span id="fead-torque-val" class="detail-val">17.2 Nm</span>
                 </div>
                 <div class="detail-item">
-                  <span class="detail-label">Tight Tension (T₁)</span>
+                  <span class="detail-label">TVD Attenuation</span>
+                  <span id="fead-tvd-val" class="detail-val">-91% (0.13° twist)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Drive Efficiency</span>
+                  <span id="fead-eff-val" class="detail-val">96.5%</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Belt 1 Tight (T₁)</span>
                   <span id="fead-t1-val" class="detail-val">664 N</span>
                 </div>
                 <div class="detail-item">
-                  <span class="detail-label">Slack Tension (T₂)</span>
+                  <span class="detail-label">Belt 1 Slack (T₂)</span>
                   <span id="fead-t2-val" class="detail-val">461 N</span>
                 </div>
                 <div class="detail-item">
@@ -772,13 +780,39 @@
                   <span class="detail-label">Centrifugal Pull (mv²)</span>
                   <span id="fead-centrifugal-val" class="detail-val">32 N</span>
                 </div>
-                <div class="detail-item">
-                  <span class="detail-label">TVD Attenuation</span>
-                  <span id="fead-tvd-val" class="detail-val">-91% (0.13° twist)</span>
+              </div>
+
+              <!-- Dual-Belt Telemetry Comparison -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 8px;">
+                  <div style="font-size: 11px; font-weight: 600; color: #4ade80; display: flex; justify-content: space-between;">
+                    <span>Belt 1: Primary (8PK)</span>
+                    <span id="fead-belt1-kw">1.76 kW</span>
+                  </div>
+                  <div style="font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px;">Water Pump (130mm) + Alt (70mm)</div>
+                  <div style="font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 4px; display: flex; justify-content: space-between;">
+                    <span>T₁ / T₂</span>
+                    <span id="fead-belt1-tensions">664 N / 461 N</span>
+                  </div>
+                  <div style="font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 2px; display: flex; justify-content: space-between;">
+                    <span>Wrap Angles</span>
+                    <span>Alt 142.6° · WP 131.4°</span>
+                  </div>
                 </div>
-                <div class="detail-item">
-                  <span class="detail-label">Belt Drive Efficiency</span>
-                  <span id="fead-eff-val" class="detail-val">96.5%</span>
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 8px;">
+                  <div style="font-size: 11px; font-weight: 600; color: #38bdf8; display: flex; justify-content: space-between;">
+                    <span>Belt 2: Climate (4PK)</span>
+                    <span id="fead-belt2-kw">1.13 kW</span>
+                  </div>
+                  <div style="font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px;">Variable Swashplate A/C (125mm)</div>
+                  <div style="font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 4px; display: flex; justify-content: space-between;">
+                    <span>T₁ / T₂</span>
+                    <span id="fead-belt2-tensions">442 N / 285 N</span>
+                  </div>
+                  <div style="font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 2px; display: flex; justify-content: space-between;">
+                    <span>Wrap Angles</span>
+                    <span>A/C 158.2° · Crank 148°</span>
+                  </div>
                 </div>
               </div>
 
@@ -787,8 +821,8 @@
                 <div class="param-row">
                   <span>μ 0.38</span>
                   <span>2β 40° (Groove)</span>
-                  <span>θ 140° (Wrap)</span>
-                  <span>Preload 520 N</span>
+                  <span>θ ≥ 140° (Wrap)</span>
+                  <span>Preload 520N/380N</span>
                 </div>
               </div>
             </div>
