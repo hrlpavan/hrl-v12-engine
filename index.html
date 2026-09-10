@@ -201,6 +201,7 @@
           <button class="seg-btn" data-tab="dyno">Dyno</button>
           <button class="seg-btn" data-tab="emissions">Emiss</button>
           <button class="seg-btn" data-tab="eco" title="Ganesan High-Efficiency Atkinson & Stratified Lean Burn Mode">Eco</button>
+          <button class="seg-btn" data-tab="belts" title="FEAD Serpentine Belts & Auxiliary Transmission (Ganesan Ch. 12 & 13)">Belts</button>
         </div>
 
         <!-- Tab Content Panes -->
@@ -719,6 +720,155 @@
                     <span class="rule-badge">Sec. 17.7, pp. 592-593, Fig. 17.24</span>
                   </div>
                   <p class="rule-desc">Heated Zirconia λ-sensor with sub-50ms response provides closed-loop AFR regulation while dual piezoelectric knock sensors advance MBT timing to target peak cylinder pressure at 12° aTDC.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane 10: FEAD Serpentine Belts & Auxiliary Power -->
+          <div class="inspector-pane" id="pane-belts">
+            <div class="apple-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">FEAD Serpentine Belt Drive</span>
+                  <span class="card-subtitle">Auxiliary Transmission &amp; Friction (amep)</span>
+                </div>
+                <span id="fead-status-badge" class="card-tag">8PK Multi-Ribbed</span>
+              </div>
+
+              <div class="pressure-hero" style="margin-top: 6px;">
+                <div class="pressure-main">
+                  <span id="fead-power-total" class="pressure-num">2.89</span>
+                  <span class="pressure-unit-label">kW</span>
+                </div>
+                <div class="temp-display">
+                  <span class="temp-label">Linear Belt Speed</span>
+                  <span id="fead-belt-speed" class="temp-val">14.2 m/s</span>
+                </div>
+              </div>
+
+              <div class="cyl-details-grid" style="margin-top: 10px;">
+                <div class="detail-item">
+                  <span class="detail-label">Auxiliary MEP (amep)</span>
+                  <span id="fead-amep-val" class="detail-val">0.32 bar</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Torque Absorbed</span>
+                  <span id="fead-torque-val" class="detail-val">17.2 Nm</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Tight Tension (T₁)</span>
+                  <span id="fead-t1-val" class="detail-val">664 N</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Slack Tension (T₂)</span>
+                  <span id="fead-t2-val" class="detail-val">461 N</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Tension Ratio (T₁/T₂)</span>
+                  <span id="fead-ratio-val" class="detail-val">1.44</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Centrifugal Pull (mv²)</span>
+                  <span id="fead-centrifugal-val" class="detail-val">32 N</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">TVD Attenuation</span>
+                  <span id="fead-tvd-val" class="detail-val">-91% (0.13° twist)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Belt Drive Efficiency</span>
+                  <span id="fead-eff-val" class="detail-val">96.5%</span>
+                </div>
+              </div>
+
+              <div class="card-footer-formula" style="margin-top: 10px;">
+                <div class="math-expr">Euler-Eytelwein: (T₁ - mv²) / (T₂ - mv²) = e^(μθ / sin β)</div>
+                <div class="param-row">
+                  <span>μ 0.38</span>
+                  <span>2β 40° (Groove)</span>
+                  <span>θ 140° (Wrap)</span>
+                  <span>Preload 520 N</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Auxiliary Parasitic Load Breakdown Card -->
+            <div class="apple-card" style="margin-top: 8px;">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Parasitic Auxiliary Load Distribution</span>
+                  <span class="card-subtitle">Ganesan Ch. 12 (Eq. 12.2) &amp; Ch. 13</span>
+                </div>
+                <span class="card-tag">FEAD Breakdown</span>
+              </div>
+              <div class="cyl-details-grid" style="margin-top: 6px;">
+                <div class="detail-item">
+                  <span class="detail-label">Coolant Water Pump</span>
+                  <span id="fead-wp-kw" class="detail-val">0.46 kW (130 mm)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">250A Alternator (GDI)</span>
+                  <span id="fead-alt-kw" class="detail-val">1.25 kW (70 mm)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">A/C Swashplate Comp</span>
+                  <span id="fead-ac-kw" class="detail-val">1.07 kW (125 mm)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Belt Rubber Hysteresis</span>
+                  <span id="fead-hyst-kw" class="detail-val">0.11 kW (3.8%)</span>
+                </div>
+              </div>
+              <div class="card-footer-info" style="margin-top: 8px;">
+                <span>Ganesan Eq. 12.2: fmep = mmep + pmep + amep · Water pump power scales ~N^2.7</span>
+              </div>
+            </div>
+
+            <!-- Ganesan Book Belt Guidance Card -->
+            <div class="apple-card" style="margin-top: 8px;">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Role of Belts in the Rolls-Royce V12</span>
+                  <span class="card-subtitle">Engineering Grounding (Prof. V. Ganesan)</span>
+                </div>
+                <span class="card-tag">Book Principles</span>
+              </div>
+              <div class="ganesan-rules-scroll">
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">A</span>
+                    <span class="rule-title">Auxiliary Parasitic Work (amep)</span>
+                    <span class="rule-badge">Ganesan Sec. 12.2, p. 362</span>
+                  </div>
+                  <p class="rule-desc">The serpentine belt transfers mechanical work from the crankshaft to vital subsystems (water pump, alternator, A/C compressor). Consumes 0.25 to 0.45 bar AMEP, reducing indicated power to brake power (bp = ip - fp).</p>
+                </div>
+
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">B</span>
+                    <span class="rule-title">Torsional Harmonic Balancing (TVD)</span>
+                    <span class="rule-badge">Ganesan Ch. 18, p. 542</span>
+                  </div>
+                  <p class="rule-desc">The crankshaft driving pulley is an elastomeric Torsional Vibration Damper. It damps 6th and 12th harmonic resonance spikes from the V12 60° firing pulses by 91%, isolating the belt from high-frequency torsional twist.</p>
+                </div>
+
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">C</span>
+                    <span class="rule-title">Euler-Eytelwein Friction &amp; Wrap Angle</span>
+                    <span class="rule-badge">Euler's Capstan Law</span>
+                  </div>
+                  <p class="rule-desc">Multi-ribbed 40° V-grooves increase effective friction (μ/sin 20° ≈ 1.11). Strategic guide idlers maintain wrap angles &gt;140°, preventing belt slip under sudden acceleration without excessive static bearing pre-loads.</p>
+                </div>
+
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">D</span>
+                    <span class="rule-title">Dynamic Hydraulic Tensioning</span>
+                    <span class="rule-badge">Accessory Stability</span>
+                  </div>
+                  <p class="rule-desc">A spring-loaded swing arm with hydraulic damping maintains 520 N constant preload across thermal expansion ranges (-40°C to +125°C), eliminating high-RPM belt flap and premature cord fatigue.</p>
                 </div>
               </div>
             </div>

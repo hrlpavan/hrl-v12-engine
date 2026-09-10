@@ -66,7 +66,7 @@ $$\eta_{	ext{atkinson}} = 1 - \gamma rac{e - r}{e^\gamma - r^\gamma} = 63.00\%$
 - Recirculated exhaust acts as a thermal sink, reducing peak combustion temperatures below the 1,800 K Zeldovich threshold and cutting raw engine-out $	ext{NO}_x$ emissions by over **68%**.
 
 ### 5. Variable Valve Actuation (VVA) Unthrottled Load Control (Ganesan Sec. 20.7.5)
-- Throttling losses are eliminated by utilizing intake valve duration and lift variation to regulate inducted mass airflow, converting traditional negative intake pumping loops into positive energy scavenging under boost ($\Delta W_{	ext{pumping}} > 0$).
+- Throttling losses are eliminated by utilizing intake valve duration and lift variation to regulate inducted mass airflow, converting traditional negative intake pumping loops into positive energy scavenging under boost ($\Delta W_{pumping} > 0$).
 
 ### 6. Low-Friction Slipper Skirt & Hydrodynamic Lubrication (Ganesan Sec. 12.6.1 & 12.9)
 - Modeled with shortened slipper skirts and graphite friction-reducing coatings, reducing piston friction mean effective pressure ($fmep$) to maintain a **92.4% mechanical efficiency** ($\eta_m$).
@@ -74,24 +74,36 @@ $$\eta_{	ext{atkinson}} = 1 - \gamma rac{e - r}{e^\gamma - r^\gamma} = 63.00\%$
 
 ### 7. Inlet-Valve Mach Index Sonic Choking Control (Ganesan Sec. 1.3.4, Eq. 1.25)
 - Inlet valve Mach index ($Z$) is continuously tracked:
-$$Z = \left(rac{d}{D_i}ight)^2 rac{V_p}{C_i \cdot a}$$
+$$Z = \left(\frac{d}{D_i}\right)^2 \frac{V_p}{C_i \cdot a}$$
 - At 1,600 RPM cruising speed, $Z = 0.178 \le 0.55$, ensuring zero sonic choking across intake ports and optimal volumetric efficiency ($\eta_v = 94.2\%$).
+
+### 8. FEAD Serpentine Belt Mechanics & Auxiliary Friction (Ganesan Ch. 12 & 13, p. 362)
+- Models the **Front Engine Accessory Drive (FEAD)** transmitting mechanical power from the crankshaft nose to auxiliary subsystems:
+  $$fmep = mmep + pmep + amep \quad (Ganesan Eq. 12.2)$$
+  where $amep$ is the **Auxiliary Mean Effective Pressure** consumed by belt-driven loads:
+  - **Centrifugal Coolant Pump** (Ganesan Ch. 13, p. 402): Impeller power scales cubically ($P \propto N^{2.7}$), consuming 0.08 kW at idle up to 6.5 kW at 6,000 RPM.
+  - **High-Output 250A Alternator**: Supplies electrical current for dual ECUs, coils, and 350-bar GDI pumps (0.95 to 2.8 kW). Equipped with an Overrunning Alternator Decoupler (OAD) clutch to eliminate deceleration belt chirp.
+  - **Variable Swashplate A/C Compressor**: Smooth internal displacement modulation consuming 0.35 to 3.1 kW.
+  - **Torsional Vibration Damper (TVD) Harmonic Balancer** (Ganesan Ch. 18, p. 542): Tuned elastomeric shear ring absorbs 6th and 12th order crankshaft torsional spikes, dampening twist amplitude by **91%** to protect the belt.
+  - **Euler-Eytelwein Belt Friction Law**: Tracks tight ($T_1$) and slack ($T_2$) tension across an 8-rib Micro-V EPDM aramid belt with centrifugal correction:
+    $$\frac{T_1 - m v^2}{T_2 - m v^2} = e^{\frac{\mu \cdot \theta}{\sin \beta}}$$
 
 ---
 
 ## 4. Laboratory-Grade Telemetry HUD
 
-The analytical inspector provides 9 real-time instrumentation tabs:
+The analytical inspector provides 10 real-time instrumentation tabs:
 
 1. **Cyl (Cylinder Inspector)**: Active phase, crank angle from TDC, chamber pressure ($P$), instantaneous gas temperature ($K$), mean piston speed, equivalence ratio ($\phi$), and mass flows.
-2. **Motion (Kinematics)**: Slider-crank analytical displacement $s(	heta)$, velocity $v(	heta)$, and acceleration $a(	heta)$ coupled with a 60° polar crankshaft end-view vector display.
+2. **Motion (Kinematics)**: Slider-crank analytical displacement $s(\theta)$, velocity $v(\theta)$, and acceleration $a(\theta)$ coupled with a 60° polar crankshaft end-view vector display.
 3. **P-V (Indicator Loop)**: Dynamic $P$-$V$ curve comparing real-time in-cylinder pressure against theoretical air-standard Otto ($60.2\%$) and Atkinson ($63.0\%$) cycles with positive boost pumping loop shading.
 4. **Heat (Sankey Balance)**: Real-time energy distribution between Brake Power ($32.8\%$), Cooling Jacket ($28.2\%$), Exhaust Gas ($33.6\%$), and Radiation ($5.4\%$).
 5. **Map (BSFC Performance)**: Speed vs. BMEP contours featuring the high-efficiency **198 g/kWh Atkinson Eco Island** and live operating crosshair.
 6. **Valves (Timing & Mach)**: 720° lift curves, late intake closing markers, overlap region, and live Mach index $Z$ choking status.
 7. **Dyno (Power & Torque)**: Automated wide-open throttle dyno sweep from 600 to 6,000 RPM displaying the 900 Nm tidal plateau.
-8. **Emiss (Catalytic Kinetics)**: Pre-catalyst vs. tailpipe $	ext{NO}_x$, $	ext{CO}$, and $	ext{HC}$ concentrations with 3-way catalytic converter light-off status ($> 280^\circ	ext{C}$).
+8. **Emiss (Catalytic Kinetics)**: Pre-catalyst vs. tailpipe $NO_x$, $CO$, and $HC$ concentrations with 3-way catalytic converter light-off status ($> 280^\circ C$).
 9. **Eco (Ganesan Efficiency)**: Hero real-world mileage dashboard (km/L, US MPG, UK Imperial MPG, L/100km, % fuel saved) with interactive Ganesan verification cards.
+10. **Belts (FEAD Auxiliary Drive)**: Live linear belt speed ($v_{belt}$), dynamic tensioner preload, Euler-Eytelwein tight/slack tension ratio ($T_1/T_2$), TVD harmonic twist attenuation, and auxiliary parasitic load breakdown (Water Pump, 250A Alternator, A/C Compressor, Belt Hysteresis).
 
 ---
 

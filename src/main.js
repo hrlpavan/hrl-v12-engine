@@ -765,6 +765,49 @@ class V12Application {
           elSavingBadge.style.opacity = this.isEcoMode ? '1' : '0.4';
         }
       }
+
+      // FEAD Serpentine Belt & Auxiliary Drive HUD Updates (Ganesan Ch. 12 & 13)
+      if (ganesan.feadBelt) {
+        const b = ganesan.feadBelt;
+        const elFeadPower = document.getElementById('fead-power-total');
+        if (elFeadPower) elFeadPower.textContent = b.totalAuxiliaryPowerKw.toFixed(2);
+
+        const elFeadSpeed = document.getElementById('fead-belt-speed');
+        if (elFeadSpeed) elFeadSpeed.textContent = `${b.linearBeltSpeedMs.toFixed(1)} m/s (${b.linearBeltSpeedKmh.toFixed(0)} km/h)`;
+
+        const elFeadAmep = document.getElementById('fead-amep-val');
+        if (elFeadAmep) elFeadAmep.textContent = `${b.amepBar.toFixed(2)} bar`;
+
+        const elFeadTorque = document.getElementById('fead-torque-val');
+        if (elFeadTorque) elFeadTorque.textContent = `${b.totalAuxiliaryTorqueNm.toFixed(1)} Nm`;
+
+        const elFeadT1 = document.getElementById('fead-t1-val');
+        if (elFeadT1) elFeadT1.textContent = `${b.tightTensionN} N`;
+
+        const elFeadT2 = document.getElementById('fead-t2-val');
+        if (elFeadT2) elFeadT2.textContent = `${b.slackTensionN} N`;
+
+        const elFeadRatio = document.getElementById('fead-ratio-val');
+        if (elFeadRatio) elFeadRatio.textContent = b.tensionRatio != null ? b.tensionRatio.toFixed(2) : '1.44';
+
+        const elFeadCent = document.getElementById('fead-centrifugal-val');
+        if (elFeadCent) elFeadCent.textContent = `${b.centrifugalTensionN} N`;
+
+        const elFeadTvd = document.getElementById('fead-tvd-val');
+        if (elFeadTvd) elFeadTvd.textContent = `-${b.tvdAttenuationPct}% (${b.dampedTorsionalTwistDeg}° twist)`;
+
+        const elFeadWp = document.getElementById('fead-wp-kw');
+        if (elFeadWp) elFeadWp.textContent = `${b.waterPumpKw.toFixed(2)} kW (130 mm)`;
+
+        const elFeadAlt = document.getElementById('fead-alt-kw');
+        if (elFeadAlt) elFeadAlt.textContent = `${b.alternatorKw.toFixed(2)} kW (70 mm)`;
+
+        const elFeadAc = document.getElementById('fead-ac-kw');
+        if (elFeadAc) elFeadAc.textContent = `${b.acCompressorKw.toFixed(2)} kW (125 mm)`;
+
+        const elFeadHyst = document.getElementById('fead-hyst-kw');
+        if (elFeadHyst) elFeadHyst.textContent = `${b.beltHysteresisLossKw.toFixed(2)} kW (3.8%)`;
+      }
     }
 
     // Rolls-Royce Power Reserve Gauge update

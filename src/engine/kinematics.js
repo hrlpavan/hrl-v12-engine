@@ -10,6 +10,7 @@ import {
   calculateAtkinsonEfficiency,
   calculateMileageAndEconomy,
   calculateMeanPistonSpeed,
+  calculateAccessoryBeltDrive,
   ENGINE_GEOMETRY,
   GAS_CONSTANTS
 } from './thermodynamics.js';
@@ -20,6 +21,7 @@ export {
   calculateAtkinsonEfficiency,
   calculateMileageAndEconomy,
   calculateMeanPistonSpeed,
+  calculateAccessoryBeltDrive,
   ENGINE_GEOMETRY,
   GAS_CONSTANTS
 };
@@ -44,6 +46,21 @@ export const ENGINE_SPECS = {
   peakTorqueNm: 900, // 900 Nm from 1,600 RPM
   bankAngleDeg: 30.0, // ±30° from vertical, 60° included angle
   firingIntervalDeg: 60.0, // 720° / 12 = 60°
+};
+
+export const FEAD_SPECS = {
+  beltName: "Micro-V 8PK Heavy-Duty Serpentine Belt",
+  beltMaterial: "Synthetic EPDM Elastomer with Continuous Aramid Tensile Cords",
+  crankPulleyDiaMm: 170.0,
+  waterPumpPulleyDiaMm: 130.0,
+  alternatorPulleyDiaMm: 70.0,
+  acCompressorPulleyDiaMm: 125.0,
+  tensionerPulleyDiaMm: 80.0,
+  idlerPulleyDiaMm: 75.0,
+  staticPreloadN: 520.0,
+  tvdAttenuationPct: 91.0,
+  grooveAngleDeg: 40.0,
+  frictionCoeff: 0.38
 };
 
 // 12 Cylinders Specification
