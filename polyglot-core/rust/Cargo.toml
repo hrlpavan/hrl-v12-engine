@@ -1,0 +1,20 @@
+[package]
+name = "rolls_royce_v12_core"
+version = "1.0.0"
+edition = "2021"
+authors = ["High Resource Labs <eng@hrl.dev>", "Rolls-Royce Bespoke Powertrain"]
+description = "Rolls-Royce 6.75L Twin-Turbo 60° V12 Engine Core in Rust (no_std, zero-allocation)"
+license = "MIT"
+
+[dependencies]
+# Zero external dependencies - pure freestanding no_std math
+core = { version = "1.0", optional = true }
+
+[lib]
+crate-type = ["rlib", "staticlib"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"

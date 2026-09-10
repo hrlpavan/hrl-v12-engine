@@ -4,3 +4,9 @@ dist
 *.log
 .vscode/
 .idea/
+__pycache__/
+*.pyc
+*.o
+*.out
+v12_benchmark
+polyglot-core/rust/target/
