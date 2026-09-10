@@ -202,6 +202,7 @@
           <button class="seg-btn" data-tab="emissions">Emiss</button>
           <button class="seg-btn" data-tab="eco" title="Ganesan High-Efficiency Atkinson & Stratified Lean Burn Mode">Eco</button>
           <button class="seg-btn" data-tab="belts" title="FEAD Serpentine Belts & Auxiliary Transmission (Ganesan Ch. 12 & 13)">Belts</button>
+          <button class="seg-btn" data-tab="acoustics" title="Rolls-Royce V12 Fluid Dynamics & Gas Acoustics (Heywood, Benson, Munjal, White, Harrison)">Sound</button>
         </div>
 
         <!-- Tab Content Panes -->
@@ -903,6 +904,203 @@
                     <span class="rule-badge">Accessory Stability</span>
                   </div>
                   <p class="rule-desc">A spring-loaded swing arm with hydraulic damping maintains 520 N constant preload across thermal expansion ranges (-40°C to +125°C), eliminating high-RPM belt flap and premature cord fatigue.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane 11: Rolls-Royce V12 Fluid Dynamics & Gas Acoustics -->
+          <div class="inspector-pane" id="pane-acoustics">
+            <div class="apple-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Rolls-Royce V12 Gas Dynamics &amp; Acoustics</span>
+                  <span class="card-subtitle">Heywood · Benson · Munjal · White · Harrison</span>
+                </div>
+                <span id="acoustic-mode-badge" class="card-tag">Quiet Luxury (TL ≥ 34 dB)</span>
+              </div>
+
+              <div class="pressure-hero" style="margin-top: 6px;">
+                <div class="pressure-main">
+                  <span id="acoustic-fund-hz" class="pressure-num">60.0</span>
+                  <span class="pressure-unit-label">Hz (6th Order)</span>
+                </div>
+                <div class="temp-display">
+                  <span class="temp-label">Munjal Transmission Loss</span>
+                  <span id="acoustic-tl-val" class="temp-val">34.5 dB</span>
+                </div>
+              </div>
+
+              <!-- Interactive Mode & Listening Position Selectors -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
+                <div>
+                  <label style="font-size: 10px; color: rgba(255,255,255,0.5); font-weight: 500; display: block; margin-bottom: 4px;">Exhaust Valve Mode</label>
+                  <div class="segmented-control" style="width: 100%;">
+                    <button id="btn-mode-luxury" class="seg-btn active" style="flex: 1; font-size: 11px;">Luxury</button>
+                    <button id="btn-mode-dynamic" class="seg-btn" style="flex: 1; font-size: 11px;">Dynamic</button>
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size: 10px; color: rgba(255,255,255,0.5); font-weight: 500; display: block; margin-bottom: 4px;">Acoustic Listener</label>
+                  <div class="segmented-control" style="width: 100%;">
+                    <button id="btn-pos-cabin" class="seg-btn active" style="flex: 1; font-size: 11px;">Cabin</button>
+                    <button id="btn-pos-tailpipe" class="seg-btn" style="flex: 1; font-size: 11px;">Tailpipe</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="cyl-details-grid" style="margin-top: 10px;">
+                <div class="detail-item">
+                  <span class="detail-label">Peak Blowdown Pressure</span>
+                  <span id="acoustic-blowdown-bar" class="detail-val">4.8 bar</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Sound Pressure Level</span>
+                  <span id="acoustic-spl-val" class="detail-val">38.2 dBA</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">6th Order Idle Notch</span>
+                  <span id="acoustic-notch6-val" class="detail-val">-34 dB (60 Hz)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">12th Order Notch</span>
+                  <span id="acoustic-notch12-val" class="detail-val">-28 dB (120 Hz)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Turbine Lowpass Cutoff</span>
+                  <span class="detail-val">680 Hz (Harrison)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Turbo Compressor BPF</span>
+                  <span id="acoustic-turbo-bpf" class="detail-val">920 Hz</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Firing Interval (Δθ)</span>
+                  <span class="detail-val">60° (6 pulses/rev)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Exhaust Gas Sound Speed</span>
+                  <span class="detail-val">625 m/s (1023 K)</span>
+                </div>
+              </div>
+
+              <div class="card-footer-formula" style="margin-top: 10px;">
+                <div class="math-expr">Munjal TL: 20 log₁₀ |(T₁₁ + T₁₂/Y₀ + T₂₁Y₀ + T₂₂) / 2| ≥ 34 dB</div>
+                <div class="param-row">
+                  <span>Heywood EVO 54° BBDC</span>
+                  <span>Benson 1D MoC</span>
+                  <span>f₆ = N/10 Hz</span>
+                  <span>White Viscous α</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Live Engine Acoustic Order Spectrum Card -->
+            <div class="apple-card" style="margin-top: 8px;">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">12-Cylinder Acoustic Order Harmonics</span>
+                  <span class="card-subtitle">Benson &amp; Winterbone 6-into-1 Manifold Superposition</span>
+                </div>
+                <span class="card-tag">Order Spectrum</span>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;" id="acoustic-orders-container">
+                <!-- Live Order Bars -->
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+                  <span style="width: 70px; color: #a1a1aa;">Order 6</span>
+                  <div style="flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; margin: 0 8px; overflow: hidden;">
+                    <div id="bar-order-6" style="width: 75%; height: 100%; background: #38bdf8; border-radius: 3px; transition: width 0.05s;"></div>
+                  </div>
+                  <span id="text-order-6" style="width: 65px; text-align: right; font-weight: 500;">60.0 Hz</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+                  <span style="width: 70px; color: #a1a1aa;">Order 12</span>
+                  <div style="flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; margin: 0 8px; overflow: hidden;">
+                    <div id="bar-order-12" style="width: 55%; height: 100%; background: #60a5fa; border-radius: 3px; transition: width 0.05s;"></div>
+                  </div>
+                  <span id="text-order-12" style="width: 65px; text-align: right; font-weight: 500;">120.0 Hz</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+                  <span style="width: 70px; color: #a1a1aa;">Order 18</span>
+                  <div style="flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; margin: 0 8px; overflow: hidden;">
+                    <div id="bar-order-18" style="width: 35%; height: 100%; background: #818cf8; border-radius: 3px; transition: width 0.05s;"></div>
+                  </div>
+                  <span id="text-order-18" style="width: 65px; text-align: right; font-weight: 500;">180.0 Hz</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+                  <span style="width: 70px; color: #a1a1aa;">Order 24</span>
+                  <div style="flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; margin: 0 8px; overflow: hidden;">
+                    <div id="bar-order-24" style="width: 25%; height: 100%; background: #a78bfa; border-radius: 3px; transition: width 0.05s;"></div>
+                  </div>
+                  <span id="text-order-24" style="width: 65px; text-align: right; font-weight: 500;">240.0 Hz</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+                  <span style="width: 70px; color: #a1a1aa;">Order 30</span>
+                  <div style="flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; margin: 0 8px; overflow: hidden;">
+                    <div id="bar-order-30" style="width: 18%; height: 100%; background: #c084fc; border-radius: 3px; transition: width 0.05s;"></div>
+                  </div>
+                  <span id="text-order-30" style="width: 65px; text-align: right; font-weight: 500;">300.0 Hz</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+                  <span style="width: 70px; color: #a1a1aa;">Order 36</span>
+                  <div style="flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; margin: 0 8px; overflow: hidden;">
+                    <div id="bar-order-36" style="width: 12%; height: 100%; background: #e879f9; border-radius: 3px; transition: width 0.05s;"></div>
+                  </div>
+                  <span id="text-order-36" style="width: 65px; text-align: right; font-weight: 500;">360.0 Hz</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Fluid Mechanics Literature Grounding Card -->
+            <div class="apple-card" style="margin-top: 8px;">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Scientific Principles &amp; Literature Models</span>
+                  <span class="card-subtitle">Foundational Gas Dynamics &amp; Acoustics Treatises</span>
+                </div>
+                <span class="card-tag">5 Books Grounding</span>
+              </div>
+              <div class="ganesan-rules-scroll">
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">1</span>
+                    <span class="rule-title">Cylinder Blowdown Orifice Flow</span>
+                    <span class="rule-badge">Heywood Ch. 6, Eq. 6.18</span>
+                  </div>
+                  <p class="rule-desc">Isentropic compressible gas expansion through opening exhaust valve curtain (EVO 54° BBDC). Transitions from choked sonic flow (M = 1) across valve seat to subcritical pressure decay, generating steep acoustic pulse front dṁ/dt.</p>
+                </div>
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">2</span>
+                    <span class="rule-title">1D Riemann Wave Superposition</span>
+                    <span class="rule-badge">Benson &amp; Winterbone Vol. I</span>
+                  </div>
+                  <p class="rule-desc">Method of Characteristics tracking right- and left-traveling Riemann invariants (λ, β) through equal-length primary runners. 12 cylinders firing every 60° generate constructive fundamental 6th order baritone hum (f₆ = N/10 Hz).</p>
+                </div>
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">3</span>
+                    <span class="rule-title">Four-Pole Silencer &amp; Helmholtz Resonators</span>
+                    <span class="rule-badge">M. L. Munjal Ch. 3 &amp; 5</span>
+                  </div>
+                  <p class="rule-desc">Cascaded two-port Transfer Matrix Method (TMM) modeling acoustic transmission loss. Dual side-branch Helmholtz resonators eliminate the 60 Hz / 120 Hz idle boom (TL ≥ 34 dB) for signature Rolls-Royce cabin silence.</p>
+                </div>
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">4</span>
+                    <span class="rule-title">Viscous Dissipation &amp; Jet Turbulence</span>
+                    <span class="rule-badge">Frank M. White Ch. 6 &amp; 9</span>
+                  </div>
+                  <p class="rule-desc">Acoustic boundary layer shear attenuation α_tube(ω) along 3.8m exhaust tract softens harsh metallic edge. Tailpipe jet mixing noise follows Lighthill's U⁸ quadrupole law, adding gentle air-rush under heavy acceleration.</p>
+                </div>
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">5</span>
+                    <span class="rule-title">Block Attenuation &amp; Turbo Damping</span>
+                    <span class="rule-badge">Matthew Harrison Ch. 4 &amp; 5</span>
+                  </div>
+                  <p class="rule-desc">Twin-scroll turbine wheel acts as low-pass filter (cutoff ~680 Hz), absorbing jagged combustion spikes. Deep-skirt AlSi7Mg0.3 block provides >30 dB structural noise isolation with whisper-quiet hydraulic tappet ticking.</p>
                 </div>
               </div>
             </div>

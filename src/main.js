@@ -233,6 +233,44 @@ class V12Application {
       }, 450);
     });
 
+    // 5b. Rolls-Royce Fluid Dynamics & Acoustic Mode Controls (Munjal TMM)
+    const btnModeLuxury = document.getElementById('btn-mode-luxury');
+    const btnModeDynamic = document.getElementById('btn-mode-dynamic');
+    const acousticModeBadge = document.getElementById('acoustic-mode-badge');
+
+    if (btnModeLuxury && btnModeDynamic) {
+      btnModeLuxury.addEventListener('click', () => {
+        btnModeLuxury.classList.add('active');
+        btnModeDynamic.classList.remove('active');
+        audioEngine.setExhaustMode('luxury');
+        if (acousticModeBadge) acousticModeBadge.textContent = 'Quiet Luxury (TL ≥ 34 dB)';
+      });
+
+      btnModeDynamic.addEventListener('click', () => {
+        btnModeDynamic.classList.add('active');
+        btnModeLuxury.classList.remove('active');
+        audioEngine.setExhaustMode('dynamic');
+        if (acousticModeBadge) acousticModeBadge.textContent = 'Dynamic Cruise (Baritone)';
+      });
+    }
+
+    const btnPosCabin = document.getElementById('btn-pos-cabin');
+    const btnPosTailpipe = document.getElementById('btn-pos-tailpipe');
+
+    if (btnPosCabin && btnPosTailpipe) {
+      btnPosCabin.addEventListener('click', () => {
+        btnPosCabin.classList.add('active');
+        btnPosTailpipe.classList.remove('active');
+        audioEngine.setListeningPosition('cabin');
+      });
+
+      btnPosTailpipe.addEventListener('click', () => {
+        btnPosTailpipe.classList.add('active');
+        btnPosCabin.classList.remove('active');
+        audioEngine.setListeningPosition('tailpipe');
+      });
+    }
+
     // 6. Camera Presets
     const camButtons = document.querySelectorAll('.camera-segment .seg-btn');
     camButtons.forEach(btn => {
@@ -857,6 +895,52 @@ class V12Application {
       const id = parseInt(p.dataset.cylId, 10);
       const isFiring = (id === engineState.activeFiringCylinder);
       p.classList.toggle('firing', isFiring);
+    });
+
+    this._updateAcousticsHud();
+  }
+
+  _updateAcousticsHud() {
+    if (!audioEngine) return;
+    const telem = audioEngine.getAcousticTelemetry();
+
+    const elFund = document.getElementById('acoustic-fund-hz');
+    if (elFund) elFund.textContent = telem.fundamentalHz.toFixed(1);
+
+    const elTl = document.getElementById('acoustic-tl-val');
+    if (elTl) elTl.textContent = `${telem.munjalTlDb.toFixed(1)} dB`;
+
+    const elSpl = document.getElementById('acoustic-spl-val');
+    if (elSpl) elSpl.textContent = `${telem.soundPressureLevelDba.toFixed(1)} dBA`;
+
+    const elBlowdown = document.getElementById('acoustic-blowdown-bar');
+    if (elBlowdown) elBlowdown.textContent = `${telem.blowdownPeakBar.toFixed(1)} bar`;
+
+    const elTurboBpf = document.getElementById('acoustic-turbo-bpf');
+    if (elTurboBpf) {
+      elTurboBpf.textContent = telem.turboSpoolHz > 0 ? `${Math.round(telem.turboSpoolHz)} Hz` : '0 Hz (Spool Idle)';
+    }
+
+    // Update Benson & Winterbone order harmonic bars
+    const orderBars = [
+      { order: 6, elBar: document.getElementById('bar-order-6'), elText: document.getElementById('text-order-6') },
+      { order: 12, elBar: document.getElementById('bar-order-12'), elText: document.getElementById('text-order-12') },
+      { order: 18, elBar: document.getElementById('bar-order-18'), elText: document.getElementById('text-order-18') },
+      { order: 24, elBar: document.getElementById('bar-order-24'), elText: document.getElementById('text-order-24') },
+      { order: 30, elBar: document.getElementById('bar-order-30'), elText: document.getElementById('text-order-30') },
+      { order: 36, elBar: document.getElementById('bar-order-36'), elText: document.getElementById('text-order-36') }
+    ];
+
+    const crankFreq = this.engineRpm / 60.0;
+    orderBars.forEach(item => {
+      const freq = item.order * crankFreq;
+      if (item.elText) item.elText.textContent = `${freq.toFixed(1)} Hz`;
+      if (item.elBar) {
+        const orderData = telem.orders.find(o => o.order === item.order);
+        const gain = orderData ? orderData.gain : 0.25;
+        const pct = Math.min(100, Math.max(8, gain * 115));
+        item.elBar.style.width = `${pct}%`;
+      }
     });
   }
 }
