@@ -654,19 +654,19 @@ export class V12Scene3D {
     ringMesh.position.set(0, 0, rearZ - 0.25);
     this.crankshaftGroup.add(ringMesh);
 
-    // Front Crankshaft Damper Pulley & Helical Timing Drive Gear
+    // Front Crankshaft Snout & Seal Collar
     const frontZ = zStart + 0.45;
-    const damperGeo = new THREE.CylinderGeometry(0.75, 0.75, 0.22, 32);
+    const damperGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.16, 24);
     damperGeo.rotateX(Math.PI / 2);
-    const damperMesh = new THREE.Mesh(damperGeo, this.materials.flywheel);
+    const damperMesh = new THREE.Mesh(damperGeo, this.materials.crankshaft);
     damperMesh.position.set(0, 0, frontZ);
     damperMesh.userData.partInfo = {
-      name: "Viscous Torsional Damper",
-      metallurgy: "Silicon Fluid Inertia Ring with Steel Casing",
-      tempK: "330 K",
-      massGrams: "6,200 g",
-      toleranceMm: "±0.010 mm",
-      heritageNote: "Absorbs harmonic crankshaft twist across the entire 600 - 6,000 RPM range"
+      name: "Front Crankshaft Snout & Seal Collar",
+      metallurgy: "Precision Ground 42CrMo4 Alloy Steel",
+      tempK: "350 K",
+      massGrams: "2,200 g",
+      toleranceMm: "±0.002 mm",
+      heritageNote: "Hardened crank nose piloting the FEAD harmonic balancer and timing drive gear"
     };
     this.interactiveMeshes.push(damperMesh);
     this.crankshaftGroup.add(damperMesh);
@@ -1480,7 +1480,7 @@ export class V12Scene3D {
 
     const crankLength = 6 * CYL_SPACING;
     const frontZ = (crankLength / 2) + 0.25;
-    const feadZ = frontZ + 0.24; // Front accessory plane
+    const feadZ = frontZ + 0.28; // Front accessory drive plane (clearly stepped in front of timing chest)
 
     // ------------------------------------------------------------------------
     // 1. Crankshaft Harmonic Balancer & TVD Pulley (Casing + Rubber + Hub)
@@ -1489,26 +1489,8 @@ export class V12Scene3D {
     const crankPulleyGroup = new THREE.Group();
     crankPulleyGroup.position.set(0, 0, feadZ);
 
-    // Inner steel mounting hub with 6 Grade 12.9 high-tensile bolts
-    const hubGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.14, 28);
-    hubGeo.rotateX(Math.PI / 2);
-    const hubMesh = new THREE.Mesh(hubGeo, this.materials.crankshaft);
-    crankPulleyGroup.add(hubMesh);
-
-    // Central crankshaft nose bolt (Grade 12.9 chrome flanged bolt)
-    const boltGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.18, 16);
-    boltGeo.rotateX(Math.PI / 2);
-    const boltMesh = new THREE.Mesh(boltGeo, this.materials.starlightChrome);
-    boltMesh.position.z = 0.04;
-    crankPulleyGroup.add(boltMesh);
-
-    // Tuned elastomeric shear rubber damping ring (converts torsional resonance into heat)
-    const rubberGeo = new THREE.TorusGeometry(0.50, 0.05, 12, 36);
-    const rubberMesh = new THREE.Mesh(rubberGeo, this.materials.tvdDamper || this.materials.belt);
-    crankPulleyGroup.add(rubberMesh);
-
-    // Outer heavy cast-iron inertia ring with 8 Micro-V perimeter ribs
-    const outerRingGeo = new THREE.CylinderGeometry(0.72, 0.72, 0.12, 40);
+    // Outer heavy nodular cast-iron inertia ring with 8 Micro-V perimeter ribs
+    const outerRingGeo = new THREE.CylinderGeometry(0.54, 0.54, 0.08, 48);
     outerRingGeo.rotateX(Math.PI / 2);
     const outerRingMesh = new THREE.Mesh(outerRingGeo, this.materials.flywheel);
     outerRingMesh.userData.partInfo = {
@@ -1522,9 +1504,46 @@ export class V12Scene3D {
     this.interactiveMeshes.push(outerRingMesh);
     crankPulleyGroup.add(outerRingMesh);
 
+    // Recessed annular web stepped inward to eliminate coplanar Z-fighting
+    const crankWebGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.04, 36);
+    crankWebGeo.rotateX(Math.PI / 2);
+    const crankWebMesh = new THREE.Mesh(crankWebGeo, this.materials.crankshaft);
+    crankWebMesh.position.z = -0.01;
+    crankPulleyGroup.add(crankWebMesh);
+
+    // Tuned elastomeric shear rubber damping ring (converts torsional resonance into heat)
+    const rubberGeo = new THREE.TorusGeometry(0.36, 0.024, 12, 36);
+    const rubberMesh = new THREE.Mesh(rubberGeo, this.materials.tvdDamper || this.materials.belt);
+    rubberMesh.position.z = 0.01;
+    crankPulleyGroup.add(rubberMesh);
+
+    // Billet steel center mounting hub with Grade 12.9 high-tensile fasteners
+    const hubGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.10, 28);
+    hubGeo.rotateX(Math.PI / 2);
+    const hubMesh = new THREE.Mesh(hubGeo, this.materials.crankshaft);
+    hubMesh.position.z = 0.01;
+    crankPulleyGroup.add(hubMesh);
+
+    // Central crankshaft nose bolt (Grade 12.9 chrome flanged bolt stepped forward)
+    const boltGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.06, 16);
+    boltGeo.rotateX(Math.PI / 2);
+    const boltMesh = new THREE.Mesh(boltGeo, this.materials.starlightChrome);
+    boltMesh.position.z = 0.06;
+    crankPulleyGroup.add(boltMesh);
+
+    // 6 Perimeter hub retaining bolts
+    for (let b = 0; b < 6; b++) {
+      const bAngle = (b * Math.PI * 2) / 6;
+      const bStudGeo = new THREE.CylinderGeometry(0.022, 0.022, 0.04, 12);
+      bStudGeo.rotateX(Math.PI / 2);
+      const bStud = new THREE.Mesh(bStudGeo, this.materials.starlightChrome);
+      bStud.position.set(0.16 * Math.cos(bAngle), 0.16 * Math.sin(bAngle), 0.05);
+      crankPulleyGroup.add(bStud);
+    }
+
     // Subtle perimeter V-grooves
-    for (let g = -0.04; g <= 0.04; g += 0.02) {
-      const grooveGeo = new THREE.TorusGeometry(0.725, 0.008, 6, 40);
+    for (let g = -0.025; g <= 0.025; g += 0.01) {
+      const grooveGeo = new THREE.TorusGeometry(0.544, 0.005, 6, 40);
       const groove = new THREE.Mesh(grooveGeo, this.materials.gear);
       groove.position.z = g;
       crankPulleyGroup.add(groove);
@@ -1537,28 +1556,29 @@ export class V12Scene3D {
     // ------------------------------------------------------------------------
     // 2. High-Flow Centrifugal Coolant Water Pump
     // Reference: Ganesan Chapter 13 (Engine Cooling, pp. 396-410)
+    // Clear packaging: y = 1.35 provides 0.41 units of clearance above crank pulley!
     // ------------------------------------------------------------------------
     const wpGroup = new THREE.Group();
-    const wpPos = { x: 0.0, y: 0.95, z: feadZ };
+    const wpPos = { x: 0.0, y: 1.35, z: feadZ };
     wpGroup.position.set(wpPos.x, wpPos.y, wpPos.z);
 
-    // Water pump cast aluminum volute body behind pulley
-    const wpBodyGeo = new THREE.CylinderGeometry(0.55, 0.62, 0.22, 24);
+    // Water pump cast aluminum volute body seated strictly behind the pulley plane
+    const wpBodyGeo = new THREE.CylinderGeometry(0.44, 0.48, 0.16, 24);
     wpBodyGeo.rotateX(Math.PI / 2);
     const wpBody = new THREE.Mesh(wpBodyGeo, this.materials.cylinderHead);
-    wpBody.position.z = -0.12;
+    wpBody.position.z = -0.14;
     wpGroup.add(wpBody);
 
     // Coolant discharge neck feeding engine block valley
-    const wpNeckGeo = new THREE.CylinderGeometry(0.16, 0.16, 0.35, 16);
+    const wpNeckGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.28, 16);
     const wpNeck = new THREE.Mesh(wpNeckGeo, this.materials.cylinderHead);
-    wpNeck.position.set(0.28, 0.28, -0.12);
+    wpNeck.position.set(0.24, 0.22, -0.14);
     wpNeck.rotation.z = Math.PI / 4;
     wpGroup.add(wpNeck);
 
-    // Water pump 8-rib grooved pulley
+    // Water pump 8-rib grooved alloy pulley
     const wpPulleyGroup = new THREE.Group();
-    const wpPulleyGeo = new THREE.CylinderGeometry(0.48, 0.48, 0.12, 32);
+    const wpPulleyGeo = new THREE.CylinderGeometry(0.40, 0.40, 0.08, 36);
     wpPulleyGeo.rotateX(Math.PI / 2);
     const wpPulley = new THREE.Mesh(wpPulleyGeo, this.materials.pulleyAlloy || this.materials.starlightChrome);
     wpPulley.userData.partInfo = {
@@ -1572,11 +1592,28 @@ export class V12Scene3D {
     this.interactiveMeshes.push(wpPulley);
     wpPulleyGroup.add(wpPulley);
 
-    // Central bearing cap with 4 hex bolts
-    const wpCapGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.14, 16);
+    // Recessed front dish on water pump pulley
+    const wpDishGeo = new THREE.CylinderGeometry(0.30, 0.30, 0.03, 28);
+    wpDishGeo.rotateX(Math.PI / 2);
+    const wpDish = new THREE.Mesh(wpDishGeo, this.materials.crankshaft);
+    wpDish.position.z = -0.01;
+    wpPulleyGroup.add(wpDish);
+
+    // Central bearing snout with 4 retaining studs
+    const wpCapGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.10, 20);
     wpCapGeo.rotateX(Math.PI / 2);
-    const wpCap = new THREE.Mesh(wpCapGeo, this.materials.crankshaft);
+    const wpCap = new THREE.Mesh(wpCapGeo, this.materials.starlightChrome);
+    wpCap.position.z = 0.02;
     wpPulleyGroup.add(wpCap);
+
+    for (let s = 0; s < 4; s++) {
+      const sAngle = (s * Math.PI * 2) / 4;
+      const studGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.03, 10);
+      studGeo.rotateX(Math.PI / 2);
+      const stud = new THREE.Mesh(studGeo, this.materials.crankshaft);
+      stud.position.set(0.08 * Math.cos(sAngle), 0.08 * Math.sin(sAngle), 0.06);
+      wpPulleyGroup.add(stud);
+    }
 
     wpGroup.add(wpPulleyGroup);
     this.feadWaterPumpPulley = wpPulleyGroup;
@@ -1586,27 +1623,28 @@ export class V12Scene3D {
     // ------------------------------------------------------------------------
     // 3. High-Output 250A Alternator with OAD Decoupler Pulley
     // Reference: Ganesan Chapter 12 (p. 362)
+    // Packaging: x = 1.45, y = 0.40 (ample clearance around all neighbours)
     // ------------------------------------------------------------------------
     const altGroup = new THREE.Group();
-    const altPos = { x: 1.42, y: 0.45, z: feadZ };
+    const altPos = { x: 1.45, y: 0.40, z: feadZ };
     altGroup.position.set(altPos.x, altPos.y, altPos.z);
 
-    // Alternator cylindrical housing
-    const altHousingGeo = new THREE.CylinderGeometry(0.46, 0.46, 0.42, 24);
+    // Alternator cylindrical housing behind pulley plane
+    const altHousingGeo = new THREE.CylinderGeometry(0.38, 0.42, 0.30, 24);
     altHousingGeo.rotateX(Math.PI / 2);
     const altHousing = new THREE.Mesh(altHousingGeo, this.materials.cylinderHead);
-    altHousing.position.z = -0.22;
+    altHousing.position.z = -0.18;
     altGroup.add(altHousing);
 
     // Stator cooling vents exposing copper windings
-    const copperGeo = new THREE.TorusGeometry(0.42, 0.06, 8, 24);
+    const copperGeo = new THREE.TorusGeometry(0.34, 0.045, 8, 24);
     const copperMesh = new THREE.Mesh(copperGeo, this.materials.copperWinding || this.materials.gear);
-    copperMesh.position.z = -0.18;
+    copperMesh.position.z = -0.15;
     altGroup.add(copperMesh);
 
     // Overrunning Alternator Decoupler (OAD) Pulley
     const altPulleyGroup = new THREE.Group();
-    const altPulleyGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.12, 28);
+    const altPulleyGeo = new THREE.CylinderGeometry(0.23, 0.23, 0.08, 28);
     altPulleyGeo.rotateX(Math.PI / 2);
     const altPulley = new THREE.Mesh(altPulleyGeo, this.materials.pulleyAlloy || this.materials.crankshaft);
     altPulley.userData.partInfo = {
@@ -1620,6 +1658,13 @@ export class V12Scene3D {
     this.interactiveMeshes.push(altPulley);
     altPulleyGroup.add(altPulley);
 
+    // OAD Clutch Hub Cap stepped forward
+    const oadCapGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.06, 16);
+    oadCapGeo.rotateX(Math.PI / 2);
+    const oadCap = new THREE.Mesh(oadCapGeo, this.materials.starlightChrome);
+    oadCap.position.z = 0.04;
+    altPulleyGroup.add(oadCap);
+
     altGroup.add(altPulleyGroup);
     this.feadAlternatorPulley = altPulleyGroup;
     this.feadGroup.add(altGroup);
@@ -1628,21 +1673,22 @@ export class V12Scene3D {
     // ------------------------------------------------------------------------
     // 4. Variable Swashplate A/C Compressor
     // Reference: Ganesan Chapter 12 (Auxiliary load amep)
+    // Packaging: x = -1.45, y = 0.40 (symmetric to alternator)
     // ------------------------------------------------------------------------
     const acGroup = new THREE.Group();
-    const acPos = { x: -1.42, y: 0.45, z: feadZ };
+    const acPos = { x: -1.45, y: 0.40, z: feadZ };
     acGroup.position.set(acPos.x, acPos.y, acPos.z);
 
-    // Compressor ribbed cylindrical body
-    const acBodyGeo = new THREE.CylinderGeometry(0.48, 0.50, 0.45, 24);
+    // Compressor ribbed cylindrical body behind pulley plane
+    const acBodyGeo = new THREE.CylinderGeometry(0.40, 0.44, 0.32, 24);
     acBodyGeo.rotateX(Math.PI / 2);
     const acBody = new THREE.Mesh(acBodyGeo, this.materials.cylinderHead);
-    acBody.position.z = -0.24;
+    acBody.position.z = -0.19;
     acGroup.add(acBody);
 
     // Magnetic clutch and 8PK pulley
     const acPulleyGroup = new THREE.Group();
-    const acPulleyGeo = new THREE.CylinderGeometry(0.48, 0.48, 0.12, 32);
+    const acPulleyGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.08, 32);
     acPulleyGeo.rotateX(Math.PI / 2);
     const acPulley = new THREE.Mesh(acPulleyGeo, this.materials.pulleyAlloy || this.materials.starlightChrome);
     acPulley.userData.partInfo = {
@@ -1658,10 +1704,10 @@ export class V12Scene3D {
 
     // Magnetic clutch triangular leaf spring hub
     for (let a = 0; a < 3; a++) {
-      const leafGeo = new THREE.BoxGeometry(0.18, 0.04, 0.02);
+      const leafGeo = new THREE.BoxGeometry(0.14, 0.035, 0.02);
       const leaf = new THREE.Mesh(leafGeo, this.materials.starlightChrome);
       const leafAngle = (a * Math.PI * 2) / 3;
-      leaf.position.set(0.16 * Math.cos(leafAngle), 0.16 * Math.sin(leafAngle), 0.07);
+      leaf.position.set(0.12 * Math.cos(leafAngle), 0.12 * Math.sin(leafAngle), 0.05);
       leaf.rotation.z = leafAngle;
       acPulleyGroup.add(leaf);
     }
@@ -1672,15 +1718,17 @@ export class V12Scene3D {
     this.feadPulleys.push({ group: acPulleyGroup, ratio: 170.0 / 125.0, dir: 1 });
 
     // ------------------------------------------------------------------------
-    // 5. Dynamic Hydraulic Belt Tensioner (Pivoting Arm + Damper + Reverse Idler)
+    // 5. Dynamic Hydraulic Belt Tensioner (Pivoting Arm + Damper + Reverse Roller)
     // Reference: Euler-Eytelwein Belt Friction Mechanics
+    // Packaging: Pivot base at (-1.18, 1.52), roller center at (-0.76, 0.98).
+    // Clearance: 0.205 units away from water pump; ZERO INTERSECTION!
     // ------------------------------------------------------------------------
     const tensionerGroup = new THREE.Group();
-    const tensionerPivotPos = { x: -0.92, y: 1.50, z: feadZ };
+    const tensionerPivotPos = { x: -1.18, y: 1.52, z: feadZ };
     tensionerGroup.position.set(tensionerPivotPos.x, tensionerPivotPos.y, tensionerPivotPos.z);
 
     // Internal torsion spring & hydraulic damper pivot base
-    const tBaseGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.16, 20);
+    const tBaseGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.12, 20);
     tBaseGeo.rotateX(Math.PI / 2);
     const tBase = new THREE.Mesh(tBaseGeo, this.materials.crankshaft);
     tBase.position.z = -0.06;
@@ -1688,17 +1736,18 @@ export class V12Scene3D {
 
     // Pivoting cast aluminum swing arm
     const armGroup = new THREE.Group();
-    const armGeo = new THREE.BoxGeometry(0.12, 0.42, 0.08);
+    const armLength = 0.68;
+    const armGeo = new THREE.BoxGeometry(0.10, armLength, 0.06);
     const armMesh = new THREE.Mesh(armGeo, this.materials.rod);
-    armMesh.position.set(0.14, -0.18, 0);
-    armMesh.rotation.z = -Math.PI / 6;
+    armMesh.position.set(0.21, -0.27, -0.01);
+    armMesh.rotation.z = -Math.PI * 0.29; // points toward (-0.76, 0.98)
     armGroup.add(armMesh);
 
     // Smooth steel reverse-side idler roller (presses on smooth back of belt)
     const tRollerGroup = new THREE.Group();
-    tRollerGroup.position.set(0.24, -0.36, 0);
+    tRollerGroup.position.set(0.42, -0.54, 0); // World position: (-0.76, 0.98, feadZ)
 
-    const tRollerGeo = new THREE.CylinderGeometry(0.30, 0.30, 0.12, 28);
+    const tRollerGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.08, 28);
     tRollerGeo.rotateX(Math.PI / 2);
     const tRoller = new THREE.Mesh(tRollerGeo, this.materials.starlightChrome);
     tRoller.userData.partInfo = {
@@ -1712,6 +1761,13 @@ export class V12Scene3D {
     this.interactiveMeshes.push(tRoller);
     tRollerGroup.add(tRoller);
 
+    // Center retaining fastener on tensioner roller
+    const tRollerBoltGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.04, 14);
+    tRollerBoltGeo.rotateX(Math.PI / 2);
+    const tRollerBolt = new THREE.Mesh(tRollerBoltGeo, this.materials.crankshaft);
+    tRollerBolt.position.z = 0.04;
+    tRollerGroup.add(tRollerBolt);
+
     armGroup.add(tRollerGroup);
     tensionerGroup.add(armGroup);
 
@@ -1722,13 +1778,14 @@ export class V12Scene3D {
 
     // ------------------------------------------------------------------------
     // 6. Upper Guide Idler Pulley (Smooth Steel)
+    // Packaging: x = 0.78, y = 1.88 (clear of water pump by 0.31 units!)
     // ------------------------------------------------------------------------
     const idlerGroup = new THREE.Group();
-    const idlerPos = { x: 0.72, y: 1.45, z: feadZ };
+    const idlerPos = { x: 0.78, y: 1.88, z: feadZ };
     idlerGroup.position.set(idlerPos.x, idlerPos.y, idlerPos.z);
 
     const idlerPulleyGroup = new THREE.Group();
-    const idlerGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.12, 28);
+    const idlerGeo = new THREE.CylinderGeometry(0.23, 0.23, 0.08, 28);
     idlerGeo.rotateX(Math.PI / 2);
     const idlerMesh = new THREE.Mesh(idlerGeo, this.materials.starlightChrome);
     idlerMesh.userData.partInfo = {
@@ -1742,6 +1799,13 @@ export class V12Scene3D {
     this.interactiveMeshes.push(idlerMesh);
     idlerPulleyGroup.add(idlerMesh);
 
+    // Center retaining bolt
+    const idlerBoltGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.04, 14);
+    idlerBoltGeo.rotateX(Math.PI / 2);
+    const idlerBolt = new THREE.Mesh(idlerBoltGeo, this.materials.crankshaft);
+    idlerBolt.position.z = 0.04;
+    idlerPulleyGroup.add(idlerBolt);
+
     idlerGroup.add(idlerPulleyGroup);
     this.feadIdlerPulley = idlerPulleyGroup;
     this.feadGroup.add(idlerGroup);
@@ -1749,29 +1813,43 @@ export class V12Scene3D {
 
     // ------------------------------------------------------------------------
     // 7. Continuous Multi-Ribbed Serpentine Belt (Micro-V 8PK)
-    // Complete 3D Closed Tangent Spline Loop
+    // Accurate 3D Closed Tangent Spline Loop Passing Snugly Across All Pulleys
     // ------------------------------------------------------------------------
     const beltPoints = [
-      new THREE.Vector3(-0.55, -0.42, feadZ),
-      new THREE.Vector3( 0.00, -0.72, feadZ),
-      new THREE.Vector3( 0.55, -0.42, feadZ),
-      new THREE.Vector3( 1.15,  0.18, feadZ),
-      new THREE.Vector3( 1.72,  0.45, feadZ),
-      new THREE.Vector3( 1.45,  0.78, feadZ),
-      new THREE.Vector3( 0.98,  1.32, feadZ),
-      new THREE.Vector3( 0.72,  1.72, feadZ),
-      new THREE.Vector3( 0.42,  1.48, feadZ),
-      new THREE.Vector3( 0.00,  1.43, feadZ),
-      new THREE.Vector3(-0.42,  1.20, feadZ),
-      new THREE.Vector3(-0.68,  1.14, feadZ),
-      new THREE.Vector3(-1.18,  0.88, feadZ),
-      new THREE.Vector3(-1.88,  0.45, feadZ),
-      new THREE.Vector3(-1.42,  0.05, feadZ),
-      new THREE.Vector3(-0.95, -0.18, feadZ)
+      // 1. Under Crank TVD Pulley (R = 0.54 at 0, 0)
+      new THREE.Vector3(-0.46, -0.27, feadZ),
+      new THREE.Vector3( 0.00, -0.54, feadZ),
+      new THREE.Vector3( 0.46, -0.27, feadZ),
+
+      // 2. Up to Alternator Pulley (R = 0.23 at 1.45, 0.40)
+      new THREE.Vector3( 1.28,  0.22, feadZ),
+      new THREE.Vector3( 1.68,  0.40, feadZ),
+      new THREE.Vector3( 1.54,  0.58, feadZ),
+
+      // 3. Up to Upper Guide Idler Pulley (R = 0.23 at 0.78, 1.88)
+      new THREE.Vector3( 1.00,  1.74, feadZ),
+      new THREE.Vector3( 0.78,  2.11, feadZ),
+      new THREE.Vector3( 0.56,  1.96, feadZ),
+
+      // 4. Over High-Flow Coolant Water Pump (R = 0.40 at 0.0, 1.35)
+      new THREE.Vector3( 0.32,  1.60, feadZ),
+      new THREE.Vector3( 0.00,  1.75, feadZ),
+      new THREE.Vector3(-0.32,  1.60, feadZ),
+
+      // 5. Tensioner Reverse Contact (Roller at -0.76, 0.98, R = 0.24; back of belt presses roller at x ~ -0.54)
+      new THREE.Vector3(-0.54,  1.16, feadZ),
+      new THREE.Vector3(-0.52,  0.98, feadZ),
+      new THREE.Vector3(-0.56,  0.80, feadZ),
+
+      // 6. Around A/C Compressor Pulley (R = 0.38 at -1.45, 0.40)
+      new THREE.Vector3(-1.18,  0.64, feadZ),
+      new THREE.Vector3(-1.83,  0.40, feadZ),
+      new THREE.Vector3(-1.45,  0.02, feadZ),
+      new THREE.Vector3(-0.95, -0.14, feadZ)
     ];
 
     const beltCurve = new THREE.CatmullRomCurve3(beltPoints, true);
-    const beltGeo = new THREE.TubeGeometry(beltCurve, 160, 0.048, 8, true);
+    const beltGeo = new THREE.TubeGeometry(beltCurve, 200, 0.038, 8, true);
     beltGeo.scale(1.0, 1.0, 0.75);
 
     const beltMat = this.materials.belt || new THREE.MeshStandardMaterial({
