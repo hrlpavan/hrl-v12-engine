@@ -59,6 +59,7 @@ export class V12Scene3D {
     this.serpentineBeltMesh = null;
     this.feadBelt1Mesh = null;
     this.feadBelt2Mesh = null;
+    this.phaserRotors = [];
     this.particlesGroup = new THREE.Group();
     this.calloutsGroup = new THREE.Group();
     this.turboGroup = new THREE.Group();
@@ -777,7 +778,7 @@ export class V12Scene3D {
       const pinGeo = new THREE.CylinderGeometry(0.09, 0.09, pistonRadius * 1.8, 16);
       pinGeo.rotateX(Math.PI / 2);
       const pinMesh = new THREE.Mesh(pinGeo, this.materials.wristPin);
-      pinMesh.position.y = -0.05;
+      pinMesh.position.y = 0.0; // Co-axial alignment with connecting rod small-end bushing (Ganesan Sec. 12.6.1)
       pinMesh.userData.partInfo = {
         name: `Floating Wrist Pin (Cylinder #${cyl.id})`,
         metallurgy: "Case-Hardened 16MnCr5 Alloy Steel with Diamond-Like Carbon (DLC)",
@@ -1403,78 +1404,190 @@ export class V12Scene3D {
 
   _buildTimingDrive() {
     this.timingDriveGroup.clear();
+    this.phaserRotors = [];
     const crankLength = 6 * CYL_SPACING;
     const frontZ = (crankLength / 2) + 0.25;
 
-    // Timing Chain Guide Rails & Tensioners (Carbon-Composite)
+    // Materials
     const guideMat = new THREE.MeshStandardMaterial({ color: 0x1a1d22, metalness: 0.4, roughness: 0.6 });
-
-    // Right Bank Timing Chain Guide
-    const guideRGeo = new THREE.BoxGeometry(0.08, 2.2, 0.06);
-    const guideR = new THREE.Mesh(guideRGeo, guideMat);
-    guideR.position.set(1.15, 1.4, frontZ);
-    guideR.rotation.z = -BANK_ANGLE * 0.7;
-    this.timingDriveGroup.add(guideR);
-
-    // Left Bank Timing Chain Guide
-    const guideL = new THREE.Mesh(guideRGeo, guideMat);
-    guideL.position.set(-1.15, 1.4, frontZ);
-    guideL.rotation.z = BANK_ANGLE * 0.7;
-    this.timingDriveGroup.add(guideL);
-
-    // Dual Timing Chain loop (stylized metallic ribbon)
-    const chainMat = new THREE.MeshStandardMaterial({ color: 0x9099a2, metalness: 0.9, roughness: 0.3 });
-    const chainGeo = new THREE.TorusGeometry(1.6, 0.025, 8, 48);
-    const chainMesh = new THREE.Mesh(chainGeo, chainMat);
-    chainMesh.position.set(0, 1.3, frontZ);
-    chainMesh.scale.set(0.9, 1.4, 1.0);
-    this.timingDriveGroup.add(chainMesh);
-
-    // Atkinson Cycle Continuous VVT Camshaft Phasers (Ganesan Sec. 2.10 & 20.7.5)
-    // Phasers mount at the front of Bank 1 (Right) and Bank 2 (Left) intake camshafts
+    const chainMat = new THREE.MeshStandardMaterial({ color: 0x8a929b, metalness: 0.88, roughness: 0.28 });
     const phaserMat = new THREE.MeshStandardMaterial({ color: 0xb4bcc8, metalness: 0.88, roughness: 0.22 });
     const solMat = new THREE.MeshStandardMaterial({ color: 0x1d1d1f, metalness: 0.5, roughness: 0.5 });
+    const sprocketMat = this.materials.gear || new THREE.MeshStandardMaterial({ color: 0x4a5058, metalness: 0.85, roughness: 0.3 });
 
-    [
-      { side: 'R', sign: 1,  x: 0.72, y: 2.18 },
-      { side: 'L', sign: -1, x: -0.72, y: 2.18 }
-    ].forEach(cfg => {
-      const phaserGroup = new THREE.Group();
-      phaserGroup.position.set(cfg.x, cfg.y, frontZ + 0.06);
+    // 1. Dual Crankshaft Timing Drive Sprockets (Nose of Crankshaft at 0, 0, frontZ)
+    // Reference: Ganesan Section 2.10 (p. 66) & Section 12.6.1 - 2:1 speed reduction to camshafts
+    const crankSprocketGroup = new THREE.Group();
+    crankSprocketGroup.position.set(0, 0, frontZ);
+    const crankSprocketGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.08, 28);
+    crankSprocketGeo.rotateX(Math.PI / 2);
+    const crankSprocket = new THREE.Mesh(crankSprocketGeo, sprocketMat);
+    crankSprocket.userData.partInfo = {
+      name: "Dual-Row Crankshaft Timing Chain Drive Sprocket",
+      metallurgy: "Carburized & Case-Hardened 20MnCr5 Alloy Steel",
+      tempK: "365 K",
+      massGrams: "950 g",
+      toleranceMm: "±0.002 mm",
+      heritageNote: "Ganesan Sec. 2.10: 21-tooth duplex drive sprocket running at 1:2 ratio to camshaft 42-tooth sprockets"
+    };
+    this.interactiveMeshes.push(crankSprocket);
+    crankSprocketGroup.add(crankSprocket);
+    this.timingDriveGroup.add(crankSprocketGroup);
 
-      // Vaned hydraulic phaser rotor housing
-      const phaserGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.12, 28);
+    // 2. Continuous VVT Camshaft Phasers & Fast-Response Solenoids (Double-VANOS / Quad VVT)
+    // Mounted directly at true DOHC camshaft noses:
+    // Bank 1 (Right): Intake (1.422, 2.863), Exhaust (1.768, 2.663)
+    // Bank 2 (Left):  Intake (-1.422, 2.863), Exhaust (-1.768, 2.663)
+    // Completely clears FEAD Upper Guide Idler (0.78, 1.88) by >1.17 units (Ganesan Sec. 12.6 & 20.7.5)
+    const phaserConfigs = [
+      { side: 'R', cam: 'Intake',  sign:  1, x:  1.422, y: 2.863, name: "Bank 1 Intake Continuous VVT Phaser" },
+      { side: 'R', cam: 'Exhaust', sign:  1, x:  1.768, y: 2.663, name: "Bank 1 Exhaust Continuous VVT Phaser" },
+      { side: 'L', cam: 'Intake',  sign: -1, x: -1.422, y: 2.863, name: "Bank 2 Intake Continuous VVT Phaser" },
+      { side: 'L', cam: 'Exhaust', sign: -1, x: -1.768, y: 2.663, name: "Bank 2 Exhaust Continuous VVT Phaser" }
+    ];
+
+    phaserConfigs.forEach(cfg => {
+      const phaserMountGroup = new THREE.Group();
+      phaserMountGroup.position.set(cfg.x, cfg.y, frontZ + 0.06);
+
+      // Rotating phaser rotor group (rotates with cam angle)
+      const phaserRotorGroup = new THREE.Group();
+
+      // Precision vaned hydraulic phaser rotor housing
+      const phaserGeo = new THREE.CylinderGeometry(0.19, 0.19, 0.09, 28);
       phaserGeo.rotateX(Math.PI / 2);
       const phaserMesh = new THREE.Mesh(phaserGeo, phaserMat);
       phaserMesh.userData.partInfo = {
-        name: `${cfg.side === 'R' ? 'Bank 1' : 'Bank 2'} Atkinson Continuous VVT Camshaft Phaser`,
+        name: cfg.name,
         metallurgy: "Vaned Sintered Steel Rotor in Precision CNC Aluminum Housing",
         tempK: "345 K",
-        massGrams: "1,450 g",
+        massGrams: "1,220 g",
         toleranceMm: "±0.001 mm",
-        heritageNote: "Ganesan Sec. 2.10 (Eq. 2.73, p. 66) & Sec. 20.7.5 (p. 672): Continuously retards intake closing (LIVC) into compression stroke for Atkinson cycle high-expansion operation"
+        heritageNote: `Ganesan Sec. 2.10 (Eq. 2.73, p. 66) & Sec. 20.7.5 (p. 672): Continuously adjusts ${cfg.cam.toLowerCase()} timing up to 50° crank angle for Atkinson high-expansion lean cycle and zero overlap idle.`
       };
       this.interactiveMeshes.push(phaserMesh);
-      phaserGroup.add(phaserMesh);
+      phaserRotorGroup.add(phaserMesh);
 
-      // Fast-response oil control spool solenoid
-      const solGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.14, 16);
-      solGeo.rotateX(Math.PI / 2);
-      const solMesh = new THREE.Mesh(solGeo, solMat);
-      solMesh.position.z = 0.10;
-      phaserGroup.add(solMesh);
-
-      // 4-toothed timing target reluctor wheel
+      // 4-toothed timing target reluctor wheel for camshaft position Hall sensor
       for (let t = 0; t < 4; t++) {
-        const toothGeo = new THREE.BoxGeometry(0.04, 0.08, 0.02);
+        const toothGeo = new THREE.BoxGeometry(0.03, 0.06, 0.016);
         const tooth = new THREE.Mesh(toothGeo, this.materials.starlightChrome);
         const tAngle = (t * Math.PI) / 2;
-        tooth.position.set(0.24 * Math.cos(tAngle), 0.24 * Math.sin(tAngle), 0.06);
-        phaserGroup.add(tooth);
+        tooth.position.set(0.185 * Math.cos(tAngle), 0.185 * Math.sin(tAngle), 0.05);
+        phaserRotorGroup.add(tooth);
       }
 
-      this.timingDriveGroup.add(phaserGroup);
+      phaserMountGroup.add(phaserRotorGroup);
+      this.phaserRotors.push(phaserRotorGroup);
+
+      // Fast-response oil control spool solenoid (mounted stationary on timing chest facing phaser axis)
+      const solGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.10, 16);
+      solGeo.rotateX(Math.PI / 2);
+      const solMesh = new THREE.Mesh(solGeo, solMat);
+      solMesh.position.z = 0.08;
+      solMesh.userData.partInfo = {
+        name: `${cfg.side === 'R' ? 'Bank 1' : 'Bank 2'} ${cfg.cam} Fast-Response VVT Oil Control Solenoid`,
+        metallurgy: "Precision Electromagnetic Spool Valve in Anodized Aluminum Housing",
+        tempK: "340 K",
+        massGrams: "210 g",
+        toleranceMm: "±0.001 mm",
+        heritageNote: "High-speed PWM hydraulic spool directing 6.5 bar engine oil into advancing/retarding phaser vanes in <40 ms."
+      };
+      this.interactiveMeshes.push(solMesh);
+      phaserMountGroup.add(solMesh);
+
+      this.timingDriveGroup.add(phaserMountGroup);
     });
+
+    // 3. Dual Duplex Bush Roller Timing Chains (Bank 1 Right & Bank 2 Left)
+    // Reference: Ganesan Section 12.6.1 & 20.7.5 - Direct positive drive from crankshaft to camshaft sprockets
+    // Bank 1 Timing Chain Loop
+    const chain1Points = [
+      new THREE.Vector3( 0.00, -0.22, frontZ + 0.02),
+      new THREE.Vector3( 0.22,  0.02, frontZ + 0.02),
+      new THREE.Vector3( 0.68,  0.92, frontZ + 0.02),
+      new THREE.Vector3( 1.18,  1.82, frontZ + 0.02),
+      new THREE.Vector3( 1.62,  2.58, frontZ + 0.02),
+      new THREE.Vector3( 1.76,  2.76, frontZ + 0.02),
+      new THREE.Vector3( 1.58,  3.02, frontZ + 0.02),
+      new THREE.Vector3( 1.32,  2.96, frontZ + 0.02),
+      new THREE.Vector3( 0.98,  2.45, frontZ + 0.02),
+      new THREE.Vector3( 0.58,  1.55, frontZ + 0.02),
+      new THREE.Vector3( 0.22,  0.72, frontZ + 0.02),
+      new THREE.Vector3( 0.08,  0.15, frontZ + 0.02)
+    ];
+    const chain1Curve = new THREE.CatmullRomCurve3(chain1Points, true, 'centripetal');
+    const chain1Geo = new THREE.TubeGeometry(chain1Curve, 120, 0.022, 8, true);
+    const chain1Mesh = new THREE.Mesh(chain1Geo, chainMat);
+    chain1Mesh.userData.partInfo = {
+      name: "Bank 1 Duplex Bush Roller Timing Chain (Right Bank)",
+      metallurgy: "Shot-Peened High-Alloy Carbon Steel Links with Seamless Hardened Rollers",
+      tempK: "360 K",
+      massGrams: "1,120 g",
+      toleranceMm: "±0.005 mm",
+      heritageNote: "Ganesan Sec. 12.6.1: Duplex 3/8\" pitch roller chain transmitting synchronous drive from crank nose to Bank 1 intake & exhaust VVT phasers."
+    };
+    this.interactiveMeshes.push(chain1Mesh);
+    this.timingDriveGroup.add(chain1Mesh);
+
+    // Bank 2 Timing Chain Loop
+    const chain2Points = [
+      new THREE.Vector3( 0.00, -0.22, frontZ - 0.02),
+      new THREE.Vector3(-0.22,  0.02, frontZ - 0.02),
+      new THREE.Vector3(-0.68,  0.92, frontZ - 0.02),
+      new THREE.Vector3(-1.18,  1.82, frontZ - 0.02),
+      new THREE.Vector3(-1.62,  2.58, frontZ - 0.02),
+      new THREE.Vector3(-1.76,  2.76, frontZ - 0.02),
+      new THREE.Vector3(-1.58,  3.02, frontZ - 0.02),
+      new THREE.Vector3(-1.32,  2.96, frontZ - 0.02),
+      new THREE.Vector3(-0.98,  2.45, frontZ - 0.02),
+      new THREE.Vector3(-0.58,  1.55, frontZ - 0.02),
+      new THREE.Vector3(-0.22,  0.72, frontZ - 0.02),
+      new THREE.Vector3(-0.08,  0.15, frontZ - 0.02)
+    ];
+    const chain2Curve = new THREE.CatmullRomCurve3(chain2Points, true, 'centripetal');
+    const chain2Geo = new THREE.TubeGeometry(chain2Curve, 120, 0.022, 8, true);
+    const chain2Mesh = new THREE.Mesh(chain2Geo, chainMat);
+    chain2Mesh.userData.partInfo = {
+      name: "Bank 2 Duplex Bush Roller Timing Chain (Left Bank)",
+      metallurgy: "Shot-Peened High-Alloy Carbon Steel Links with Seamless Hardened Rollers",
+      tempK: "360 K",
+      massGrams: "1,120 g",
+      toleranceMm: "±0.005 mm",
+      heritageNote: "Ganesan Sec. 12.6.1: Duplex roller chain transmitting synchronous drive from crank nose to Bank 2 intake & exhaust VVT phasers."
+    };
+    this.interactiveMeshes.push(chain2Mesh);
+    this.timingDriveGroup.add(chain2Mesh);
+
+    // 4. Low-Friction Carbon-Composite Timing Chain Guides & Hydraulic Tensioner Blades
+    // Reference: Ganesan Section 12.6.1 - Prevents chain whip, resonance, and tooth hopping
+    // Bank 1 Outer Fixed Guide Rail
+    const guide1Geo = new THREE.BoxGeometry(0.06, 1.85, 0.05);
+    const guide1 = new THREE.Mesh(guide1Geo, guideMat);
+    guide1.position.set(0.96, 1.38, frontZ + 0.02);
+    guide1.rotation.z = -degToRad(31);
+    this.timingDriveGroup.add(guide1);
+
+    // Bank 1 Inner Dynamic Tensioner Blade
+    const tensioner1Geo = new THREE.BoxGeometry(0.05, 1.45, 0.05);
+    const tensioner1 = new THREE.Mesh(tensioner1Geo, guideMat);
+    tensioner1.position.set(0.58, 1.62, frontZ + 0.02);
+    tensioner1.rotation.z = -degToRad(25);
+    this.timingDriveGroup.add(tensioner1);
+
+    // Bank 2 Outer Fixed Guide Rail
+    const guide2Geo = new THREE.BoxGeometry(0.06, 1.85, 0.05);
+    const guide2 = new THREE.Mesh(guide2Geo, guideMat);
+    guide2.position.set(-0.96, 1.38, frontZ - 0.02);
+    guide2.rotation.z = degToRad(31);
+    this.timingDriveGroup.add(guide2);
+
+    // Bank 2 Inner Dynamic Tensioner Blade
+    const tensioner2Geo = new THREE.BoxGeometry(0.05, 1.45, 0.05);
+    const tensioner2 = new THREE.Mesh(tensioner2Geo, guideMat);
+    tensioner2.position.set(-0.58, 1.62, frontZ - 0.02);
+    tensioner2.rotation.z = degToRad(25);
+    this.timingDriveGroup.add(tensioner2);
   }
 
   /**
@@ -3121,11 +3234,16 @@ export class V12Scene3D {
     // 1. Rotate Crankshaft Group
     this.crankshaftGroup.rotation.z = crankAngleRad;
 
-    // 2. Rotate Camshafts (Quad-cam at 1/2 speed)
+    // 2. Rotate Camshafts (Quad-cam at 1/2 speed) & VVT Phaser Rotors
     const camAngleRad = degToRad(engineState.camAngleDeg);
     this.camshaftMeshes.forEach(cam => {
       cam.group.rotation.z = camAngleRad;
     });
+    if (this.phaserRotors) {
+      this.phaserRotors.forEach(r => {
+        r.rotation.z = camAngleRad;
+      });
+    }
 
     // 3. Articulate all 12 Cylinders (Pistons, Connecting Rods, Valves, Fireballs, Sparks)
     this.cylinderMeshes.forEach((cylMesh, idx) => {
