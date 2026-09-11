@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rolls-Royce Bespoke 6¾ Litre Twin-Turbo V12 | V2.0 Ganesan IC Engines Core</title>
+  <link rel="icon" type="image/png" href="./favicon.png" />
+  <link rel="shortcut icon" href="./favicon.ico" />
+  <link rel="apple-touch-icon" href="./favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script type="module" crossorigin src="./assets/index-BfqSZKDY.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-Wmkh6CnQ.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Fullscreen 3D Viewport -->
+    <div id="canvas-container"></div>
+
+    <!-- Apple-Style HUD Overlay Layer -->
+    <div id="hud-overlay">
+      <!-- 3D Raycasting Part Inspector Tooltip (Apple Pro Glass HUD) -->
+      <div id="part-tooltip" class="part-tooltip-hud" style="display: none;">
+        <div class="part-tooltip-header">
+          <div class="tooltip-header-left">
+            <span class="part-tooltip-badge">V12 BESPOKE COMPONENT</span>
+            <h4 id="tooltip-part-name" class="part-tooltip-title">Piston Crown & Skirt</h4>
+          </div>
+          <button id="btn-tooltip-close" class="tooltip-close-btn" title="Close Inspector">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="part-tooltip-body">
+          <div class="part-spec-row">
+            <span class="part-spec-label">Metallurgy</span>
+            <span id="tooltip-part-metallurgy" class="part-spec-val">Forged T6 High-Silicon Aluminum</span>
+          </div>
+          <div class="part-spec-row">
+            <span class="part-spec-label">Operating Temp</span>
+            <span id="tooltip-part-temp" class="part-spec-val">490 K</span>
+          </div>
+          <div class="part-spec-row">
+            <span class="part-spec-label">Component Mass</span>
+            <span id="tooltip-part-mass" class="part-spec-val">485 g</span>
+          </div>
+          <div class="part-spec-row">
+            <span class="part-spec-label">Machining Tolerance</span>
+            <span id="tooltip-part-tolerance" class="part-spec-val">±0.005 mm</span>
+          </div>
+          <div class="part-tooltip-note" id="tooltip-part-note">
+            Low-friction graphite skirt coating with CNC bowl combustion crown profile
+          </div>
+        </div>
+      </div>
+
+      <!-- TOP NAVIGATION BAR (Apple Floating Glass Header) -->
+      <header class="apple-nav">
+        <!-- Left: Brand & Architecture -->
+        <div class="nav-left">
+          <div class="apple-brand">
+            <img class="brand-logo-img" src="./rolls-royce-logo.png" alt="Rolls-Royce Motor Cars Official Crest" />
+            <div class="brand-titles">
+              <span class="brand-title">ROLLS-ROYCE</span>
+              <span class="brand-subtitle">Bespoke 6¾L Twin-Turbo V12</span>
+            </div>
+          </div>
+          <span class="spec-pill">60° Architecture</span>
+          <span class="v2-badge" title="Ganesan IC Engines Physics & Thermodynamics Core (Fourth Edition)">V2.0 · Ganesan Physics</span>
+        </div>
+
+        <!-- Center: Key Rolls-Royce Heritage Indicators -->
+        <div class="nav-center">
+          <div class="power-reserve-capsule" title="Rolls-Royce Power Reserve: 100% available at idle, 0% at peak output">
+            <div class="pr-gauge-mini">
+              <svg viewBox="0 0 36 36" class="pr-svg">
+                <path class="pr-track" d="M 6,26 A 13,13 0 1,1 30,26" fill="none" stroke-width="3" stroke-linecap="round" />
+                <path id="pr-gauge-fill" class="pr-fill" d="M 6,26 A 13,13 0 1,1 30,26" fill="none" stroke-width="3" stroke-linecap="round" stroke-dasharray="62" stroke-dashoffset="0" />
+              </svg>
+              <div class="pr-center-label">
+                <span id="power-reserve-val">100%</span>
+              </div>
+            </div>
+            <div class="pr-text-stack">
+              <span class="pr-title">Power Reserve</span>
+              <span id="power-reserve-status" class="pr-subtitle">100% Available</span>
+            </div>
+          </div>
+
+          <div class="rr-coin-badge" title="Sir Henry Royce 1906 Coin Balance Test: Analytical primary & secondary balance">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v10M9 9.5a2.5 2.5 0 0 1 5 0c0 2-3 2.5-3 4.5" />
+            </svg>
+            <span class="coin-badge-label">1906 Coin:</span>
+            <span id="coin-status-badge" class="coin-badge-status">Balanced Upright</span>
+          </div>
+
+          <div class="rr-boost-badge" title="Twin Turbocharger Boost Pressure">
+            <span class="boost-badge-label">Boost:</span>
+            <span id="turbo-boost-val" class="boost-badge-val">1.00 bar</span>
+          </div>
+
+          <button id="btn-eco-toggle" class="eco-toggle-capsule" title="Toggle Ganesan High-Efficiency (Atkinson Cycle & Stratified Lean Burn)">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+            </svg>
+            <span class="eco-badge-label">Cycle:</span>
+            <span id="eco-mode-status" class="eco-badge-status">Standard (Otto)</span>
+          </button>
+        </div>
+
+        <!-- Right: RPM, Audio, Theme, and Inspector Toggles -->
+        <div class="nav-right">
+          <div class="rpm-capsule">
+            <div class="rpm-text-group">
+              <span id="rpm-display" class="rpm-val">1600</span>
+              <span class="rpm-unit">RPM</span>
+            </div>
+            <input type="range" id="rpm-slider" min="600" max="6000" step="50" value="1600" class="apple-slider" title="Engine Speed" />
+          </div>
+
+          <div class="apple-audio-widget">
+            <button id="btn-audio-toggle" class="apple-icon-btn" title="Toggle V12 Audio (M)">
+              <svg id="audio-icon-svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <line id="audio-mute-line" x1="23" y1="9" x2="17" y2="15"></line>
+                <line id="audio-mute-line-2" x1="17" y1="9" x2="23" y2="15"></line>
+                <path id="audio-waves" d="M15.54 8.46a5 5 0 0 1 0 7.07" style="display: none;"></path>
+              </svg>
+              <span id="audio-status-text" class="sr-only">Audio</span>
+            </button>
+            <input type="range" id="audio-volume" min="0" max="1" step="0.05" value="0.6" title="Engine Volume" class="apple-mini-slider" />
+            <button id="btn-throttle-blip" class="apple-pill-btn" title="Simulate Rev">Rev</button>
+          </div>
+
+          <div class="segmented-control theme-segment">
+            <button id="btn-theme-light" class="seg-btn active" title="Day Mode (Light Studio)">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+            </button>
+            <button id="btn-theme-dark" class="seg-btn" title="Dark Mode (Night Studio)">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              </svg>
+            </button>
+          </div>
+
+          <button id="btn-telemetry-toggle" class="apple-icon-pill-btn active" title="Toggle Telemetry Inspector">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+              <path d="M9 3v18"></path>
+            </svg>
+            <span>Telemetry</span>
+          </button>
+
+          <button id="btn-zen-mode" class="apple-icon-circle-btn" title="Toggle Zen Mode / Hide HUD (H)">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- RIGHT CONSOLIDATED TELEMETRY INSPECTOR (Apple Floating Glass Palette) -->
+      <aside id="telemetry-inspector" class="apple-inspector">
+        <!-- Inspector Header -->
+        <div class="inspector-header">
+          <div class="inspector-title-group">
+            <span class="inspector-title">Telemetry & Diagnostics</span>
+            <span id="inspector-cyl-badge" class="inspector-badge">Cylinder 1</span>
+          </div>
+          <button id="btn-inspector-close" class="inspector-close-btn" title="Collapse Inspector">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Segmented Tab Bar (Ganesan V2.0 Engineering HUD) -->
+        <div class="inspector-tabs segmented-control">
+          <button class="seg-btn active" data-tab="cylinder">Cyl</button>
+          <button class="seg-btn" data-tab="kinematics">Motion</button>
+          <button class="seg-btn" data-tab="thermo">P-V</button>
+          <button class="seg-btn" data-tab="sankey">Heat</button>
+          <button class="seg-btn" data-tab="perfmap">Map</button>
+          <button class="seg-btn" data-tab="valves">Valves</button>
+          <button class="seg-btn" data-tab="dyno">Dyno</button>
+          <button class="seg-btn" data-tab="emissions">Emiss</button>
+          <button class="seg-btn" data-tab="eco" title="Ganesan High-Efficiency Atkinson & Stratified Lean Burn Mode">Eco</button>
+          <button class="seg-btn" data-tab="belts" title="FEAD Serpentine Belts & Auxiliary Transmission (Ganesan Ch. 12 & 13)">Belts</button>
+          <button class="seg-btn" data-tab="acoustics" title="Rolls-Royce V12 Fluid Dynamics & Gas Acoustics (Heywood, Benson, Munjal, White, Harrison)">Sound</button>
+        </div>
+
+        <!-- Tab Content Panes -->
+        <div class="inspector-body">
+          <!-- Pane 1: Cylinder & Combustion -->
+          <div class="inspector-pane active" id="pane-cylinder">
+            <div class="apple-card status-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span id="header-cyl-id" class="card-title">Cylinder 1 (Bank R)</span>
+                  <span id="header-crank-deg" class="card-subtitle">0° Crank Position</span>
+                </div>
+                <span id="header-stroke-name" class="status-pill status-power">Combustion</span>
+              </div>
+
+              <div class="pressure-hero">
+                <div class="pressure-main">
+                  <span id="chamber-pressure-val" class="pressure-num">85.4</span>
+                  <span class="pressure-unit-label">bar</span>
+                </div>
+                <div class="temp-display">
+                  <span class="temp-label">Temperature</span>
+                  <span id="chamber-temp-val" class="temp-val">2450 K</span>
+                </div>
+              </div>
+
+              <div class="apple-stroke-segment">
+                <span id="badge-stroke-intake" class="seg-item">Intake</span>
+                <span id="badge-stroke-compression" class="seg-item">Compression</span>
+                <span id="badge-stroke-power" class="seg-item active">Power</span>
+                <span id="badge-stroke-exhaust" class="seg-item">Exhaust</span>
+              </div>
+
+              <div class="cyl-details-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Swept Vol (Vs)</span>
+                  <span class="detail-val">562.4 cc / cyl</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Clearance (Vc)</span>
+                  <span class="detail-val">62.5 cc / cyl</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Comp. Ratio (r)</span>
+                  <span class="detail-val">10.0 : 1</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Piston Speed (sp)</span>
+                  <span id="cyl-piston-speed" class="detail-val">12.0 m/s</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">GDI Mode</span>
+                  <span id="cyl-gdi-mode" class="detail-val">Homogeneous</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Equivalence (φ)</span>
+                  <span id="cyl-phi-val" class="detail-val">1.00 (14.7:1)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Air Mass Flow</span>
+                  <span id="cyl-maf-val" class="detail-val">340 kg/h</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Fuel Mass Flow</span>
+                  <span id="cyl-mff-val" class="detail-val">23.2 kg/h</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane 2: Slider-Crank Kinematics & 60° Orbit -->
+          <div class="inspector-pane" id="pane-kinematics">
+            <div class="apple-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Slider-Crank Geometry</span>
+                  <span class="card-subtitle">Kinematic Motion (s, v, a)</span>
+                </div>
+                <span id="kinematic-after-tdc" class="card-tag">0° After TDC</span>
+              </div>
+              <div class="canvas-wrap">
+                <canvas id="canvas-slider-crank" class="telemetry-canvas" width="280" height="105"></canvas>
+              </div>
+              <div class="card-footer-formula">
+                <div class="math-expr">s = r·cosθ + √(L² - r²·sin²θ)</div>
+                <div class="param-row">
+                  <span>r 45.2 mm</span>
+                  <span>L 162 mm</span>
+                  <span class="param-accent">Stroke 90.4 mm</span>
+                  <span>Bore 89 mm</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="apple-card" style="margin-top: 8px;">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">60° Crankshaft Orbit</span>
+                  <span class="card-subtitle">120° Symmetrical Throws</span>
+                </div>
+                <span class="card-tag">Polar Balance</span>
+              </div>
+              <div class="canvas-wrap">
+                <canvas id="canvas-crank-end" class="telemetry-canvas" width="280" height="110"></canvas>
+              </div>
+              <div class="card-footer-info">
+                <span>Primary & Secondary Balancing · Banks ±30°</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane 3: Thermodynamic P-V Indicator -->
+          <div class="inspector-pane" id="pane-thermo">
+            <div class="apple-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Indicator Diagram</span>
+                  <span class="card-subtitle">Actual vs Air-Std Otto Cycle</span>
+                </div>
+                <span id="pv-cyl-tag" class="card-tag">Cyl 1</span>
+              </div>
+              <div class="canvas-wrap">
+                <canvas id="canvas-pv-indicator" class="telemetry-canvas" width="280" height="135"></canvas>
+              </div>
+              <div class="cyl-details-grid" style="margin-top: 8px;">
+                <div class="detail-item">
+                  <span class="detail-label">IMEP (pim)</span>
+                  <span id="thermo-imep-val" class="detail-val">18.4 bar</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">BMEP (pbm)</span>
+                  <span id="thermo-bmep-val" class="detail-val">16.8 bar</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">FMEP (pfm)</span>
+                  <span id="thermo-fmep-val" class="detail-val">1.6 bar</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Mech. Eff. (ηm)</span>
+                  <span id="thermo-etam-val" class="detail-val">91.3%</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Brake Eff. (ηbth)</span>
+                  <span id="thermo-etabth-val" class="detail-val">34.5%</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Relative Eff. (ηrel)</span>
+                  <span id="thermo-etarel-val" class="detail-val">57.3%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane 4: First Law Heat Balance & Sankey Diagram -->
+          <div class="inspector-pane" id="pane-sankey">
+            <div class="apple-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Sankey Heat Balance</span>
+                  <span class="card-subtitle">First Law Energy Distribution</span>
+                </div>
+                <span class="card-tag">Ganesan Fig. 16.13</span>
+              </div>
+              <div class="canvas-wrap">
+                <canvas id="canvas-sankey-diagram" class="telemetry-canvas" width="280" height="155"></canvas>
+              </div>
+              <div class="cyl-details-grid" style="margin-top: 8px;">
+                <div class="detail-item">
+                  <span class="detail-label">Fuel Input (Qf)</span>
+                  <span id="sankey-qfuel" class="detail-val">520.0 kW</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Brake Work (bp)</span>
+                  <span id="sankey-bp" class="detail-val">170.0 kW (32.7%)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Coolant Jacket</span>
+                  <span id="sankey-qcool" class="detail-val">145.0 kW (27.9%)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Exhaust Enthalpy</span>
+                  <span id="sankey-qex" class="detail-val">172.0 kW (33.1%)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane 5: Engine Performance Map & Stribeck Curve -->
+          <div class="inspector-pane" id="pane-perfmap">
+            <div class="apple-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Performance Map</span>
+                  <span class="card-subtitle">BMEP vs Mean Piston Speed</span>
+                </div>
+                <span class="card-tag">BSFC Contours</span>
+              </div>
+              <div class="canvas-wrap">
+                <canvas id="canvas-perf-map" class="telemetry-canvas" width="280" height="145"></canvas>
+              </div>
+              <div class="cyl-details-grid" style="margin-top: 8px;">
+                <div class="detail-item">
+                  <span class="detail-label">Lubrication Regime</span>
+                  <span id="perf-lub-regime" class="detail-val">Full-Film Hydrodynamic</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Sommerfeld (νN/p)</span>
+                  <span id="perf-sommerfeld" class="detail-val">0.0142</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Brake Specific FC</span>
+                  <span id="perf-bsfc" class="detail-val">235 g/kWh</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Specific Energy (bsec)</span>
+                  <span id="perf-bsec" class="detail-val">10.34 MJ/kWh</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane 6: Valve Timing & Gas Dynamics -->
+          <div class="inspector-pane" id="pane-valves">
+            <div class="apple-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Valve Timing & Lift</span>
+                  <span class="card-subtitle">Lift & Duration (720°)</span>
+                </div>
+                <span class="card-action-tag">Drag to Scrub</span>
+              </div>
+              <div class="canvas-wrap">
+                <canvas id="canvas-valve-timing" class="telemetry-canvas interactive-canvas" width="280" height="125"></canvas>
+              </div>
+              <div class="timing-key">
+                <span><span class="key-dot dot-blue"></span> Intake</span>
+                <span><span class="key-dot dot-orange"></span> Exhaust</span>
+                <span><span class="key-dot dot-gray"></span> Piston</span>
+              </div>
+              <div class="cyl-details-grid" style="margin-top: 8px;">
+                <div class="detail-item">
+                  <span class="detail-label">Inlet Mach Index (Z)</span>
+                  <span id="valves-mach-index" class="detail-val">0.380</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Breathing Status</span>
+                  <span id="valves-choke-status" class="detail-val">Optimal (Z &lt; 0.55)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Valve Overlap</span>
+                  <span class="detail-val">40° (Scavenging)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Sonic Velocity (α)</span>
+                  <span id="valves-sonic-vel" class="detail-val">356 m/s</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane 7: Dyno Sweep & Interactive Morse Test -->
+          <div class="inspector-pane" id="pane-dyno">
+            <div class="apple-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Dyno Performance Map</span>
+                  <span class="card-subtitle">900 Nm Wave · 563 bhp</span>
+                </div>
+                <button id="btn-dyno-pull-run" class="dyno-run-pill" title="Trigger Automated WOT Dyno Sweep">
+                  <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                  <span>Dyno Pull</span>
+                </button>
+              </div>
+              <div class="canvas-wrap">
+                <canvas id="canvas-dyno-curve" class="telemetry-canvas" width="280" height="130"></canvas>
+              </div>
+            </div>
+
+            <!-- Interactive Morse Test Section (Ganesan Section 15.2.2) -->
+            <div class="apple-card" style="margin-top: 8px;">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Morse Test (Cylinder Cutout)</span>
+                  <span class="card-subtitle">Cut cylinder to measure Indicated Power</span>
+                </div>
+                <div class="morse-btn-actions">
+                  <button id="btn-morse-reset" class="apple-pill-btn btn-xs" title="Restore all 12 cylinders">All On</button>
+                  <button id="btn-morse-autorun" class="apple-pill-btn btn-xs accent-pill" title="Auto-run complete 12-cyl test">Auto Test</button>
+                </div>
+              </div>
+
+              <!-- 12 Cylinders Morse Cutout Grid -->
+              <div class="morse-cyl-grid" id="morse-cyl-buttons">
+                <!-- Buttons 1 to 12 dynamically populated or hardcoded -->
+                <button class="morse-cyl-btn active" data-cyl="1">1</button>
+                <button class="morse-cyl-btn active" data-cyl="2">2</button>
+                <button class="morse-cyl-btn active" data-cyl="3">3</button>
+                <button class="morse-cyl-btn active" data-cyl="4">4</button>
+                <button class="morse-cyl-btn active" data-cyl="5">5</button>
+                <button class="morse-cyl-btn active" data-cyl="6">6</button>
+                <button class="morse-cyl-btn active" data-cyl="7">7</button>
+                <button class="morse-cyl-btn active" data-cyl="8">8</button>
+                <button class="morse-cyl-btn active" data-cyl="9">9</button>
+                <button class="morse-cyl-btn active" data-cyl="10">10</button>
+                <button class="morse-cyl-btn active" data-cyl="11">11</button>
+                <button class="morse-cyl-btn active" data-cyl="12">12</button>
+              </div>
+
+              <div class="cyl-details-grid" style="margin-top: 8px;">
+                <div class="detail-item">
+                  <span class="detail-label">All-Firing BP</span>
+                  <span id="morse-bp-all" class="detail-val">170.0 kW</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Active BP</span>
+                  <span id="morse-bp-cur" class="detail-val">170.0 kW</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Total Indicated Power</span>
+                  <span id="morse-ip-total" class="detail-val">186.2 kW</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Calculated Mech. Eff.</span>
+                  <span id="morse-eta-m" class="detail-val">91.3%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane 8: Emissions & 3-Way Catalytic Converter -->
+          <div class="inspector-pane" id="pane-emissions">
+            <div class="apple-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Engine Emissions (Ganesan Ch. 14)</span>
+                  <span class="card-subtitle">NOx, CO & HC vs Equivalence Ratio</span>
+                </div>
+                <span class="card-tag">TWC Catalyzed</span>
+              </div>
+              <div class="canvas-wrap">
+                <canvas id="canvas-emissions" class="telemetry-canvas" width="280" height="135"></canvas>
+              </div>
+              <div class="cyl-details-grid" style="margin-top: 8px;">
+                <div class="detail-item">
+                  <span class="detail-label">NOx (Raw / Tailpipe)</span>
+                  <span id="emiss-nox-val" class="detail-val">1420 / 45 ppm</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">CO (Raw / Tailpipe)</span>
+                  <span id="emiss-co-val" class="detail-val">0.30% / 0.01%</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">HC (Raw / Tailpipe)</span>
+                  <span id="emiss-hc-val" class="detail-val">400 / 12 ppm</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Catalyst Temp & Status</span>
+                  <span id="cat-status-val" class="detail-val">580°C (Light-Off OK)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane 9: Ganesan High-Efficiency & Real-World Mileage -->
+          <div class="inspector-pane" id="pane-eco">
+            <div class="apple-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Real-World Fuel Economy</span>
+                  <span id="eco-cycle-badge" class="card-subtitle">Atkinson Cycle · Stratified Lean Burn</span>
+                </div>
+                <button id="btn-pane-eco-toggle" class="card-action-tag eco-action-pill" title="Toggle Ganesan Eco Mode">
+                  <span id="pane-eco-btn-label">Standard Mode</span>
+                </button>
+              </div>
+
+              <!-- Hero Fuel Economy Grid -->
+              <div class="eco-hero-container">
+                <div class="eco-hero-main">
+                  <div class="eco-stat-large">
+                    <span id="eco-mileage-kml" class="eco-big-num">14.8</span>
+                    <span class="eco-big-unit">km / L</span>
+                  </div>
+                  <div class="eco-hero-badge" id="eco-saving-badge">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M12 19V5M5 12l7-7 7 7"/>
+                    </svg>
+                    <span id="eco-fuel-saved-pct">+24.0%</span> Saved
+                  </div>
+                </div>
+
+                <div class="eco-metrics-triple">
+                  <div class="eco-metric-box">
+                    <span class="eco-sub-label">US MPG</span>
+                    <span id="eco-mileage-mpg-us" class="eco-sub-val">34.8</span>
+                  </div>
+                  <div class="eco-metric-box">
+                    <span class="eco-sub-label">UK MPG</span>
+                    <span id="eco-mileage-mpg-uk" class="eco-sub-val">41.8</span>
+                  </div>
+                  <div class="eco-metric-box">
+                    <span class="eco-sub-label">L / 100km</span>
+                    <span id="eco-mileage-l100km" class="eco-sub-val">6.76</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="cyl-details-grid" style="margin-top: 10px;">
+                <div class="detail-item">
+                  <span class="detail-label">Fuel Consumption</span>
+                  <span id="eco-fuel-flow-lh" class="detail-val">11.5 L/h</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Fuel Mass Flow</span>
+                  <span id="eco-fuel-flow-kgh" class="detail-val">8.6 kg/h</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Brake Thermal (ηbth)</span>
+                  <span id="eco-etabth-val" class="detail-val highlight-green">41.8%</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Brake Specific FC</span>
+                  <span id="eco-bsfc-val" class="detail-val highlight-green">198 g/kWh</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Air-Standard Cycle (η)</span>
+                  <span id="eco-eta-airstd-val" class="detail-val">63.0% (Atkinson)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Expansion Ratio (e)</span>
+                  <span id="eco-expansion-ratio" class="detail-val">13.5 : 1</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ganesan 4th Edition Principle Verification Card -->
+            <div class="apple-card" style="margin-top: 8px;">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Ganesan Principles Verification</span>
+                  <span class="card-subtitle">"Internal Combustion Engines" (4th Ed.)</span>
+                </div>
+                <span class="card-tag">8 Principles</span>
+              </div>
+
+              <div class="ganesan-rules-scroll">
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">1</span>
+                    <span class="rule-title">Atkinson Cycle Extended Expansion</span>
+                    <span class="rule-badge">Ganesan Eq. 2.73, p. 66</span>
+                  </div>
+                  <p class="rule-desc">Expansion ratio e = 13.5:1 with effective compression r = 10.2:1 via Late Intake Valve Closing (LIVC). Air-standard efficiency reaches 63.0% (vs 60.2% Otto), extracting maximum work from expansion.</p>
+                </div>
+
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">2</span>
+                    <span class="rule-title">Toroidal Squish Combustion Chamber Bowl</span>
+                    <span class="rule-badge">Sec. 11.18.1, Fig. 11.19d &amp; Sec. 20.6.1</span>
+                  </div>
+                  <p class="rule-desc">70% squish quench area with central aerodynamic deflector pip creates a high-velocity smoke-ring vortex in piston bowl for stable ultra-lean stratified combustion without wall wetting.</p>
+                </div>
+
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">3</span>
+                    <span class="rule-title">Swirl Control Valves (SCV) in Dual-Path Runners</span>
+                    <span class="rule-badge">Sec. 20.8.6, Fig. 20.10, p. 678</span>
+                  </div>
+                  <p class="rule-desc">Electronic stepper shuts secondary runner during cruising to force air through helical swirl port, generating intense micro-turbulent swirl (A/F up to 22:1) to accelerate flame speed and avert lean misfire.</p>
+                </div>
+
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">4</span>
+                    <span class="rule-title">Liquid-Cooled Exhaust Gas Recirculation (EGR)</span>
+                    <span class="rule-badge">Sec. 14.18, pp. 443-445, Fig. 14.11</span>
+                  </div>
+                  <p class="rule-desc">Finned 316L stainless heat exchanger cools recirculated gas to 120°C, acting as a thermal diluent to lower peak flame temperature from 2450 K to 2120 K, eliminating engine knock and cutting raw NOx by 65%.</p>
+                </div>
+
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">5</span>
+                    <span class="rule-title">Unthrottled VVA Pumping Loss Elimination</span>
+                    <span class="rule-badge">Sec. 20.6.1, p. 668 &amp; Sec. 4.5.1, p. 139</span>
+                  </div>
+                  <p class="rule-desc">Variable Valve Actuation regulates intake charge volume directly by valve closing point without throttle butterfly plate restriction, dropping pumping mean effective pressure (pmep) from 0.85 bar to 0.07 bar.</p>
+                </div>
+
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">6</span>
+                    <span class="rule-title">Low-Friction Slipper Skirt &amp; Hydrodynamic Lubrication</span>
+                    <span class="rule-badge">Ch. 12, pp. 361-387, Fig. 12.6</span>
+                  </div>
+                  <p class="rule-desc">Graphite-coated slipper skirts with reduced contact area and low-tension DLC rings reduce mechanical friction (mmep) by 20% while 0W-20 multi-grade synthetic oil maintains full-film hydrodynamic regime (νN/p ≥ 0.008).</p>
+                </div>
+
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">7</span>
+                    <span class="rule-title">Inlet-Valve Mach Index Control (Z ≤ 0.55)</span>
+                    <span class="rule-badge">Sec. 1.8.10, Eq. 1.18 &amp; Fig. 1.16</span>
+                  </div>
+                  <p class="rule-desc">Maintains inlet Mach Index Z = (b/Di)²(Vp/(Ci·α)) ≤ 0.55 across cruising range, avoiding choking and ensuring peak volumetric efficiency ηv ≥ 88%.</p>
+                </div>
+
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">8</span>
+                    <span class="rule-title">Closed-Loop Heated Lambda &amp; Dual Knock Sensors</span>
+                    <span class="rule-badge">Sec. 17.7, pp. 592-593, Fig. 17.24</span>
+                  </div>
+                  <p class="rule-desc">Heated Zirconia λ-sensor with sub-50ms response provides closed-loop AFR regulation while dual piezoelectric knock sensors advance MBT timing to target peak cylinder pressure at 12° aTDC.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane 10: FEAD Serpentine Belts & Auxiliary Power -->
+          <div class="inspector-pane" id="pane-belts">
+            <div class="apple-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">FEAD Dual-Belt Drive Architecture</span>
+                  <span class="card-subtitle">Ganesan Ch. 12 &amp; 13 · Twin-Loop TVD Auxiliary Drive</span>
+                </div>
+                <span id="fead-status-badge" class="card-tag">Dual-Belt (8PK + 4PK)</span>
+              </div>
+
+              <div class="pressure-hero" style="margin-top: 6px;">
+                <div class="pressure-main">
+                  <span id="fead-power-total" class="pressure-num">2.89</span>
+                  <span class="pressure-unit-label">kW</span>
+                </div>
+                <div class="temp-display">
+                  <span class="temp-label">Linear Belt Speed</span>
+                  <span id="fead-belt-speed" class="temp-val">14.2 m/s</span>
+                </div>
+              </div>
+
+              <div class="cyl-details-grid" style="margin-top: 10px;">
+                <div class="detail-item">
+                  <span class="detail-label">Auxiliary MEP (amep)</span>
+                  <span id="fead-amep-val" class="detail-val">0.32 bar</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Total Absorbed Torque</span>
+                  <span id="fead-torque-val" class="detail-val">17.2 Nm</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">TVD Attenuation</span>
+                  <span id="fead-tvd-val" class="detail-val">-91% (0.13° twist)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Drive Efficiency</span>
+                  <span id="fead-eff-val" class="detail-val">96.5%</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Belt 1 Tight (T₁)</span>
+                  <span id="fead-t1-val" class="detail-val">664 N</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Belt 1 Slack (T₂)</span>
+                  <span id="fead-t2-val" class="detail-val">461 N</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Tension Ratio (T₁/T₂)</span>
+                  <span id="fead-ratio-val" class="detail-val">1.44</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Centrifugal Pull (mv²)</span>
+                  <span id="fead-centrifugal-val" class="detail-val">32 N</span>
+                </div>
+              </div>
+
+              <!-- Dual-Belt Telemetry Comparison -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 8px;">
+                  <div style="font-size: 11px; font-weight: 600; color: #4ade80; display: flex; justify-content: space-between;">
+                    <span>Belt 1: Primary (8PK)</span>
+                    <span id="fead-belt1-kw">1.76 kW</span>
+                  </div>
+                  <div style="font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px;">Water Pump (130mm) + Alt (70mm)</div>
+                  <div style="font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 4px; display: flex; justify-content: space-between;">
+                    <span>T₁ / T₂</span>
+                    <span id="fead-belt1-tensions">664 N / 461 N</span>
+                  </div>
+                  <div style="font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 2px; display: flex; justify-content: space-between;">
+                    <span>Wrap Angles</span>
+                    <span>Alt 142.6° · WP 131.4°</span>
+                  </div>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 8px;">
+                  <div style="font-size: 11px; font-weight: 600; color: #38bdf8; display: flex; justify-content: space-between;">
+                    <span>Belt 2: Climate (4PK)</span>
+                    <span id="fead-belt2-kw">1.13 kW</span>
+                  </div>
+                  <div style="font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px;">Variable Swashplate A/C (125mm)</div>
+                  <div style="font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 4px; display: flex; justify-content: space-between;">
+                    <span>T₁ / T₂</span>
+                    <span id="fead-belt2-tensions">442 N / 285 N</span>
+                  </div>
+                  <div style="font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 2px; display: flex; justify-content: space-between;">
+                    <span>Wrap Angles</span>
+                    <span>A/C 158.2° · Crank 148°</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card-footer-formula" style="margin-top: 10px;">
+                <div class="math-expr">Euler-Eytelwein: (T₁ - mv²) / (T₂ - mv²) = e^(μθ / sin β)</div>
+                <div class="param-row">
+                  <span>μ 0.38</span>
+                  <span>2β 40° (Groove)</span>
+                  <span>θ ≥ 140° (Wrap)</span>
+                  <span>Preload 520N/380N</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Auxiliary Parasitic Load Breakdown Card -->
+            <div class="apple-card" style="margin-top: 8px;">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Parasitic Auxiliary Load Distribution</span>
+                  <span class="card-subtitle">Ganesan Ch. 12 (Eq. 12.2) &amp; Ch. 13</span>
+                </div>
+                <span class="card-tag">FEAD Breakdown</span>
+              </div>
+              <div class="cyl-details-grid" style="margin-top: 6px;">
+                <div class="detail-item">
+                  <span class="detail-label">Coolant Water Pump</span>
+                  <span id="fead-wp-kw" class="detail-val">0.46 kW (130 mm)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">250A Alternator (GDI)</span>
+                  <span id="fead-alt-kw" class="detail-val">1.25 kW (70 mm)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">A/C Swashplate Comp</span>
+                  <span id="fead-ac-kw" class="detail-val">1.07 kW (125 mm)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Belt Rubber Hysteresis</span>
+                  <span id="fead-hyst-kw" class="detail-val">0.11 kW (3.8%)</span>
+                </div>
+              </div>
+              <div class="card-footer-info" style="margin-top: 8px;">
+                <span>Ganesan Eq. 12.2: fmep = mmep + pmep + amep · Water pump power scales ~N^2.7</span>
+              </div>
+            </div>
+
+            <!-- Ganesan Book Belt Guidance Card -->
+            <div class="apple-card" style="margin-top: 8px;">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Role of Belts in the Rolls-Royce V12</span>
+                  <span class="card-subtitle">Engineering Grounding (Prof. V. Ganesan)</span>
+                </div>
+                <span class="card-tag">Book Principles</span>
+              </div>
+              <div class="ganesan-rules-scroll">
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">A</span>
+                    <span class="rule-title">Auxiliary Parasitic Work (amep)</span>
+                    <span class="rule-badge">Ganesan Sec. 12.2, p. 362</span>
+                  </div>
+                  <p class="rule-desc">The serpentine belt transfers mechanical work from the crankshaft to vital subsystems (water pump, alternator, A/C compressor). Consumes 0.25 to 0.45 bar AMEP, reducing indicated power to brake power (bp = ip - fp).</p>
+                </div>
+
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">B</span>
+                    <span class="rule-title">Torsional Harmonic Balancing (TVD)</span>
+                    <span class="rule-badge">Ganesan Ch. 18, p. 542</span>
+                  </div>
+                  <p class="rule-desc">The crankshaft driving pulley is an elastomeric Torsional Vibration Damper. It damps 6th and 12th harmonic resonance spikes from the V12 60° firing pulses by 91%, isolating the belt from high-frequency torsional twist.</p>
+                </div>
+
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">C</span>
+                    <span class="rule-title">Euler-Eytelwein Friction &amp; Wrap Angle</span>
+                    <span class="rule-badge">Euler's Capstan Law</span>
+                  </div>
+                  <p class="rule-desc">Multi-ribbed 40° V-grooves increase effective friction (μ/sin 20° ≈ 1.11). Strategic guide idlers maintain wrap angles &gt;140°, preventing belt slip under sudden acceleration without excessive static bearing pre-loads.</p>
+                </div>
+
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">D</span>
+                    <span class="rule-title">Dynamic Hydraulic Tensioning</span>
+                    <span class="rule-badge">Accessory Stability</span>
+                  </div>
+                  <p class="rule-desc">A spring-loaded swing arm with hydraulic damping maintains 520 N constant preload across thermal expansion ranges (-40°C to +125°C), eliminating high-RPM belt flap and premature cord fatigue.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane 11: Rolls-Royce V12 Fluid Dynamics & Gas Acoustics -->
+          <div class="inspector-pane" id="pane-acoustics">
+            <div class="apple-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Rolls-Royce V12 Gas Dynamics &amp; Acoustics</span>
+                  <span class="card-subtitle">Heywood · Benson · Munjal · White · Harrison</span>
+                </div>
+                <span id="acoustic-mode-badge" class="card-tag">Quiet Luxury (TL ≥ 34 dB)</span>
+              </div>
+
+              <div class="pressure-hero" style="margin-top: 6px;">
+                <div class="pressure-main">
+                  <span id="acoustic-fund-hz" class="pressure-num">60.0</span>
+                  <span class="pressure-unit-label">Hz (6th Order)</span>
+                </div>
+                <div class="temp-display">
+                  <span class="temp-label">Munjal Transmission Loss</span>
+                  <span id="acoustic-tl-val" class="temp-val">34.5 dB</span>
+                </div>
+              </div>
+
+              <!-- Interactive Mode & Listening Position Selectors -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
+                <div>
+                  <label style="font-size: 10px; color: rgba(255,255,255,0.5); font-weight: 500; display: block; margin-bottom: 4px;">Exhaust Valve Mode</label>
+                  <div class="segmented-control" style="width: 100%;">
+                    <button id="btn-mode-luxury" class="seg-btn active" style="flex: 1; font-size: 11px;">Luxury</button>
+                    <button id="btn-mode-dynamic" class="seg-btn" style="flex: 1; font-size: 11px;">Dynamic</button>
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size: 10px; color: rgba(255,255,255,0.5); font-weight: 500; display: block; margin-bottom: 4px;">Acoustic Listener</label>
+                  <div class="segmented-control" style="width: 100%;">
+                    <button id="btn-pos-cabin" class="seg-btn active" style="flex: 1; font-size: 11px;">Cabin</button>
+                    <button id="btn-pos-tailpipe" class="seg-btn" style="flex: 1; font-size: 11px;">Tailpipe</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="cyl-details-grid" style="margin-top: 10px;">
+                <div class="detail-item">
+                  <span class="detail-label">Peak Blowdown Pressure</span>
+                  <span id="acoustic-blowdown-bar" class="detail-val">4.8 bar</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Sound Pressure Level</span>
+                  <span id="acoustic-spl-val" class="detail-val">38.2 dBA</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">6th Order Idle Notch</span>
+                  <span id="acoustic-notch6-val" class="detail-val">-34 dB (60 Hz)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">12th Order Notch</span>
+                  <span id="acoustic-notch12-val" class="detail-val">-28 dB (120 Hz)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Turbine Lowpass Cutoff</span>
+                  <span class="detail-val">680 Hz (Harrison)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Turbo Compressor BPF</span>
+                  <span id="acoustic-turbo-bpf" class="detail-val">920 Hz</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Firing Interval (Δθ)</span>
+                  <span class="detail-val">60° (6 pulses/rev)</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Exhaust Gas Sound Speed</span>
+                  <span class="detail-val">625 m/s (1023 K)</span>
+                </div>
+              </div>
+
+              <div class="card-footer-formula" style="margin-top: 10px;">
+                <div class="math-expr">Munjal TL: 20 log₁₀ |(T₁₁ + T₁₂/Y₀ + T₂₁Y₀ + T₂₂) / 2| ≥ 34 dB</div>
+                <div class="param-row">
+                  <span>Heywood EVO 54° BBDC</span>
+                  <span>Benson 1D MoC</span>
+                  <span>f₆ = N/10 Hz</span>
+                  <span>White Viscous α</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Live Engine Acoustic Order Spectrum Card -->
+            <div class="apple-card" style="margin-top: 8px;">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">12-Cylinder Acoustic Order Harmonics</span>
+                  <span class="card-subtitle">Benson &amp; Winterbone 6-into-1 Manifold Superposition</span>
+                </div>
+                <span class="card-tag">Order Spectrum</span>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;" id="acoustic-orders-container">
+                <!-- Live Order Bars -->
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+                  <span style="width: 70px; color: #a1a1aa;">Order 6</span>
+                  <div style="flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; margin: 0 8px; overflow: hidden;">
+                    <div id="bar-order-6" style="width: 75%; height: 100%; background: #38bdf8; border-radius: 3px; transition: width 0.05s;"></div>
+                  </div>
+                  <span id="text-order-6" style="width: 65px; text-align: right; font-weight: 500;">60.0 Hz</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+                  <span style="width: 70px; color: #a1a1aa;">Order 12</span>
+                  <div style="flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; margin: 0 8px; overflow: hidden;">
+                    <div id="bar-order-12" style="width: 55%; height: 100%; background: #60a5fa; border-radius: 3px; transition: width 0.05s;"></div>
+                  </div>
+                  <span id="text-order-12" style="width: 65px; text-align: right; font-weight: 500;">120.0 Hz</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+                  <span style="width: 70px; color: #a1a1aa;">Order 18</span>
+                  <div style="flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; margin: 0 8px; overflow: hidden;">
+                    <div id="bar-order-18" style="width: 35%; height: 100%; background: #818cf8; border-radius: 3px; transition: width 0.05s;"></div>
+                  </div>
+                  <span id="text-order-18" style="width: 65px; text-align: right; font-weight: 500;">180.0 Hz</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+                  <span style="width: 70px; color: #a1a1aa;">Order 24</span>
+                  <div style="flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; margin: 0 8px; overflow: hidden;">
+                    <div id="bar-order-24" style="width: 25%; height: 100%; background: #a78bfa; border-radius: 3px; transition: width 0.05s;"></div>
+                  </div>
+                  <span id="text-order-24" style="width: 65px; text-align: right; font-weight: 500;">240.0 Hz</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+                  <span style="width: 70px; color: #a1a1aa;">Order 30</span>
+                  <div style="flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; margin: 0 8px; overflow: hidden;">
+                    <div id="bar-order-30" style="width: 18%; height: 100%; background: #c084fc; border-radius: 3px; transition: width 0.05s;"></div>
+                  </div>
+                  <span id="text-order-30" style="width: 65px; text-align: right; font-weight: 500;">300.0 Hz</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+                  <span style="width: 70px; color: #a1a1aa;">Order 36</span>
+                  <div style="flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; margin: 0 8px; overflow: hidden;">
+                    <div id="bar-order-36" style="width: 12%; height: 100%; background: #e879f9; border-radius: 3px; transition: width 0.05s;"></div>
+                  </div>
+                  <span id="text-order-36" style="width: 65px; text-align: right; font-weight: 500;">360.0 Hz</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Fluid Mechanics Literature Grounding Card -->
+            <div class="apple-card" style="margin-top: 8px;">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Scientific Principles &amp; Literature Models</span>
+                  <span class="card-subtitle">Foundational Gas Dynamics &amp; Acoustics Treatises</span>
+                </div>
+                <span class="card-tag">5 Books Grounding</span>
+              </div>
+              <div class="ganesan-rules-scroll">
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">1</span>
+                    <span class="rule-title">Cylinder Blowdown Orifice Flow</span>
+                    <span class="rule-badge">Heywood Ch. 6, Eq. 6.18</span>
+                  </div>
+                  <p class="rule-desc">Isentropic compressible gas expansion through opening exhaust valve curtain (EVO 54° BBDC). Transitions from choked sonic flow (M = 1) across valve seat to subcritical pressure decay, generating steep acoustic pulse front dṁ/dt.</p>
+                </div>
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">2</span>
+                    <span class="rule-title">1D Riemann Wave Superposition</span>
+                    <span class="rule-badge">Benson &amp; Winterbone Vol. I</span>
+                  </div>
+                  <p class="rule-desc">Method of Characteristics tracking right- and left-traveling Riemann invariants (λ, β) through equal-length primary runners. 12 cylinders firing every 60° generate constructive fundamental 6th order baritone hum (f₆ = N/10 Hz).</p>
+                </div>
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">3</span>
+                    <span class="rule-title">Four-Pole Silencer &amp; Helmholtz Resonators</span>
+                    <span class="rule-badge">M. L. Munjal Ch. 3 &amp; 5</span>
+                  </div>
+                  <p class="rule-desc">Cascaded two-port Transfer Matrix Method (TMM) modeling acoustic transmission loss. Dual side-branch Helmholtz resonators eliminate the 60 Hz / 120 Hz idle boom (TL ≥ 34 dB) for signature Rolls-Royce cabin silence.</p>
+                </div>
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">4</span>
+                    <span class="rule-title">Viscous Dissipation &amp; Jet Turbulence</span>
+                    <span class="rule-badge">Frank M. White Ch. 6 &amp; 9</span>
+                  </div>
+                  <p class="rule-desc">Acoustic boundary layer shear attenuation α_tube(ω) along 3.8m exhaust tract softens harsh metallic edge. Tailpipe jet mixing noise follows Lighthill's U⁸ quadrupole law, adding gentle air-rush under heavy acceleration.</p>
+                </div>
+                <div class="ganesan-rule-item verified">
+                  <div class="rule-header">
+                    <span class="rule-num">5</span>
+                    <span class="rule-title">Block Attenuation &amp; Turbo Damping</span>
+                    <span class="rule-badge">Matthew Harrison Ch. 4 &amp; 5</span>
+                  </div>
+                  <p class="rule-desc">Twin-scroll turbine wheel acts as low-pass filter (cutoff ~680 Hz), absorbing jagged combustion spikes. Deep-skirt AlSi7Mg0.3 block provides >30 dB structural noise isolation with whisper-quiet hydraulic tappet ticking.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Floating Mini Summon Button (When Inspector is Closed) -->
+      <button id="btn-floating-telemetry" class="floating-telemetry-chip" title="Open Telemetry Inspector">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+          <path d="M9 3v18"></path>
+        </svg>
+        <span>Telemetry</span>
+      </button>
+
+      <!-- BOTTOM CONTROL DOCK (Apple Floating Dock) -->
+      <footer class="apple-dock">
+        <!-- Dock Section 1: Playback Controls -->
+        <div class="dock-section dock-controls">
+          <button id="btn-play-pause" class="apple-circle-btn primary-circle" title="Play / Pause (Space)">
+            <svg id="play-icon-svg" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+              <rect x="6" y="5" width="4" height="14" rx="1"></rect>
+              <rect x="14" y="5" width="4" height="14" rx="1"></rect>
+            </svg>
+          </button>
+          <div class="step-btn-group">
+            <button id="btn-step-back-15" class="apple-pill-btn btn-sm" title="Step -15°">−15°</button>
+            <button id="btn-step-fwd-15" class="apple-pill-btn btn-sm" title="Step +15°">+15°</button>
+            <button id="btn-step-fwd-1" class="apple-pill-btn btn-xs" title="Step +1°">+1°</button>
+            <button id="btn-dock-dyno-pull" class="apple-pill-btn btn-sm accent-pill" title="Automated Dyno Pull (600 - 6,000 RPM)">Dyno</button>
+          </div>
+
+          <div class="dock-slider-row">
+            <input type="range" id="playback-speed" min="0.01" max="1" step="0.01" value="0.05" class="apple-mini-slider" title="Playback Speed" />
+            <span id="playback-rate-text" class="speed-val">1/20</span>
+          </div>
+        </div>
+
+        <div class="dock-divider"></div>
+
+        <!-- Dock Section 2: Firing Order Strip -->
+        <div class="dock-section dock-firing-order">
+          <div class="fo-meta">
+            <span class="fo-heading">Firing Sequence</span>
+          </div>
+          <div class="apple-pill-strip" id="firing-order-strip">
+            <!-- 12 Firing Order Pills -->
+          </div>
+        </div>
+
+        <div class="dock-divider"></div>
+
+        <!-- Dock Section 3: Camera, Cutaway & Overlays -->
+        <div class="dock-section dock-viewports">
+          <!-- Camera Presets -->
+          <div class="segmented-control camera-segment">
+            <button class="seg-btn active" data-camera="hero">Hero</button>
+            <button class="seg-btn" data-camera="coin">Coin</button>
+            <button class="seg-btn" data-camera="turbo">Turbo</button>
+            <button class="seg-btn" data-camera="front">Front</button>
+            <button class="seg-btn" data-camera="side">Side</button>
+            <button class="seg-btn" data-camera="crank">Crank</button>
+            <button class="seg-btn" data-camera="dohc">DOHC</button>
+            <button class="seg-btn" data-camera="tour" id="btn-camera-tour" title="Cinematic Drone Auto-Tour">Tour</button>
+          </div>
+
+          <!-- Cutaway & Overlays -->
+          <div class="dock-options-row">
+            <div class="segmented-control cutaway-segment">
+              <button class="seg-btn active" data-cutaway="glass">Glass</button>
+              <button class="seg-btn" data-cutaway="section">Section</button>
+              <button class="seg-btn" data-cutaway="solid">Solid</button>
+              <button class="seg-btn" data-cutaway="xray">X-Ray</button>
+            </div>
+
+            <!-- Exploded View Disassembly Slider (0% - 100%) -->
+            <div class="dock-exploded-capsule" title="Continuous 3D Disassembly (0% - 100%)">
+              <span class="exploded-label">Explode</span>
+              <input type="range" id="slider-exploded-view" min="0" max="1" step="0.01" value="0" class="apple-mini-slider" />
+              <span id="exploded-val-text" class="exploded-pct">0%</span>
+            </div>
+
+            <div class="apple-toggle-group">
+              <button class="toggle-pill active" data-overlay="callouts">Labels</button>
+              <button class="toggle-pill active" data-overlay="combustionFx">Combustion</button>
+              <button class="toggle-pill active" data-overlay="gasFlow">Flow</button>
+              <button class="toggle-pill" id="btn-thermal-toggle" title="FLIR False-Color Thermal Imaging">Thermal</button>
+              <button class="toggle-pill" id="btn-inspect-toggle" title="Toggle 3D Part Inspector Mode">Inspect</button>
+              <button class="toggle-pill" id="btn-isolate-toggle">Isolate</button>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <!-- Zen Mode Exit Floating Button (Visible when HUD is hidden) -->
+    <button id="btn-zen-exit" class="zen-exit-chip" title="Exit Zen Mode (H or Esc)">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+      <span>Exit Zen Mode</span>
+    </button>
+  </div>
+
+</body>
+</html>
