@@ -24,8 +24,14 @@ class V12Application {
     this.scene3d = null;
     this.telemetry = null;
     this.lastTime = performance.now();
+    this._domCache = Object.create(null);
+    this.foPills = null;
 
     this.init();
+  }
+
+  $(id) {
+    return this._domCache[id] || (this._domCache[id] = document.getElementById(id));
   }
 
   init() {
@@ -119,11 +125,13 @@ class V12Application {
 
       strip.appendChild(pill);
     });
+
+    this.foPills = Array.from(strip.querySelectorAll('.fo-pill'));
   }
 
   _updatePillSelection() {
-    const pills = document.querySelectorAll('.fo-pill');
-    pills.forEach(p => {
+    if (!this.foPills) this.foPills = Array.from(document.querySelectorAll('.fo-pill'));
+    this.foPills.forEach(p => {
       const id = parseInt(p.dataset.cylId, 10);
       p.classList.toggle('selected', id === this.selectedCylinderId);
     });
@@ -670,135 +678,135 @@ class V12Application {
       const elPhi = document.getElementById('cyl-phi-val');
       if (elPhi) elPhi.textContent = `${ganesan.phi.toFixed(2)} (${ganesan.airFuel.actualAfRatio.toFixed(1)}:1)`;
 
-      const elMaf = document.getElementById('cyl-maf-val');
+      const elMaf = this.$('cyl-maf-val');
       if (elMaf) elMaf.textContent = `${ganesan.airFuel.massAirFlowKgH} kg/h`;
 
-      const elMff = document.getElementById('cyl-mff-val');
+      const elMff = this.$('cyl-mff-val');
       if (elMff) elMff.textContent = `${ganesan.airFuel.massFuelFlowKgH} kg/h`;
 
       // Thermodynamic Indicator Readouts
-      const elImep = document.getElementById('thermo-imep-val');
+      const elImep = this.$('thermo-imep-val');
       if (elImep) elImep.textContent = `${ganesan.power.imepBar.toFixed(2)} bar`;
 
-      const elBmep = document.getElementById('thermo-bmep-val');
+      const elBmep = this.$('thermo-bmep-val');
       if (elBmep) elBmep.textContent = `${ganesan.power.bmepBar.toFixed(2)} bar`;
 
-      const elFmep = document.getElementById('thermo-fmep-val');
+      const elFmep = this.$('thermo-fmep-val');
       if (elFmep) elFmep.textContent = `${ganesan.power.fmepBar.toFixed(2)} bar`;
 
-      const elEtaM = document.getElementById('thermo-etam-val');
+      const elEtaM = this.$('thermo-etam-val');
       if (elEtaM) elEtaM.textContent = `${ganesan.efficiencies.mechanicalPct.toFixed(1)}%`;
 
-      const elEtaBth = document.getElementById('thermo-etabth-val');
+      const elEtaBth = this.$('thermo-etabth-val');
       if (elEtaBth) elEtaBth.textContent = `${ganesan.efficiencies.brakeThermalPct.toFixed(1)}%`;
 
-      const elEtaRel = document.getElementById('thermo-etarel-val');
+      const elEtaRel = this.$('thermo-etarel-val');
       if (elEtaRel) elEtaRel.textContent = `${ganesan.efficiencies.relativePct.toFixed(1)}%`;
 
       // Sankey Heat Balance Readouts
-      const elSqf = document.getElementById('sankey-qfuel');
+      const elSqf = this.$('sankey-qfuel');
       if (elSqf) elSqf.textContent = `${ganesan.heatBalance.qFuelKw} kW`;
 
-      const elSbp = document.getElementById('sankey-bp');
+      const elSbp = this.$('sankey-bp');
       if (elSbp) elSbp.textContent = `${ganesan.heatBalance.brakePowerKw} kW (${ganesan.heatBalance.pctBrakePower}%)`;
 
-      const elSqcool = document.getElementById('sankey-qcool');
+      const elSqcool = this.$('sankey-qcool');
       if (elSqcool) elSqcool.textContent = `${ganesan.heatBalance.qCoolantKw} kW (${ganesan.heatBalance.pctCoolant}%)`;
 
-      const elSqex = document.getElementById('sankey-qex');
+      const elSqex = this.$('sankey-qex');
       if (elSqex) elSqex.textContent = `${ganesan.heatBalance.qExhaustKw} kW (${ganesan.heatBalance.pctExhaust}%)`;
 
       // Performance Map & Lubrication
-      const elPlub = document.getElementById('perf-lub-regime');
+      const elPlub = this.$('perf-lub-regime');
       if (elPlub) elPlub.textContent = ganesan.friction.lubricationRegime;
 
-      const elPsom = document.getElementById('perf-sommerfeld');
+      const elPsom = this.$('perf-sommerfeld');
       if (elPsom) elPsom.textContent = ganesan.friction.sommerfeldParam.toFixed(4);
 
-      const elPbsfc = document.getElementById('perf-bsfc');
+      const elPbsfc = this.$('perf-bsfc');
       if (elPbsfc) elPbsfc.textContent = `${ganesan.power.bsfcGKwh} g/kWh`;
 
-      const elPbsec = document.getElementById('perf-bsec');
+      const elPbsec = this.$('perf-bsec');
       if (elPbsec) elPbsec.textContent = `${ganesan.power.bsecMjKwh} MJ/kWh`;
 
       // Valve Mach Index
-      const elMach = document.getElementById('valves-mach-index');
+      const elMach = this.$('valves-mach-index');
       if (elMach) elMach.textContent = ganesan.airFuel.machData.machIndexZ.toFixed(3);
 
-      const elChoke = document.getElementById('valves-choke-status');
+      const elChoke = this.$('valves-choke-status');
       if (elChoke) elChoke.textContent = ganesan.airFuel.machData.isChoked ? 'CHOKED (Z > 0.55)' : 'Optimal (Z ≤ 0.55)';
 
-      const elSonic = document.getElementById('valves-sonic-vel');
+      const elSonic = this.$('valves-sonic-vel');
       if (elSonic) elSonic.textContent = `${ganesan.airFuel.machData.sonicVelocityMs} m/s`;
 
       // Morse Test Section
       const allFiringBp = ganesan.power.bpDeliveredKw / (this.cutCylinders.length === 0 ? 1 : Math.max(0.05, (12 - this.cutCylinders.length) / 12));
-      const elMbpAll = document.getElementById('morse-bp-all');
+      const elMbpAll = this.$('morse-bp-all');
       if (elMbpAll) elMbpAll.textContent = `${allFiringBp.toFixed(1)} kW`;
 
-      const elMbpCur = document.getElementById('morse-bp-cur');
+      const elMbpCur = this.$('morse-bp-cur');
       if (elMbpCur) elMbpCur.textContent = `${ganesan.power.bpDeliveredKw.toFixed(1)} kW`;
 
-      const elMipTot = document.getElementById('morse-ip-total');
+      const elMipTot = this.$('morse-ip-total');
       if (elMipTot) elMipTot.textContent = `${ganesan.power.ipTotalKw.toFixed(1)} kW`;
 
-      const elMetaM = document.getElementById('morse-eta-m');
+      const elMetaM = this.$('morse-eta-m');
       if (elMetaM) elMetaM.textContent = `${ganesan.efficiencies.mechanicalPct.toFixed(1)}%`;
 
       // Emissions Readouts
-      const elEnox = document.getElementById('emiss-nox-val');
+      const elEnox = this.$('emiss-nox-val');
       if (elEnox) elEnox.textContent = `${ganesan.emissions.raw.noxPpm} / ${ganesan.emissions.tailpipe.noxPpm} ppm`;
 
-      const elEco = document.getElementById('emiss-co-val');
+      const elEco = this.$('emiss-co-val');
       if (elEco) elEco.textContent = `${ganesan.emissions.raw.coPct}% / ${ganesan.emissions.tailpipe.coPct}%`;
 
-      const elEhc = document.getElementById('emiss-hc-val');
+      const elEhc = this.$('emiss-hc-val');
       if (elEhc) elEhc.textContent = `${ganesan.emissions.raw.hcPpm} / ${ganesan.emissions.tailpipe.hcPpm} ppm`;
 
-      const elEcat = document.getElementById('cat-status-val');
+      const elEcat = this.$('cat-status-val');
       if (elEcat) elEcat.textContent = `${ganesan.emissions.catalyst.tempC}°C (${ganesan.emissions.catalyst.isLightOff ? 'Light-Off Active' : 'Warming Up'})`;
 
       // Ganesan Real-World Fuel Economy & Mileage Readouts (Ganesan Sec. 15.5.3, p. 479)
       if (ganesan.mileage) {
         const m = ganesan.mileage;
-        const elEcoKml = document.getElementById('eco-mileage-kml');
+        const elEcoKml = this.$('eco-mileage-kml');
         if (elEcoKml && m.kmPerLiter != null) elEcoKml.textContent = Number(m.kmPerLiter).toFixed(1);
 
-        const elEcoMpgUs = document.getElementById('eco-mileage-mpg-us');
+        const elEcoMpgUs = this.$('eco-mileage-mpg-us');
         if (elEcoMpgUs && m.mpgUs != null) elEcoMpgUs.textContent = Number(m.mpgUs).toFixed(1);
 
-        const elEcoMpgUk = document.getElementById('eco-mileage-mpg-uk');
+        const elEcoMpgUk = this.$('eco-mileage-mpg-uk');
         const ukVal = m.mpgImperial ?? m.mpgImp;
         if (elEcoMpgUk && ukVal != null) elEcoMpgUk.textContent = Number(ukVal).toFixed(1);
 
-        const elEcoL100 = document.getElementById('eco-mileage-l100km');
+        const elEcoL100 = this.$('eco-mileage-l100km');
         const l100Val = m.litersPer100km ?? m.litersPer100Km;
         if (elEcoL100 && l100Val != null) elEcoL100.textContent = Number(l100Val).toFixed(2);
 
-        const elEcoSavedPct = document.getElementById('eco-fuel-saved-pct');
+        const elEcoSavedPct = this.$('eco-fuel-saved-pct');
         if (elEcoSavedPct && m.fuelSavedPct != null) elEcoSavedPct.textContent = `+${Number(m.fuelSavedPct).toFixed(1)}%`;
 
-        const elEcoFuelLh = document.getElementById('eco-fuel-flow-lh');
+        const elEcoFuelLh = this.$('eco-fuel-flow-lh');
         if (elEcoFuelLh && m.fuelLitersPerHour != null) elEcoFuelLh.textContent = `${Number(m.fuelLitersPerHour).toFixed(1)} L/h`;
 
-        const elEcoFuelKgh = document.getElementById('eco-fuel-flow-kgh');
+        const elEcoFuelKgh = this.$('eco-fuel-flow-kgh');
         if (elEcoFuelKgh && ganesan.airFuel && ganesan.airFuel.massFuelFlowKgH != null) {
           elEcoFuelKgh.textContent = `${Number(ganesan.airFuel.massFuelFlowKgH).toFixed(1)} kg/h`;
         }
 
-        const elEcoBth = document.getElementById('eco-etabth-val');
+        const elEcoBth = this.$('eco-etabth-val');
         if (elEcoBth) elEcoBth.textContent = `${ganesan.efficiencies.brakeThermalPct.toFixed(1)}%`;
 
-        const elEcoBsfc = document.getElementById('eco-bsfc-val');
+        const elEcoBsfc = this.$('eco-bsfc-val');
         if (elEcoBsfc) elEcoBsfc.textContent = `${ganesan.power.bsfcGKwh} g/kWh`;
 
-        const elEcoAirStd = document.getElementById('eco-eta-airstd-val');
+        const elEcoAirStd = this.$('eco-eta-airstd-val');
         if (elEcoAirStd) elEcoAirStd.textContent = `${ganesan.efficiencies.airStandardOttoPct.toFixed(1)}% (${this.isEcoMode ? 'Atkinson' : 'Otto'})`;
 
-        const elEcoExp = document.getElementById('eco-expansion-ratio');
+        const elEcoExp = this.$('eco-expansion-ratio');
         if (elEcoExp) elEcoExp.textContent = `${this.isEcoMode ? '13.5 : 1 (e)' : '10.0 : 1 (r)'}`;
 
-        const elSavingBadge = document.getElementById('eco-saving-badge');
+        const elSavingBadge = this.$('eco-saving-badge');
         if (elSavingBadge) {
           elSavingBadge.style.opacity = this.isEcoMode ? '1' : '0.4';
         }
@@ -807,56 +815,56 @@ class V12Application {
       // FEAD Serpentine Belt & Auxiliary Drive HUD Updates (Ganesan Ch. 12 & 13)
       if (ganesan.feadBelt) {
         const b = ganesan.feadBelt;
-        const elFeadPower = document.getElementById('fead-power-total');
+        const elFeadPower = this.$('fead-power-total');
         if (elFeadPower) elFeadPower.textContent = b.totalAuxiliaryPowerKw.toFixed(2);
 
-        const elFeadSpeed = document.getElementById('fead-belt-speed');
+        const elFeadSpeed = this.$('fead-belt-speed');
         if (elFeadSpeed) elFeadSpeed.textContent = `${b.linearBeltSpeedMs.toFixed(1)} m/s (${b.linearBeltSpeedKmh.toFixed(0)} km/h)`;
 
-        const elFeadAmep = document.getElementById('fead-amep-val');
+        const elFeadAmep = this.$('fead-amep-val');
         if (elFeadAmep) elFeadAmep.textContent = `${b.amepBar.toFixed(2)} bar`;
 
-        const elFeadTorque = document.getElementById('fead-torque-val');
+        const elFeadTorque = this.$('fead-torque-val');
         if (elFeadTorque) elFeadTorque.textContent = `${b.totalAuxiliaryTorqueNm.toFixed(1)} Nm`;
 
-        const elFeadT1 = document.getElementById('fead-t1-val');
+        const elFeadT1 = this.$('fead-t1-val');
         if (elFeadT1) elFeadT1.textContent = `${b.tightTensionN} N`;
 
-        const elFeadT2 = document.getElementById('fead-t2-val');
+        const elFeadT2 = this.$('fead-t2-val');
         if (elFeadT2) elFeadT2.textContent = `${b.slackTensionN} N`;
 
-        const elFeadRatio = document.getElementById('fead-ratio-val');
+        const elFeadRatio = this.$('fead-ratio-val');
         if (elFeadRatio) elFeadRatio.textContent = b.tensionRatio != null ? b.tensionRatio.toFixed(2) : '1.44';
 
-        const elFeadCent = document.getElementById('fead-centrifugal-val');
+        const elFeadCent = this.$('fead-centrifugal-val');
         if (elFeadCent) elFeadCent.textContent = `${b.centrifugalTensionN} N`;
 
-        const elFeadTvd = document.getElementById('fead-tvd-val');
+        const elFeadTvd = this.$('fead-tvd-val');
         if (elFeadTvd) elFeadTvd.textContent = `-${b.tvdAttenuationPct}% (${b.dampedTorsionalTwistDeg}° twist)`;
 
-        const elFeadWp = document.getElementById('fead-wp-kw');
+        const elFeadWp = this.$('fead-wp-kw');
         if (elFeadWp) elFeadWp.textContent = `${b.waterPumpKw.toFixed(2)} kW (130 mm)`;
 
-        const elFeadAlt = document.getElementById('fead-alt-kw');
+        const elFeadAlt = this.$('fead-alt-kw');
         if (elFeadAlt) elFeadAlt.textContent = `${b.alternatorKw.toFixed(2)} kW (70 mm)`;
 
-        const elFeadAc = document.getElementById('fead-ac-kw');
+        const elFeadAc = this.$('fead-ac-kw');
         if (elFeadAc) elFeadAc.textContent = `${b.acCompressorKw.toFixed(2)} kW (125 mm)`;
 
-        const elFeadHyst = document.getElementById('fead-hyst-kw');
+        const elFeadHyst = this.$('fead-hyst-kw');
         if (elFeadHyst) elFeadHyst.textContent = `${b.beltHysteresisLossKw.toFixed(2)} kW (3.8%)`;
 
         // Dual-Belt Breakdown
         if (b.belt1) {
-          const elB1Kw = document.getElementById('fead-belt1-kw');
+          const elB1Kw = this.$('fead-belt1-kw');
           if (elB1Kw) elB1Kw.textContent = `${b.belt1.powerKw.toFixed(2)} kW`;
-          const elB1Ten = document.getElementById('fead-belt1-tensions');
+          const elB1Ten = this.$('fead-belt1-tensions');
           if (elB1Ten) elB1Ten.textContent = `${b.belt1.tightN} N / ${b.belt1.slackN} N`;
         }
         if (b.belt2) {
-          const elB2Kw = document.getElementById('fead-belt2-kw');
+          const elB2Kw = this.$('fead-belt2-kw');
           if (elB2Kw) elB2Kw.textContent = `${b.belt2.powerKw.toFixed(2)} kW`;
-          const elB2Ten = document.getElementById('fead-belt2-tensions');
+          const elB2Ten = this.$('fead-belt2-tensions');
           if (elB2Ten) elB2Ten.textContent = `${b.belt2.tightN} N / ${b.belt2.slackN} N`;
         }
       }
@@ -864,34 +872,35 @@ class V12Application {
 
     // Rolls-Royce Power Reserve Gauge update
     const prVal = engineState.powerReservePercent;
-    const prDisplay = document.getElementById('power-reserve-val');
+    const prDisplay = this.$('power-reserve-val');
     if (prDisplay) prDisplay.textContent = `${Math.round(prVal)}%`;
 
-    const prStatus = document.getElementById('power-reserve-status');
+    const prStatus = this.$('power-reserve-status');
     if (prStatus) {
       prStatus.textContent = prVal >= 95 ? '100% Available' : (prVal >= 50 ? `${Math.round(prVal)}% Reserve` : 'Maximum Output');
     }
 
-    const prFill = document.getElementById('pr-gauge-fill');
+    const prFill = this.$('pr-gauge-fill');
     if (prFill) {
       const offset = 62.0 * (1.0 - Math.max(0, Math.min(100, prVal)) / 100.0);
       prFill.style.strokeDashoffset = offset;
     }
 
     // Rolls-Royce 1906 Coin Balance Test status
-    const coinBadge = document.getElementById('coin-status-badge');
+    const coinBadge = this.$('coin-status-badge');
     if (coinBadge && engineState.coinStability) {
       coinBadge.textContent = engineState.coinStability.status;
     }
 
     // Twin Turbocharger Boost Pressure
-    const turboVal = document.getElementById('turbo-boost-val');
+    const turboVal = this.$('turbo-boost-val');
     if (turboVal && engineState.turboBoost) {
       turboVal.textContent = `${engineState.turboBoost.absoluteBar.toFixed(2)} bar`;
     }
 
-    const pills = document.querySelectorAll('.fo-pill');
-    pills.forEach(p => {
+    // ponytail: cached foPills NodeList prevents per-frame DOM traversal
+    if (!this.foPills) this.foPills = Array.from(document.querySelectorAll('.fo-pill'));
+    this.foPills.forEach(p => {
       const id = parseInt(p.dataset.cylId, 10);
       const isFiring = (id === engineState.activeFiringCylinder);
       p.classList.toggle('firing', isFiring);
@@ -904,44 +913,37 @@ class V12Application {
     if (!audioEngine) return;
     const telem = audioEngine.getAcousticTelemetry();
 
-    const elFund = document.getElementById('acoustic-fund-hz');
+    const elFund = this.$('acoustic-fund-hz');
     if (elFund) elFund.textContent = telem.fundamentalHz.toFixed(1);
 
-    const elTl = document.getElementById('acoustic-tl-val');
+    const elTl = this.$('acoustic-tl-val');
     if (elTl) elTl.textContent = `${telem.munjalTlDb.toFixed(1)} dB`;
 
-    const elSpl = document.getElementById('acoustic-spl-val');
+    const elSpl = this.$('acoustic-spl-val');
     if (elSpl) elSpl.textContent = `${telem.soundPressureLevelDba.toFixed(1)} dBA`;
 
-    const elBlowdown = document.getElementById('acoustic-blowdown-bar');
+    const elBlowdown = this.$('acoustic-blowdown-bar');
     if (elBlowdown) elBlowdown.textContent = `${telem.blowdownPeakBar.toFixed(1)} bar`;
 
-    const elTurboBpf = document.getElementById('acoustic-turbo-bpf');
+    const elTurboBpf = this.$('acoustic-turbo-bpf');
     if (elTurboBpf) {
       elTurboBpf.textContent = telem.turboSpoolHz > 0 ? `${Math.round(telem.turboSpoolHz)} Hz` : '0 Hz (Spool Idle)';
     }
 
-    // Update Benson & Winterbone order harmonic bars
-    const orderBars = [
-      { order: 6, elBar: document.getElementById('bar-order-6'), elText: document.getElementById('text-order-6') },
-      { order: 12, elBar: document.getElementById('bar-order-12'), elText: document.getElementById('text-order-12') },
-      { order: 18, elBar: document.getElementById('bar-order-18'), elText: document.getElementById('text-order-18') },
-      { order: 24, elBar: document.getElementById('bar-order-24'), elText: document.getElementById('text-order-24') },
-      { order: 30, elBar: document.getElementById('bar-order-30'), elText: document.getElementById('text-order-30') },
-      { order: 36, elBar: document.getElementById('bar-order-36'), elText: document.getElementById('text-order-36') }
-    ];
-
+    // ponytail: static order array; zero-allocation harmonic bar telemetry updates
     const crankFreq = this.engineRpm / 60.0;
-    orderBars.forEach(item => {
-      const freq = item.order * crankFreq;
-      if (item.elText) item.elText.textContent = `${freq.toFixed(1)} Hz`;
-      if (item.elBar) {
-        const orderData = telem.orders.find(o => o.order === item.order);
+    const orders = [6, 12, 18, 24, 30, 36];
+    for (let i = 0; i < orders.length; i++) {
+      const order = orders[i];
+      const elText = this.$(`text-order-${order}`);
+      const elBar = this.$(`bar-order-${order}`);
+      if (elText) elText.textContent = `${(order * crankFreq).toFixed(1)} Hz`;
+      if (elBar) {
+        const orderData = telem.orders ? telem.orders.find(o => o.order === order) : null;
         const gain = orderData ? orderData.gain : 0.25;
-        const pct = Math.min(100, Math.max(8, gain * 115));
-        item.elBar.style.width = `${pct}%`;
+        elBar.style.width = `${Math.min(100, Math.max(8, gain * 115))}%`;
       }
-    });
+    }
   }
 }
 

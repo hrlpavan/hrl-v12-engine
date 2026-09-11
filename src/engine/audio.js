@@ -56,11 +56,21 @@ export class V12AudioEngine {
     this.tailpipeJetGain = null;
     this.valvetrainTickingGain = null;
 
-    // Real-Time Acoustic Telemetry Cache
+    // Real-Time Acoustic Telemetry Cache (Pre-allocated for zero-garbage per-frame updates)
     this.telemetry = {
       rpm: 600,
       fundamentalHz: 60.0, // 6th order firing frequency (N / 10 Hz)
-      orders: [],
+      orders: [
+        { order: 1, freq: 10.0, gain: 0.18, name: '1st (Crankshaft Mechanical)' },
+        { order: 2, freq: 20.0, gain: 0.14, name: '2nd (Crankshaft Double)' },
+        { order: 3, freq: 30.0, gain: 0.22, name: '3rd (Bank 3-Pulse Subharmonic)' },
+        { order: 6, freq: 60.0, gain: 0.65, name: '6th (Fundamental Firing Order - 6 Pulses/Rev)' },
+        { order: 12, freq: 120.0, gain: 0.38, name: '12th (First Firing Harmonic - Velvety Baritone)' },
+        { order: 18, freq: 180.0, gain: 0.20, name: '18th (Second Firing Harmonic - Cultured Overtone)' },
+        { order: 24, freq: 240.0, gain: 0.12, name: '24th (Third Firing Harmonic - High Sheen)' },
+        { order: 30, freq: 300.0, gain: 0.08, name: '30th (Fourth Firing Harmonic)' },
+        { order: 36, freq: 360.0, gain: 0.05, name: '36th (Fifth Firing Harmonic - Valve Chop)' }
+      ],
       blowdownPeakBar: 4.8,
       munjalTlDb: 34.5,
       exhaustMode: 'luxury',
@@ -73,9 +83,8 @@ export class V12AudioEngine {
   init() {
     if (this.ctx) return;
 
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    const AudioContextClass = typeof window !== 'undefined' ? (window.AudioContext || window.webkitAudioContext) : null;
     if (!AudioContextClass) {
-      console.warn("Web Audio API not supported on this platform.");
       return;
     }
 
@@ -297,8 +306,8 @@ export class V12AudioEngine {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
 
-    // Synthesize a continuous high-order Pink/Brown noise buffer (2.0s loop)
-    const bufferSize = 2 * this.ctx.sampleRate;
+    // ponytail: 1.0s looped pink noise buffer; upgrade to streaming AudioWorklet if non-periodic turbulence is required
+    const bufferSize = this.ctx.sampleRate;
     const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
     const output = noiseBuffer.getChannelData(0);
     let b0 = 0.0, b1 = 0.0, b2 = 0.0, b3 = 0.0, b4 = 0.0, b5 = 0.0, b6 = 0.0;
@@ -355,106 +364,95 @@ export class V12AudioEngine {
    */
   setRpm(rpm) {
     this.currentRpm = Math.max(0, Math.min(7500, rpm));
-    if (!this.ctx || this.harmonicOscillators.length === 0) return;
-
-    const now = this.ctx.currentTime;
+    const now = this.ctx ? this.ctx.currentTime : 0;
     const isStationary = this.currentRpm < 50;
     const crankRevFreq = this.currentRpm / 60.0; // Fundamental crank revs/sec
     const f6 = 6.0 * crankRevFreq; // Fundamental 6th firing order: N / 10 Hz
-
-    // ------------------------------------------------------------------------
-    // 1. Update Benson & Winterbone Harmonic Oscillators
-    // ------------------------------------------------------------------------
     const rpmFactor = this.currentRpm / 6000.0; // 0.0 at idle, 1.0 at redline
-    const ordersData = [];
 
-    this.harmonicOscillators.forEach(h => {
-      const targetFreq = Math.max(10, h.order * crankRevFreq);
-      h.osc.frequency.setTargetAtTime(targetFreq, now, 0.035);
+    // ------------------------------------------------------------------------
+    // 1. Update Benson & Winterbone Harmonic Oscillators (Web Audio Nodes)
+    // ------------------------------------------------------------------------
+    if (this.ctx && this.harmonicOscillators.length > 0) {
+      this.harmonicOscillators.forEach((h, idx) => {
+        const targetFreq = Math.max(10, h.order * crankRevFreq);
+        h.osc.frequency.setTargetAtTime(targetFreq, now, 0.035);
 
-      // Gas-dynamic amplitude scaling:
-      // - 6th order dominates at all RPMs (smooth V12 hum)
-      // - 12th order provides velvety baritone warmth at low-to-mid RPM
-      // - Higher orders (18th - 36th) grow proportionally with throttle and piston speed
-      let dynamicGain = h.baseGain;
-      if (isStationary) {
-        dynamicGain = 0.0;
-      } else {
-        if (h.order === 6) {
-          dynamicGain *= 0.95 + rpmFactor * 0.45;
-        } else if (h.order === 12) {
-          dynamicGain *= 0.85 + rpmFactor * 0.50;
-        } else if (h.order >= 18) {
-          dynamicGain *= Math.pow(Math.max(0.1, rpmFactor), 1.25) * 1.35;
-        } else if (h.order <= 2) {
-          // Low mechanical hum remains subtle and steady
-          dynamicGain *= Math.max(0.2, 1.2 - rpmFactor * 0.4);
+        let dynamicGain = h.baseGain;
+        if (isStationary) {
+          dynamicGain = 0.0;
+        } else {
+          if (h.order === 6) {
+            dynamicGain *= 0.95 + rpmFactor * 0.45;
+          } else if (h.order === 12) {
+            dynamicGain *= 0.85 + rpmFactor * 0.50;
+          } else if (h.order >= 18) {
+            dynamicGain *= Math.pow(Math.max(0.1, rpmFactor), 1.25) * 1.35;
+          } else if (h.order <= 2) {
+            dynamicGain *= Math.max(0.2, 1.2 - rpmFactor * 0.4);
+          }
+        }
+
+        h.gain.gain.setTargetAtTime(dynamicGain, now, 0.035);
+
+        // ponytail: in-place telemetry update; zero-allocation audio frame updates
+        const tOrder = this.telemetry.orders[idx];
+        if (tOrder) {
+          tOrder.freq = Math.round(targetFreq * 10) / 10;
+          tOrder.gain = Math.round(dynamicGain * 100) / 100;
+        }
+      });
+
+      // ------------------------------------------------------------------------
+      // 2. Munjal Helmholtz Resonators Dynamic Frequency Tracking (Munjal Ch. 5)
+      // ------------------------------------------------------------------------
+      if (this.helmholtzNotch6th && this.helmholtzNotch12th) {
+        this.helmholtzNotch6th.frequency.setTargetAtTime(Math.max(40, f6), now, 0.04);
+        this.helmholtzNotch12th.frequency.setTargetAtTime(Math.max(80, f6 * 2), now, 0.04);
+        const notchQ = this.exhaustMode === 'luxury' ? 4.2 : 1.5;
+        this.helmholtzNotch6th.Q.setTargetAtTime(notchQ, now, 0.04);
+        this.helmholtzNotch12th.Q.setTargetAtTime(notchQ, now, 0.04);
+      }
+
+      // ------------------------------------------------------------------------
+      // 3. Twin-Scroll Turbocharger Blade Pass Frequency (BPF) Whistle
+      // ------------------------------------------------------------------------
+      if (this.turboBpfOsc && this.turboBpfFilter && this.turboBpfGain) {
+        if (this.currentRpm > 950 && !isStationary) {
+          const spoolRatio = (this.currentRpm - 950) / 5050.0;
+          const bpfFreq = 920 + spoolRatio * 1530;
+          const bpfVolume = Math.min(0.16, spoolRatio * 0.16);
+
+          this.turboBpfOsc.frequency.setTargetAtTime(bpfFreq, now, 0.05);
+          this.turboBpfFilter.frequency.setTargetAtTime(bpfFreq, now, 0.05);
+          this.turboBpfGain.gain.setTargetAtTime(bpfVolume, now, 0.05);
+          this.telemetry.turboSpoolHz = Math.round(bpfFreq);
+        } else {
+          this.turboBpfGain.gain.setTargetAtTime(0.0, now, 0.04);
+          this.telemetry.turboSpoolHz = 0.0;
         }
       }
 
-      h.gain.gain.setTargetAtTime(dynamicGain, now, 0.035);
-
-      ordersData.push({
-        order: h.order,
-        freq: Math.round(targetFreq * 10) / 10,
-        gain: Math.round(dynamicGain * 100) / 100,
-        name: h.name
-      });
-    });
-
-    // ------------------------------------------------------------------------
-    // 2. Munjal Helmholtz Resonators Dynamic Frequency Tracking (Munjal Ch. 5)
-    // Resonator 1 tracks fundamental 6th order firing frequency (N / 10 Hz)
-    // Resonator 2 tracks 12th order firing harmonic (N / 5 Hz)
-    // ------------------------------------------------------------------------
-    if (this.helmholtzNotch6th && this.helmholtzNotch12th) {
-      this.helmholtzNotch6th.frequency.setTargetAtTime(Math.max(40, f6), now, 0.04);
-      this.helmholtzNotch12th.frequency.setTargetAtTime(Math.max(80, f6 * 2), now, 0.04);
-
-      // In Quiet Luxury Mode, notch depth is maximum (high Q); in Dynamic Cruise, notch broadens
-      const notchQ = this.exhaustMode === 'luxury' ? 4.2 : 1.5;
-      this.helmholtzNotch6th.Q.setTargetAtTime(notchQ, now, 0.04);
-      this.helmholtzNotch12th.Q.setTargetAtTime(notchQ, now, 0.04);
-    }
-
-    // ------------------------------------------------------------------------
-    // 3. Twin-Scroll Turbocharger Blade Pass Frequency (BPF) Whistle
-    // Ref: Harrison Ch. 4 (f_BPF = 12 * N_turbo / 60)
-    // ------------------------------------------------------------------------
-    if (this.turboBpfOsc && this.turboBpfFilter && this.turboBpfGain) {
-      if (this.currentRpm > 950 && !isStationary) {
-        const spoolRatio = (this.currentRpm - 950) / 5050.0;
-        // Whistle sweeps smoothly from 920 Hz up to 2,450 Hz
-        const bpfFreq = 920 + spoolRatio * 1530;
-        const bpfVolume = Math.min(0.16, spoolRatio * 0.16);
-
-        this.turboBpfOsc.frequency.setTargetAtTime(bpfFreq, now, 0.05);
-        this.turboBpfFilter.frequency.setTargetAtTime(bpfFreq, now, 0.05);
-        this.turboBpfGain.gain.setTargetAtTime(bpfVolume, now, 0.05);
-        this.telemetry.turboSpoolHz = Math.round(bpfFreq);
-      } else {
-        this.turboBpfGain.gain.setTargetAtTime(0.0, now, 0.04);
-        this.telemetry.turboSpoolHz = 0.0;
+      // 4. White Tailpipe Jet Noise & Mechanical Ticking Scaling
+      if (this.tailpipeJetGain) {
+        const jetLevel = isStationary ? 0.0 : 0.02 + Math.pow(rpmFactor, 1.8) * 0.10;
+        this.tailpipeJetGain.gain.setTargetAtTime(jetLevel, now, 0.04);
       }
+      if (this.valvetrainTickingGain) {
+        const valvetrainLevel = isStationary ? 0.0 : 0.015 + rpmFactor * 0.035;
+        this.valvetrainTickingGain.gain.setTargetAtTime(valvetrainLevel, now, 0.04);
+      }
+    } else {
+      // Offline/pre-init telemetry tracking
+      this.telemetry.orders.forEach(o => {
+        o.freq = Math.round(Math.max(10, o.order * crankRevFreq) * 10) / 10;
+      });
+      this.telemetry.turboSpoolHz = this.currentRpm > 950 ? Math.round(920 + ((this.currentRpm - 950) / 5050.0) * 1530) : 0.0;
     }
 
-    // ------------------------------------------------------------------------
-    // 4. White Tailpipe Jet Noise & Mechanical Ticking Scaling
-    // ------------------------------------------------------------------------
-    if (this.tailpipeJetGain) {
-      // Lighthill jet noise proportional to U^8
-      const jetLevel = isStationary ? 0.0 : 0.02 + Math.pow(rpmFactor, 1.8) * 0.10;
-      this.tailpipeJetGain.gain.setTargetAtTime(jetLevel, now, 0.04);
-    }
-    if (this.valvetrainTickingGain) {
-      const valvetrainLevel = isStationary ? 0.0 : 0.015 + rpmFactor * 0.035;
-      this.valvetrainTickingGain.gain.setTargetAtTime(valvetrainLevel, now, 0.04);
-    }
-
-    // Update Telemetry Cache
+    // Update Telemetry Cache (In-place)
     this.telemetry.rpm = this.currentRpm;
     this.telemetry.fundamentalHz = Math.round(f6 * 10) / 10;
-    this.telemetry.orders = ordersData;
     this.telemetry.blowdownPeakBar = Math.round((3.8 + rpmFactor * 3.4) * 10) / 10;
     this.telemetry.munjalTlDb = this.exhaustMode === 'luxury'
       ? Math.round((36.5 - rpmFactor * 5.0) * 10) / 10
@@ -575,7 +573,7 @@ export class V12AudioEngine {
    * Exposes live acoustic and fluid-dynamic telemetry for the UI HUD.
    */
   getAcousticTelemetry() {
-    return { ...this.telemetry };
+    return this.telemetry;
   }
 }
 
