@@ -46,7 +46,8 @@ The **HRL x Rolls-Royce Bespoke 6¾ Litre Twin-Turbo V12 Interactive Platform** 
 
 For an exhaustive, dimension-by-dimension and tolerance-by-tolerance technical breakdown covering all 10 engineering domains (Kinematics, Metallurgy, FEAD Belts, Forced Induction, Tribology, NVH/Acoustics, and Ganesan Thermodynamics), see the dedicated reference:
 
-👉 **[ENGINE_SPECIFICATIONS_POINT_BY_POINT.md](./ENGINE_SPECIFICATIONS_POINT_BY_POINT.md)**
+👉 **[ENGINE_SPECIFICATIONS_POINT_BY_POINT.md](./ENGINE_SPECIFICATIONS_POINT_BY_POINT.md)**  
+👉 **[PROBLEMS_FACED_AND_SOLUTIONS.md](./PROBLEMS_FACED_AND_SOLUTIONS.md)** (Full 10-Case Technical Problem-Solving Register)
 
 * Highlights:
   * **Zero Primary & Secondary Unbalance**: $0.000\text{ N}$ reciprocating unbalance forces; $0.000\text{ N}\cdot\text{m}$ rocking couples.
