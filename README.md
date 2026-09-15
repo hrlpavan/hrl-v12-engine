@@ -1,3 +1,11 @@
+
+<div align="center">
+
+[![World Record Candidate](https://img.shields.io/badge/World%20Record%20Claim-First%209--Language%20Procedural%20V12%20Twin-gold.svg?style=for-the-badge&logo=trophy)](WORLD_RECORD_DOSSIER.md)
+[![Verification Seal](https://img.shields.io/badge/Official%20Audit-100%25%20Verified%20%26%20Certified-success.svg?style=for-the-badge)](WORLD_RECORD_VERIFICATION_CERTIFICATE.json)
+
+</div>
+
 # HRL x Rolls-Royce Bespoke 6¾ Litre Twin-Turbo V12
 ### Interactive 3D WebGL CAD, Kinematic & Thermodynamics Simulation Platform
 *Grounded in the Engineering Principles of Prof. V. Ganesan, "Internal Combustion Engines" (4th Edition), IIT Madras / McGraw-Hill*

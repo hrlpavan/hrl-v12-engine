@@ -1,0 +1,194 @@
+{
+  "record_title": "First 9-Language Polyglot Procedural 3D V12 Powertrain & Real-Time Acoustic Digital Twin in a Web Browser",
+  "record_claimant": "Pavan Kumar Sadashiv",
+  "organization": "HRL International Private Limited",
+  "repository": "https://github.com/hrlpavan/hrl-v12-engine",
+  "audit_timestamp": "2026-09-15T20:03:13.432186+00:00",
+  "audit_checks": {
+    "zero_audio_assets": {
+      "status": "PASS",
+      "files_scanned": 40,
+      "external_audio_count": 0,
+      "verification": "100% Procedural Web Audio API synthesis mathematically generated from first principles."
+    },
+    "nine_languages": {
+      "status": "PASS",
+      "total_languages": 9
+    },
+    "procedural_acoustics": {
+      "status": "PASS",
+      "models_verified": [
+        "Heywood Blowdown Mass Flow",
+        "Benson Riemann Wave Propagation",
+        "Munjal Helmholtz Resonator Notch",
+        "Web Audio Context Master Nodes",
+        "Four-Pole Transfer Matrix Method",
+        "Combustion Pulse Generator"
+      ]
+    },
+    "kinematics_and_thermodynamics": {
+      "status": "PASS",
+      "bank_angle_deg": 60,
+      "cylinders": 12,
+      "valves": 48,
+      "firing_sequence": "1-12-5-8-3-10-6-7-2-11-4-9",
+      "four_stroke_cycle_deg": 720
+    }
+  },
+  "languages_verified": {
+    "C": {
+      "status": "PASS",
+      "loc": 364,
+      "files": [
+        {
+          "file": "polyglot-core/c/v12_engine.h",
+          "loc": 102,
+          "sha256": "02305c3df6926958d9f0c7a27fc0a0d2c3d881b4f957fc13bb1eda8d5a20ea3f"
+        },
+        {
+          "file": "polyglot-core/c/v12_engine.c",
+          "loc": 193,
+          "sha256": "d75e0b6e118d7836b72e391e7b7cc7bc980543d98c55b6ccb1abca7626aead33"
+        },
+        {
+          "file": "polyglot-core/c/main.c",
+          "loc": 69,
+          "sha256": "e6f890b9c295ee2f1f90bd1caa02e787da4a08f70b644a1227e2fb672f49a56d"
+        }
+      ]
+    },
+    "Rust": {
+      "status": "PASS",
+      "loc": 156,
+      "files": [
+        {
+          "file": "polyglot-core/rust/src/lib.rs",
+          "loc": 139,
+          "sha256": "79dfcc3194a5ea8c6b94dbfd5856c393eb643adc74406a0282e72c6b506ed7c3"
+        },
+        {
+          "file": "polyglot-core/rust/Cargo.toml",
+          "loc": 17,
+          "sha256": "882f3bd22ae2af31412c43cfeaa1dbc5d74a16b5183691967a44f8c481fa0620"
+        }
+      ]
+    },
+    "Zig": {
+      "status": "PASS",
+      "loc": 77,
+      "files": [
+        {
+          "file": "polyglot-core/zig/v12_engine.zig",
+          "loc": 77,
+          "sha256": "021216dc7560b54dc93db7f82d0ae858c6d9f96fc698d9f950dc133e376db8b3"
+        }
+      ]
+    },
+    "Go": {
+      "status": "PASS",
+      "loc": 198,
+      "files": [
+        {
+          "file": "polyglot-core/go/engine.go",
+          "loc": 198,
+          "sha256": "506f011f785c4f5f979e594f4a137e74ef5a0695d51124e53152e3d9caf406a4"
+        }
+      ]
+    },
+    "Python": {
+      "status": "PASS",
+      "loc": 243,
+      "files": [
+        {
+          "file": "polyglot-core/python/v12_engine.py",
+          "loc": 243,
+          "sha256": "5b076f1df21a874f7f77e93ca21e0ac520b96eb00aec766f1995cbcc9d99e07d"
+        }
+      ]
+    },
+    "TypeScript": {
+      "status": "PASS",
+      "loc": 51,
+      "files": [
+        {
+          "file": "polyglot-core/typescript/v12_engine.ts",
+          "loc": 51,
+          "sha256": "cba57dd4054013bbe9bd015cd1e9132695ad73497c7beec20b944840a1a758a6"
+        }
+      ]
+    },
+    "JavaScript": {
+      "status": "PASS",
+      "loc": 6090,
+      "files": [
+        {
+          "file": "src/main.js",
+          "loc": 780,
+          "sha256": "30a13981c7fb0033c0b1a983bae910eb0c92f7ca1a3ad980a3857c4f789a8ee6"
+        },
+        {
+          "file": "src/engine/audio.js",
+          "loc": 500,
+          "sha256": "9bde9efd97f43f4cef525ef5b44543e32d7c257e997296f2b28474474f4b5c6e"
+        },
+        {
+          "file": "src/engine/kinematics.js",
+          "loc": 420,
+          "sha256": "21586e536eba87dea251df2a61c49d3b8fd11cd77a6721fbc728be0d22210941"
+        },
+        {
+          "file": "src/engine/scene3d.js",
+          "loc": 3315,
+          "sha256": "5ef0ada91244eba044c966be510e71bac97b9e22f4c0d6b578e995144f9834b0"
+        },
+        {
+          "file": "src/ui/telemetry.js",
+          "loc": 1075,
+          "sha256": "e37563ea8fbaee07d2c08a60ae46079b425de79d5431c81aa1d25b8ca58397ca"
+        }
+      ]
+    },
+    "HTML": {
+      "status": "PASS",
+      "loc": 1141,
+      "files": [
+        {
+          "file": "index.html",
+          "loc": 1141,
+          "sha256": "f74ed88ea235d42a8d8bbd0b412072f865c829c0e424990b93f89bacb4b57b8b"
+        }
+      ]
+    },
+    "CSS": {
+      "status": "PASS",
+      "loc": 1535,
+      "files": [
+        {
+          "file": "style.css",
+          "loc": 1535,
+          "sha256": "fc7f4ce4ef907cc62cabe1edeac1bac0e429b40a5e274115b3594674373d6d81"
+        }
+      ]
+    }
+  },
+  "source_file_hashes": {
+    "polyglot-core/c/v12_engine.h": "02305c3df6926958d9f0c7a27fc0a0d2c3d881b4f957fc13bb1eda8d5a20ea3f",
+    "polyglot-core/c/v12_engine.c": "d75e0b6e118d7836b72e391e7b7cc7bc980543d98c55b6ccb1abca7626aead33",
+    "polyglot-core/c/main.c": "e6f890b9c295ee2f1f90bd1caa02e787da4a08f70b644a1227e2fb672f49a56d",
+    "polyglot-core/rust/src/lib.rs": "79dfcc3194a5ea8c6b94dbfd5856c393eb643adc74406a0282e72c6b506ed7c3",
+    "polyglot-core/rust/Cargo.toml": "882f3bd22ae2af31412c43cfeaa1dbc5d74a16b5183691967a44f8c481fa0620",
+    "polyglot-core/zig/v12_engine.zig": "021216dc7560b54dc93db7f82d0ae858c6d9f96fc698d9f950dc133e376db8b3",
+    "polyglot-core/go/engine.go": "506f011f785c4f5f979e594f4a137e74ef5a0695d51124e53152e3d9caf406a4",
+    "polyglot-core/python/v12_engine.py": "5b076f1df21a874f7f77e93ca21e0ac520b96eb00aec766f1995cbcc9d99e07d",
+    "polyglot-core/typescript/v12_engine.ts": "cba57dd4054013bbe9bd015cd1e9132695ad73497c7beec20b944840a1a758a6",
+    "src/main.js": "30a13981c7fb0033c0b1a983bae910eb0c92f7ca1a3ad980a3857c4f789a8ee6",
+    "src/engine/audio.js": "9bde9efd97f43f4cef525ef5b44543e32d7c257e997296f2b28474474f4b5c6e",
+    "src/engine/kinematics.js": "21586e536eba87dea251df2a61c49d3b8fd11cd77a6721fbc728be0d22210941",
+    "src/engine/scene3d.js": "5ef0ada91244eba044c966be510e71bac97b9e22f4c0d6b578e995144f9834b0",
+    "src/ui/telemetry.js": "e37563ea8fbaee07d2c08a60ae46079b425de79d5431c81aa1d25b8ca58397ca",
+    "index.html": "f74ed88ea235d42a8d8bbd0b412072f865c829c0e424990b93f89bacb4b57b8b",
+    "style.css": "fc7f4ce4ef907cc62cabe1edeac1bac0e429b40a5e274115b3594674373d6d81"
+  },
+  "passed_all_criteria": true,
+  "cryptographic_signature_sha256": "5d0293f807544170d0f9d4d0ac365bbc94cb949aaf948d44ea5042f206146b86"
+}
