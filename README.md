@@ -15,7 +15,24 @@
 [![Web Audio](https://img.shields.io/badge/Web_Audio-API-ff453a.svg?style=flat-square)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
 [![Design](https://img.shields.io/badge/Design-Apple_Pro_System-86868b.svg?style=flat-square)](https://www.apple.com)
 [![Thermodynamics](https://img.shields.io/badge/Thermodynamics-Prof._V._Ganesan_IC_Engines-34c759.svg?style=flat-square)](https://www.mheducation.co.in)
+[![IBR Achiever](https://img.shields.io/badge/Record-IBR_Achiever_2028-ff9933.svg?style=flat-square&logo=target)](https://indiabookofrecords.in)
+[![IBR App ID](https://img.shields.io/badge/IBR_App_ID-18106-blue.svg?style=flat-square)](https://indiabookofrecords.in)
 [![License: MIT](https://img.shields.io/badge/License-MIT-30d158.svg?style=flat-square)](./LICENSE)
+
+---
+
+## 🏆 National Recognition: India Book of Records (IBR Achiever)
+
+This interactive 3D V12 engine platform was officially selected and titled under **‘IBR Achiever’** by the **India Book of Records** (Application ID: **18106**).
+
+> **Official Record Citation:**  
+> *"Pavan Kumar S. (born on November 26, 2005) of Chikkamagaluru, Karnataka, is titled as ‘IBR Achiever’ for creating and publishing an interactive web-based 3D V12 engine simulation on GitHub Pages, as confirmed on September 16, 2026."*  
+> — **Editorial Board, India Book of Records (2028 Edition)**
+
+* **Category:** IBR Achiever  
+* **Application ID:** 18106  
+* **Record Subject:** Web-based Interactive 3D V12 Powertrain Simulation & Digital Twin  
+* **Live Deployment:** [https://hrlpavan.github.io/hrl-v12-engine/](https://hrlpavan.github.io/hrl-v12-engine/)
 
 ---
 
