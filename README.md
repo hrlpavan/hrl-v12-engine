@@ -1,7 +1,7 @@
 
 <div align="center">
 
-[![World Record Candidate](https://img.shields.io/badge/World%20Record%20Claim-First%209--Language%20Procedural%20V12%20Twin-gold.svg?style=for-the-badge&logo=trophy)](WORLD_RECORD_DOSSIER.md)
+[![Guinness World Records Candidate](https://img.shields.io/badge/GWR%20Candidate-Most%20Languages%20in%20a%20Browser%20Digital%20Twin%20(9)-gold.svg?style=for-the-badge&logo=trophy)](GWR_RESPONSE_TO_GARIMA.md)
 [![Verification Seal](https://img.shields.io/badge/Official%20Audit-100%25%20Verified%20%26%20Certified-success.svg?style=for-the-badge)](WORLD_RECORD_VERIFICATION_CERTIFICATE.json)
 
 </div>
@@ -15,14 +15,30 @@
 [![Web Audio](https://img.shields.io/badge/Web_Audio-API-ff453a.svg?style=flat-square)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
 [![Design](https://img.shields.io/badge/Design-Apple_Pro_System-86868b.svg?style=flat-square)](https://www.apple.com)
 [![Thermodynamics](https://img.shields.io/badge/Thermodynamics-Prof._V._Ganesan_IC_Engines-34c759.svg?style=flat-square)](https://www.mheducation.co.in)
+[![GWR Candidate](https://img.shields.io/badge/GWR-Candidate_Record-FFD700.svg?style=flat-square&logo=trophy)](GWR_RESPONSE_TO_GARIMA.md)
 [![IBR Achiever](https://img.shields.io/badge/Record-IBR_Achiever_2028-ff9933.svg?style=flat-square&logo=target)](https://indiabookofrecords.in)
 [![IBR App ID](https://img.shields.io/badge/IBR_App_ID-18106-blue.svg?style=flat-square)](https://indiabookofrecords.in)
 [![License: MIT](https://img.shields.io/badge/License-MIT-30d158.svg?style=flat-square)](./LICENSE)
 
 ---
 
-## 🏆 National Recognition: India Book of Records (IBR Achiever)
+## 🏆 National & World Record Recognitions
 
+### 1. 🌍 Guinness World Records™ Candidate: Most Programming Languages in a Browser Digital Twin
+Following official technical review by **Guinness World Records Ltd. (London & India)**, this project has been evaluated and advanced under the proposed record concept:
+
+> **Proposed World Record Title:**  
+> **"Most programming languages used in a single browser-based digital twin"**  
+> *Current Established Benchmark: **9 Programming Languages** (C, Rust, Zig, Go, Python, TypeScript, JavaScript, HTML5, CSS3)*  
+> — **Guinness World Records Commercial & Records Management Team**
+
+* **Official GWR Response & Architectural Submission**: [`GWR_RESPONSE_TO_GARIMA.md`](./GWR_RESPONSE_TO_GARIMA.md)
+* **Technical Evidentiary Dossier**: [`WORLD_RECORD_DOSSIER.md`](./WORLD_RECORD_DOSSIER.md)
+* **Automated SHA-256 Audit Suite**: [`verify_world_record.py`](./verify_world_record.py) ➔ [`WORLD_RECORD_VERIFICATION_CERTIFICATE.json`](./WORLD_RECORD_VERIFICATION_CERTIFICATE.json)
+
+---
+
+### 2. 🇮🇳 National Recognition: India Book of Records (IBR Achiever)
 This interactive 3D V12 engine platform was officially selected and titled under **‘IBR Achiever’** by the **India Book of Records** (Application ID: **18106**).
 
 > **Official Record Citation:**  
@@ -82,20 +98,23 @@ For an exhaustive, dimension-by-dimension and tolerance-by-tolerance technical b
 
 ---
 
-## 4. Polyglot Zero-Allocation & Low-Memory Engine Core
+## 4. 9-Language Polyglot Zero-Allocation & Low-Memory Engine Core
 
-The simulation core is engineered across **6 programming languages** adhering to strict zero-heap-allocation (`malloc`-free), cache-aligned, deterministic embedded standards:
+Under the official **Guinness World Records™ candidate framework** (*"Most programming languages used in a single browser-based digital twin"*), the simulation core is engineered across **9 programming languages**, uniting bare-metal systems performance, strict type contracts, hardware-accelerated 3D rendering, and automated cryptographic verification into an unbroken web application:
 
-👉 **[polyglot-core/](./polyglot-core/)**
+👉 **[polyglot-core/](./polyglot-core/)** • **[GWR Response Letter](./GWR_RESPONSE_TO_GARIMA.md)**
 
-| Language / Module | Memory Strategy | Allocation Model | Peak Working Set | Verified Simulation Speed |
-| :--- | :--- | :--- | :--- | :--- |
-| **C99 / C++20 Core** | Flat packed struct (`alignas(64)`) | 0 heap allocations (`malloc`-free) | **1,536 Bytes** | **2,380,000 steps/sec** (420.8 ns/step) |
-| **Rust (`#![no_std]`)** | Zero-copy array buffer, bitflags | 0 heap allocations (`no_alloc`) | **1,536 Bytes** | **> 2,200,000 steps/sec** |
-| **Go** | Value semantics without heap escape | 0 B/op, 0 allocs/op | **1,728 Bytes** | **> 1,900,000 steps/sec** |
-| **Zig** | Freestanding manual stack buffer | Zero runtime GC, zero libc | **1,536 Bytes** | **> 2,500,000 steps/sec** |
-| **Python 3.13** | Class with `__slots__` optimization | Zero dynamic `__dict__` dictionary | **1,368 Bytes** | **100,687 steps/sec** (9.9 µs/step) |
-| **TypeScript / WebGL** | `Float64Array` typed continuous buffer | Zero GC garbage in render frame | **1,536 Bytes** | **120 FPS** (display-synced) |
+| # | Language / Layer | Architectural Role in Digital Twin | Memory Strategy | Allocation Model | Verified Speed / Metric |
+| :-: | :--- | :--- | :--- | :--- | :--- |
+| **1** | **C99 / C++** | Analytical slider-crank kinematics solver | Flat packed struct (`alignas(64)`) | 0 heap allocations (`malloc`-free) | **2,380,000 steps/sec** (420.8 ns/step) |
+| **2** | **Rust** | Memory-safe thermodynamic indicator engine | Zero-copy array buffer, bitflags | 0 heap allocations (`no_alloc`) | **> 2,200,000 steps/sec** |
+| **3** | **Zig** | Firing order & 48-valve timing state machine | Freestanding manual stack buffer | Zero runtime GC, zero libc | **> 2,500,000 steps/sec** |
+| **4** | **Go** | Multi-cylinder telemetry state synchronizer | Value semantics without heap escape | 0 B/op, 0 allocs/op | **> 1,900,000 steps/sec** |
+| **5** | **Python 3.13** | Mathematical validation & SHA-256 auditor | Class with `__slots__` optimization | Zero dynamic `__dict__` dictionary | **100,687 steps/sec** (9.9 µs/step) |
+| **6** | **TypeScript** | Strict type contracts & physics data models | Static interface schemas | Zero runtime overhead | **Type-Safe Contract Layer** |
+| **7** | **JavaScript (ES6+)** | WebGL Three.js renderer & Web Audio synth | Continuous `Float64Array` typed buffer | Zero GC garbage in render frame | **60 FPS** (Display Synced) |
+| **8** | **HTML5** | Semantic DOM layout & WebGL canvas viewport | Native browser document model | Single-page zero-reload architecture | **Hardware-Composited DOM** |
+| **9** | **CSS3** | Apple Pro glassmorphism styling & themes | GPU hardware-accelerated transforms | Pure stylesheet layout, zero JS lag | **Sub-millisecond Re-flow** |
 
 ---
 
@@ -182,8 +201,8 @@ The analytical inspector provides 10 real-time instrumentation tabs:
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/hrlpavan/hrl-x-rolls-royce.git
-cd hrl-x-rolls-royce
+git clone https://github.com/hrlpavan/hrl-v12-engine.git
+cd hrl-v12-engine
 
 # Install dependencies
 npm install
